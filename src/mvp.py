@@ -63,6 +63,7 @@ def vrp(realized_volatility_forecast, implied_volatility):
     volatility_risk_premium = realized_volatility_forecast - implied_volatility
     return volatility_risk_premium
 
+
 # for i in range(10): # loop to simulate multiple time periods
 #     if vrp(realized_volatility_forecast, implied_volatility) > THRESHOLD_HIGH:
 #         print("IV OVER = Short Gamma = BUY ATM straddle.")

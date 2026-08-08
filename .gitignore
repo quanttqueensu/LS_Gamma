@@ -216,3 +216,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# QUANTT gamma desk — pipeline data
+# 11 GB raw mirror plus derived parquet. Reproducible from the R2 bucket,
+# and the WRDS-sourced data is licensed to Queen's, not redistributable.
+**/data/
+**/_raw_mirror/
+*.parquet
+*.zip
+
+.env.*
+!.env.example

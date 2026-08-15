@@ -227,6 +227,7 @@ __marimo__/
 
 .env.*
 !.env.example
+.DS_Store
 
 Cloudfare/
 MVP_do_not_use/data/

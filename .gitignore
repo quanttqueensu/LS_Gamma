@@ -227,3 +227,6 @@ __marimo__/
 
 .env.*
 !.env.example
+
+Cloudfare/
+MVP_do_not_use/data/

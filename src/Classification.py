@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 
-LG_THRESHOLD_HIGH = 0.02
+LG_THRESHOLD_HIGH = 0.05
 SG_THRESHOLD_LOW = -0.02
 
 LONG_GAMMA = "long_gamma"

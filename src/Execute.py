@@ -127,7 +127,7 @@ def main(date=None, capital=CAPITAL, dry_run=DRY_RUN, send=False):
     chain = load_chain(signal["date"])
     position, reason = build_position(signal, chain, capital)
 
-    print(f"{signal['date']:%Y-%m-%d}  regime={signal['regime']}  vrp={signal['vrp']:+.4f}")
+    print(f"{signal['date']:%Y-%m-%d}  regime={signal['regime']}  spread={signal['spread_atm']:+.4f}")
 
     if position is None:
         print(f"no position: {reason}")

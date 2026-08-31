@@ -1,26 +1,62 @@
+from pathlib import Path
+
 import pandas as pd
 
-DATA = "Data/data"
+import features as F
+
 TRAIN_END = "2021-12-31"
+JOIN_COLUMNS = ["regime", "spread_atm", "iv_atm", "rv_forecast"]
+TARGET_COLUMNS = ["rv_forward", "vrp_realized_atm"]
 
-ev = pd.read_parquet(f"{DATA}/signals/realized_forward_EVALUATION_ONLY.parquet")
-ev = ev[ev["target_dte"] == 28].copy()
-ev["date"] = pd.to_datetime(ev["date"])
 
-sig = pd.read_parquet(f"{DATA}/signals/regimes.parquet")
-sig["date"] = pd.to_datetime(sig["date"])
+def load(data_dir=F.DATA, tenor=F.PRIMARY_TENOR, train_end=TRAIN_END):
+    sig = pd.read_parquet(Path(data_dir) / "signals" / "regimes.parquet")
+    sig["date"] = F.to_dates(sig["date"])
+    sig = sig.set_index("date")
 
-j = sig[["date", "regime", "vrp", "iv_atm", "rv_forecast"]].merge(
-    ev[["date", "rv_forward", "vrp_realized_atm"]], on="date").dropna()
-train = j[j["date"] <= TRAIN_END]
+    j = sig[JOIN_COLUMNS].join(
+        F.targets(data_dir, tenor)[TARGET_COLUMNS], how="inner").dropna()
+    j["error"] = j["rv_forecast"] - j["rv_forward"]
+    return j[j.index <= train_end] if train_end else j
 
-print(f"{len(train)} training days\n")
-print("realized VRP by regime (negative = realized beat implied)")
-print(train.groupby("regime")["vrp_realized_atm"].agg(["count", "mean", "median"]).round(4))
-print()
-print("fraction of days where realized beat implied")
-print(train.groupby("regime")["vrp_realized_atm"].apply(lambda s: (s < 0).mean()).round(3))
-print()
-print("forecast error by regime")
-train = train.assign(err=train["rv_forecast"] - train["rv_forward"])
-print(train.groupby("regime")["err"].agg(["mean", "std"]).round(4))
+
+def by_regime(df):
+    return {
+        "realized_vrp": df.groupby("regime")["vrp_realized_atm"]
+            .agg(["count", "mean", "median"]).round(4),
+        "loss_rate": df.groupby("regime")["vrp_realized_atm"]
+            .apply(lambda s: (s < 0).mean()).round(3),
+        "forecast_error": df.groupby("regime")["error"]
+            .agg(["mean", "std"]).round(4),
+    }
+
+
+def main(argv=None):
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--data", default=str(F.DATA))
+    ap.add_argument("--tenor", type=int, default=F.PRIMARY_TENOR)
+    ap.add_argument("--train-end", default=TRAIN_END)
+    a = ap.parse_args(argv)
+
+    df = load(Path(a.data), a.tenor, a.train_end)
+    tables = by_regime(df)
+
+    print(f"{len(df)} days  {df.index.min().date()} to {df.index.max().date()}")
+    print(f"base rate: premium positive {(df['vrp_realized_atm'] > 0).mean():.1%}\n")
+
+    print("realized VRP by regime  (positive = implied exceeded realized)")
+    print(tables["realized_vrp"].to_string())
+    print("\nfraction of days where realized beat implied  (bad for short gamma)")
+    print(tables["loss_rate"].to_string())
+    print("\nforecast error by regime  (positive = over-forecast)")
+    print(tables["forecast_error"].to_string())
+    print("\nunconditional forecast error")
+    print(f"  mean   {df['error'].mean():+.4f}")
+    print(f"  median {df['error'].median():+.4f}")
+    return df
+
+
+if __name__ == "__main__":
+    main()

@@ -4,6 +4,7 @@ import pandas as pd
 
 import features as F
 from Classification import LG_THRESHOLD, SG_THRESHOLD, classify_frame
+from Forecast_Models import vrp_model as V
 
 DATA = F.DATA
 TENOR = F.PRIMARY_TENOR
@@ -20,8 +21,18 @@ DERIVED = ["rv_trailing", "rv_forecast", "forecast_model",
 COLUMNS = ["date"] + PASSTHROUGH + DERIVED
 
 
+# vrp_hat is fitted against the quarantined eval file. predict_pit enforces
+# the embargo that keeps it point-in-time, and test_vrp_model.py proves it.
+# opt in explicitly; the column is absent unless a spec is named.
+def add_vrp_hat(out, data_dir, tenor, spec):
+    df = F.aligned(data_dir, tenor)
+    out["vrp_hat"] = V.predict_pit(df, V.SPECS[spec]).reindex(out.index)
+    return out
+
+
 def build(data_dir=DATA, tenor=TENOR, forecast=FORECAST,
-          lg_threshold=LG_THRESHOLD, sg_threshold=SG_THRESHOLD):
+          lg_threshold=LG_THRESHOLD, sg_threshold=SG_THRESHOLD,
+          vrp_spec=None):
     ctx = F.Context(data_dir, tenor)
     col = f"rv_forecast_{forecast}"
     f = F.features(ctx=ctx, names=["rv_trailing", col])
@@ -37,7 +48,11 @@ def build(data_dir=DATA, tenor=TENOR, forecast=FORECAST,
 
     out = classify_frame(out, lg_threshold=lg_threshold,
                          sg_threshold=sg_threshold)
-    return out.rename_axis("date").reset_index()[COLUMNS]
+    cols = list(COLUMNS)
+    if vrp_spec:
+        out = add_vrp_hat(out, data_dir, tenor, vrp_spec)
+        cols.append("vrp_hat")
+    return out.rename_axis("date").reset_index()[cols]
 
 
 def summarise(out):
@@ -62,11 +77,12 @@ def main(argv=None):
                     choices=["garch", "ewma"])
     ap.add_argument("--lg-threshold", type=float, default=LG_THRESHOLD)
     ap.add_argument("--sg-threshold", type=float, default=SG_THRESHOLD)
+    ap.add_argument("--vrp-spec", default=None, choices=sorted(V.SPECS))
     ap.add_argument("--out", default=None)
     a = ap.parse_args(argv)
 
     out = build(Path(a.data), a.tenor, a.forecast,
-                a.lg_threshold, a.sg_threshold)
+                a.lg_threshold, a.sg_threshold, a.vrp_spec)
     path = Path(a.out) if a.out else OUT
     path.parent.mkdir(parents=True, exist_ok=True)
     out.to_parquet(path, index=False)

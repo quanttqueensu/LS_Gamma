@@ -13,6 +13,11 @@ AGENTS = {
     "agent3_stops": dict(force_regime="short_gamma", structure="straddle",
                          hedge=True, use_stops=True),
     "strategy": dict(),
+    # regime driven by the fitted vrp_hat column instead of the raw spread;
+    # requires signals.py --vrp-spec, otherwise the column is absent and
+    # pick_regime falls back to the precomputed regime
+    "switch_vrp": dict(structure="straddle", hedge=True, use_stops=False,
+                       lg_threshold=0.0, sg_threshold=0.0),
 }
 
 FIELDS = ["total_pnl", "sharpe", "sortino", "max_drawdown", "trades",
@@ -73,6 +78,7 @@ if __name__ == "__main__":
     print("  agent2_hedge   always short straddle, WITH hedge")
     print("  agent3_stops   always short straddle, hedge + stops")
     print("  strategy       full: switching + strangle wings + hedge + stops")
+    print("  switch_vrp     straddle + hedge, regime from fitted vrp_hat")
 
     if a.detail:
         print()

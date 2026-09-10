@@ -75,7 +75,7 @@ def _score(m, objective):
 
 
 def usable_days(loaded, start=None, end=None):
-    points, _, spot, sig = loaded
+    points, _, spot, sig, *_ = loaded
     days = sorted(set(points["date"]) & set(spot.index) & set(sig.index))
     if start:
         days = [d for d in days if d >= pd.Timestamp(start)]

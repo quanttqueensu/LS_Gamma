@@ -3,6 +3,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+import marks
+from Classification import classify
+
 CAPITAL = 50_000
 CONTRACTS = 1
 TARGET_DTE = 28
@@ -15,6 +18,8 @@ BAND_LONG = 0.10
 BAND_SHORT = 0.15
 STOP_LONG = 0.50
 STOP_SHORT = 0.30
+
+MARK_MODE = marks.FALLBACK
 
 OPTION_SPREAD = 0.075
 COMMISSION = 0.65
@@ -50,7 +55,7 @@ def load(data_dir, max_dte=MAX_HOLD_DTE):
     sig["date"] = pd.to_datetime(sig["date"])
     sig = sig.sort_values("date").set_index("date")
 
-    return points, quotes, spot, sig
+    return points, quotes, spot, sig, marks.SmilePricer(data_dir)
 
 
 def pick_expiry(points, date, target=TARGET_DTE, tol=DTE_TOLERANCE):
@@ -92,23 +97,57 @@ def pick_strikes(points, date, expiry, regime, spot_px, structure=None):
     return [("P", kp, sign), ("C", kc, sign)]
 
 
-def mark(quotes, date, expiry, legs, last):
+# thresholds opt in to the fitted vrp_hat column; without them the
+# precomputed regime column is used exactly as before
+def pick_regime(sig, date, force_regime=None,
+                lg_threshold=None, sg_threshold=None):
+    if force_regime:
+        return force_regime
+    if lg_threshold is not None and "vrp_hat" in sig.columns:
+        return classify(sig["vrp_hat"].get(date), None,
+                        lg_threshold, sg_threshold)
+    return sig["regime"].get(date)
+
+
+def leg_mark(quotes, pricer, mode, date, expiry, strike, right, spot):
+    if mode != marks.MODEL:
+        hit = quotes.get((date, expiry, strike, right))
+        if hit is not None and np.isfinite(hit[0]):
+            px, _, dl = hit
+            if not np.isfinite(dl) and pricer is not None:
+                m = pricer(date, expiry, strike, right, spot)
+                dl = m[1] if m is not None else np.nan
+            return float(px), float(dl)
+    if pricer is not None and mode != marks.PRINT:
+        return pricer(date, expiry, strike, right, spot)
+    return None
+
+
+def mark(quotes, date, expiry, legs, last, pricer=None, mode=MARK_MODE,
+         spot=None):
     prices, deltas, stale = [], [], False
     for right, strike, _ in legs:
-        key = (date, expiry, strike, right)
-        hit = quotes.get(key)
-        if hit is None or not np.isfinite(hit[0]):
-            prev = last.get((expiry, strike, right))
+        key = (expiry, strike, right)
+        got = leg_mark(quotes, pricer, mode, date, expiry, strike, right, spot)
+        if got is None:
+            prev = last.get(key)
             if prev is None:
                 return None, None, True
-            price, dl = prev
-            stale = True
-        else:
-            price, _, dl = hit
-            if not np.isfinite(dl):
-                dl = last.get((expiry, strike, right), (price, 0.0))[1]
-            last[(expiry, strike, right)] = (price, dl)
-        prices.append(price)
+            got, stale = prev, True
+
+        px, dl = got
+        # a mark below intrinsic violates no-arbitrage, so floor it whatever
+        # its source: a stale or thin print is exactly where this bites
+        if pricer is not None:
+            floor = pricer.intrinsic(date, expiry, strike, right)
+            if floor is not None and np.isfinite(floor):
+                px = max(px, floor)
+        if not np.isfinite(dl):
+            prev = last.get(key)
+            dl = prev[1] if prev is not None else 0.0
+
+        last[key] = (px, dl)
+        prices.append(px)
         deltas.append(dl)
     return np.array(prices), np.array(deltas), stale
 
@@ -131,8 +170,10 @@ def run(data_dir, start=None, end=None, cost_mult=1.0, hedge=True,
         contracts=CONTRACTS, capital=CAPITAL,
         band_long=BAND_LONG, band_short=BAND_SHORT, loaded=None,
         force_regime=None, structure=None, use_stops=True,
-        target_dte=TARGET_DTE, exit_dte=EXIT_DTE):
-    points, quotes, spot, sig = loaded if loaded is not None else load(data_dir)
+        target_dte=TARGET_DTE, exit_dte=EXIT_DTE,
+        lg_threshold=None, sg_threshold=None, mark_mode=MARK_MODE):
+    points, quotes, spot, sig, pricer = (
+        loaded if loaded is not None else load(data_dir))
 
     days = sorted(set(points["date"]) & set(spot.index) & set(sig.index))
     if start:
@@ -152,7 +193,9 @@ def run(data_dir, start=None, end=None, cost_mult=1.0, hedge=True,
         action = ""
 
         if pos is not None:
-            prices, deltas, stale = mark(quotes, date, pos["expiry"], pos["legs"], last)
+            prices, deltas, stale = mark(
+                quotes, date, pos["expiry"], pos["legs"], last,
+                pricer, mark_mode, spot_px)
             if prices is None:
                 daily.append({"date": date, "pnl": 0.0, "equity": equity,
                               "in_position": True, "action": "no_mark"})
@@ -199,13 +242,16 @@ def run(data_dir, start=None, end=None, cost_mult=1.0, hedge=True,
                 pos["cost_cum"] += cost
 
         if pos is None and i > 0:
-            regime = force_regime or sig["regime"].get(days[i - 1])
+            regime = pick_regime(sig, days[i - 1], force_regime,
+                                 lg_threshold, sg_threshold)
             if regime in ("long_gamma", "short_gamma"):
                 expiry, dte = pick_expiry(points, date, target_dte)
                 legs = (pick_strikes(points, date, expiry, regime, spot_px, structure)
                         if expiry else None)
                 if legs:
-                    prices, deltas, stale = mark(quotes, date, expiry, legs, last)
+                    prices, deltas, stale = mark(
+                        quotes, date, expiry, legs, last,
+                        pricer, mark_mode, spot_px)
                     if prices is not None:
                         value = position_value(prices, legs, contracts)
                         cost += option_cost(legs, contracts, cost_mult)

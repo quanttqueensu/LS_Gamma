@@ -5,7 +5,7 @@ import pandas as pd
 
 from Forecast_Models import vrp_model as V
 
-N = 800
+N = 800in
 CUT = 600
 WIN = 19
 

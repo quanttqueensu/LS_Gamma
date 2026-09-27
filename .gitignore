@@ -233,3 +233,6 @@ Cloudfare/
 MVP_do_not_use/data/
 # Backtest outputs
 results/
+
+# Claude Code workspace (local only)
+.claude/

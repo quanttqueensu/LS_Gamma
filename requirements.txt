@@ -1,0 +1,4 @@
+arch==8.0.0
+ib_async==2.1.0
+numpy==2.4.6
+pandas==3.0.3

@@ -56,6 +56,7 @@ git clone https://github.com/quanttqueensu/LS_Gamma.git
 cd LS_Gamma
 python3 -m venv venv
 source venv/bin/activate
+pip install -r requirements.txt
 ```
 
 
@@ -66,4 +67,4 @@ source venv/bin/activate
 ------
 *PM: Gabriel Soler*
 
-*Members: TDB*
+*Members: TBD*

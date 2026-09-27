@@ -3,6 +3,7 @@
 Algos only describe their legs. This module connects to TWS/Gateway,
 prices the legs, and sends them as a single order (a combo order when
 there is more than one leg, so every leg fills together or not at all).
+Hedgers in Hedging/ decide share targets and send them via submit_stock().
 """
 
 import math
@@ -152,6 +153,16 @@ def submit(ib, legs, quantity, slippage=0.0, underlying=UNDERLYING, tif="DAY"):
     return ib.placeOrder(contract, order)
 
 
+def submit_stock(ib, shares, underlying=UNDERLYING):
+    """Market order for `shares` of the underlying. Positive = buy, negative = sell."""
+    if shares == 0:
+        raise ValueError("shares must be non-zero")
+    stock = Stock(underlying, EXCHANGE, CURRENCY)
+    ib.qualifyContracts(stock)
+    order = MarketOrder("BUY" if shares > 0 else "SELL", abs(shares))
+    return ib.placeOrder(stock, order)
+
+
 def wait_for_fill(ib, trade, timeout=30):
     waited = 0.0
     while not trade.isDone() and waited < timeout:
@@ -170,37 +181,3 @@ def status(trade):
         "filled": trade.orderStatus.filled,
         "avg_fill": trade.orderStatus.avgFillPrice,
     }
-
-
-# delta heding
-
-def portfolio_delta(ib, underlying=UNDERLYING):
-    delta = 0.0
-    options = []
-    for p in ib.positions():
-        c = p.contract
-        if c.symbol != underlying:
-            continue
-        if c.secType == "STK":
-            delta += p.position
-        elif c.secType == "OPT":
-            c.exchange = EXCHANGE
-            options.append((c, p.position))
-
-    if options:
-        tickers = ib.reqTickers(*[c for c, _ in options])
-        for (c, qty), t in zip(options, tickers):
-            if t.modelGreeks is None or t.modelGreeks.delta is None:
-                raise ValueError(f"no delta for {c.localSymbol}")
-            delta += t.modelGreeks.delta * qty * MULTIPLIER
-    return delta
-
-
-def hedge_delta(ib, underlying=UNDERLYING, min_shares=1):
-    shares = -round(portfolio_delta(ib, underlying))
-    if abs(shares) < min_shares:
-        return None
-    stock = Stock(underlying, EXCHANGE, CURRENCY)
-    ib.qualifyContracts(stock)
-    order = MarketOrder("BUY" if shares > 0 else "SELL", abs(shares))
-    return ib.placeOrder(stock, order)

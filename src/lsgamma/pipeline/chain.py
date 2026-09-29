@@ -9,6 +9,7 @@ from ib_async import Option, Stock
 from lsgamma.core.Algos import broker
 
 BATCH = 50  # stays under IBKR's 100 market data lines
+WAIT = 5.0  # max seconds per batch for delayed quotes and greeks to arrive
 
 COLUMNS = ["asof", "expiry", "dte", "strike", "right", "bid", "ask", "mid",
            "iv", "delta", "gamma", "vega", "theta", "und_price"]
@@ -23,6 +24,27 @@ def _mid(ticker):
         return broker.mid(ticker)
     except ValueError:
         return math.nan
+
+
+def _complete(t):
+    return (not math.isnan(_price(t.bid)) and not math.isnan(_price(t.ask))
+            and t.modelGreeks is not None and t.modelGreeks.delta is not None)
+
+
+def _stream(ib, contracts, wait=WAIT):
+    """Stream quotes until every ticker has bid/ask and greeks, or `wait` runs out.
+
+    A reqTickers snapshot returns before most delayed quotes arrive, so we
+    stream briefly instead and then cancel.
+    """
+    tickers = [ib.reqMktData(c, "", False, False) for c in contracts]
+    waited = 0.0
+    while waited < wait and not all(_complete(t) for t in tickers):
+        ib.sleep(0.5)
+        waited += 0.5
+    for c in contracts:
+        ib.cancelMktData(c)
+    return tickers
 
 
 def spot(ib, underlying=broker.UNDERLYING):
@@ -68,7 +90,7 @@ def option_chain(ib, min_dte=1, max_dte=60, strike_pct=0.10, fridays_only=True):
 
     rows = []
     for i in range(0, len(opts), BATCH):
-        for t in ib.reqTickers(*opts[i:i + BATCH]):
+        for t in _stream(ib, opts[i:i + BATCH]):
             c, g = t.contract, t.modelGreeks
             expiry = datetime.strptime(c.lastTradeDateOrContractMonth, "%Y%m%d").date()
             rows.append({

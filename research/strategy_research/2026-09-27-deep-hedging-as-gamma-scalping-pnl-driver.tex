@@ -1,0 +1,312 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Deep Hedging as the Mechanical P\&L Driver for Gamma Scalping}
+\author{Strategy research \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-09-27}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Question:} how can reinforcement learning hedging, aka deep hedging be used as the  mechanical PnL driver  for gamma scalping
+
+\textbf{Method:} Searched all 21 papers in \texttt{docs/\allowbreak{}papers/\allowbreak{}} (page-tagged index) + web search. Quotes verified against the cited PDF pages. Page numbers are PDF pages; printed page numbers are given where they differ.
+
+\section{Short answer}
+
+Deep hedging can serve as the mechanical P\&L driver for gamma scalping, but only if you change what it's trained to do. In the papers, deep hedging usually minimizes the risk of an option you're hedging. For scalping, the training objective has to become the risk-adjusted P\&L of the delta-hedged position after costs. Only OPHR in the library does that (PRISM proposes it).
+
+The edge itself still comes from realized vol differing from implied vol. What the hedging rule controls is how much of that difference you actually capture, and what it costs. The papers point to three places an RL hedger beats a fixed delta-hedging rule:
+
+\begin{enumerate}
+
+\item \textbf{Costs:} it holds back on trades that aren't worth their cost, e.g. staying slightly under- or over-hedged instead of always going exactly to zero delta.
+
+\item \textbf{Market path:} it hedges tightly when the market chops back and forth, and loosely when it trends.
+
+\item \textbf{Forward-looking inputs:} it can use the IV surface and the volatility risk premium when deciding what to do.
+
+\end{enumerate}
+
+The main risk: once profit is rewarded, the agent can quietly start taking directional bets. Whether it does depends on how strongly the objective penalizes bad outcomes.
+
+\section{What the papers say}
+
+\subsection{For long gamma, hedging is how the P\&L is produced}
+
+\begin{itemize}
+
+\item OPHR states the mechanism directly, and says it differs between long and short gamma:
+
+\begin{quote}``For long Gamma positions, it acts as a profit mechanism through \ensuremath{\Gamma} scalping---systematically buying low and selling high as price fluctuations alter \ensuremath{\Delta} values. For short \ensuremath{\Gamma} positions, it primarily mitigates risk by neutralizing directional exposure.'' (Chen, Cai, Qin \& An, \emph{OPHR}, p. 4)\end{quote}
+
+\item The same realized vol can give different P\&L depending on the path the price takes, which is why the choice of hedging rule matters:
+
+\begin{quote}``In oscillating markets, hedging locks in profits when prices return to original levels, while in trending markets, hedging may limit potential gains as prices move consistently in one direction.'' (\emph{OPHR}, p. 4)\end{quote}
+
+\item A good RV forecast alone doesn't produce good P\&L. OPHR says the machine-learning forecasting baselines struggled because:
+
+\begin{quote}``they fail to bridge the gap between forecasting RV and optimizing path-dependent PnL outcomes in options trading'' (\emph{OPHR}, p. 9)\end{quote}
+
+\end{itemize}
+
+\subsection{The trade-off an RL hedger must beat: hedging frequency against transaction costs}
+
+\begin{itemize}
+
+\item Sepp gives a closed-form benchmark for delta hedging when you can only hedge at discrete times and pay costs:
+
+\begin{quote}``rebalancing the delta-hedge as little as possible increases expected profit. On the other hand, infrequent rebalancing increases P\&L volatility.'' (Sepp 2013, \emph{When You Hedge Discretely}, p. 3)\end{quote}
+
+At the frequency that maximizes Sharpe ratio:
+
+\begin{quote}``the expected transaction costs equal to the half of the expected P\&L. The optimal frequency is inversely proportional to the square of the transaction costs'' (Sepp, p. 12)\end{quote}
+
+and
+
+\begin{quote}``the higher is the premium, the more frequent hedging is possible and, as a result, the higher Sharpe ratio is attainable.'' (Sepp, p. 12)\end{quote}
+
+\item PRISM applies the same idea to a threshold on how far delta can drift before you rehedge. When realized vol is beating implied, it widens that threshold:
+
+\begin{quote}``gamma income partially compensates for the cost of rebalancing, so the urgency to rebalance is reduced.'' (Verma 2026, \emph{PRISM}, p. 21)\end{quote}
+
+It then proposes RL as the next step:
+
+\begin{quote}``a deep reinforcement learning layer that learns the optimal VRC bandwidth function directly from simulated P\&L'' (\emph{PRISM}, p. 40)\end{quote}
+
+\end{itemize}
+
+\subsection{What deep hedging adds over delta hedging}
+
+\begin{itemize}
+
+\item \textbf{General framework:}
+
+\begin{quote}``We present a framework for hedging a portfolio of derivatives in the presence of market frictions such as transaction costs, market impact, liquidity constraints or risk limits using modern deep reinforcement machine learning methods.'' (Buehler, Gonon, Teichmann \& Wood, \emph{Deep Hedging}, p. 1)\end{quote}
+
+\item \textbf{Cost-aware hedge sizes:}
+
+\begin{quote}``when delta hedging would require shares to be purchased, it tends to be optimal for a trader to be under-hedged relative to delta. Similarly, when delta hedging would require shares to be sold, it tends to be optimal for a trader to be over-hedged relative to delta.'' (Cao, Chen, Hull \& Poulos, \emph{Deep Hedging of Derivatives Using RL}, p. 2)\end{quote}
+
+and
+
+\begin{quote}``(Indeed, when trading costs are very high it may be optimal to do no hedging at all.)'' (Cao et al., p. 2)\end{quote}
+
+\item \textbf{Smaller trades and awareness of the volatility risk premium}, tested on real straddles:
+
+\begin{quote}``First, RL strategies typically rely on smaller trades.'' (François, Gauthier, Godin \& Pérez-Mendoza 2025, \emph{Deep Hedging with Options Using the IV Surface}, p. 3, printed p. 2)\end{quote}
+
+\begin{quote}``the RL agent learns and adapts to the time-varying variance risk premium, which is a key driver of hedging costs.'' (same, p. 4, printed p. 3)\end{quote}
+
+\item \textbf{Switching hedging style with the regime.} OPHR's hedger-routing agent picks from a set of hedgers that range from a normal threshold rule to never hedging:
+
+\begin{quote}``The red one has a finite threshold (less risk-seeking), and the blue one has an infinite threshold (never hedging, extreme risk-seeking).'' (\emph{OPHR}, p. 5)\end{quote}
+
+The result, in the authors' words:
+
+\begin{quote}``our HR-Agent optimizes performance by selecting appropriate hedging strategies that lock in profits during volatility spikes while minimizing costs during calmer markets.'' (\emph{OPHR}, p. 10)\end{quote}
+
+\end{itemize}
+
+\subsection{The danger: rewarding profit can turn hedging into speculation}
+
+\begin{itemize}
+
+\item How the objective weighs bad outcomes decides whether the agent is still hedging:
+
+\begin{quote}``We observe that the difference between deep hedging and delta hedging is a speculative overlay if the risk measure considered does not put sufficient relative weight on adverse outcomes.'' (François, Gauthier, Godin \& Pérez Mendoza 2024, \emph{Is the Difference \ldots{} a Statistical Arbitrage?}, p. 1)\end{quote}
+
+\begin{quote}``The deep hedging agent is incorporating a strong speculative element in its trading strategy, which is unsuitable in practice.'' (same, p. 10, printed p. 9)\end{quote}
+
+\item The IV-surface paper adds penalty terms to the reward specifically to prevent this:
+
+\begin{quote}``to ensure that the RL agent learns a true hedging strategy rather than engaging in speculative behavior, we introduce penalty terms in the reward function that discourages excessive risk-taking.'' (François et al. 2025, p. 3, printed p. 2)\end{quote}
+
+\end{itemize}
+
+\subsection{How strong the evidence is}
+
+\begin{itemize}
+
+\item \textbf{Real S\&P 500 data, walk-forward testing:} the RL agent beat delta hedging, but
+
+\begin{quote}``its performance deteriorates when the risk-awareness parameter is higher.'' (Bracha, Sakowski \& Michańków 2025, \emph{DRL for ATM S\&P 500 Options Hedging}, p. 2, printed p. 1)\end{quote}
+
+\item \textbf{Simple models may capture much of the gain:}
+
+\begin{quote}``However, a similar benefit arises by simple linear regressions that incorporate the leverage effect.'' (Ruf \& Wang, \emph{Hedging with Linear Regressions and Neural Networks}, p. 1)\end{quote}
+
+\item \textbf{A practical SPY framework reports weak statistical significance:}
+
+\begin{quote}``only the GAE policy's test-sample Sharpe is statistically distinguishable from zero'' (\emph{Deep Hedging with RL: A Practical Framework}, p. 1)\end{quote}
+
+\item \textbf{OPHR, the closest paper to the question, was tested on crypto options, not SPY:}
+
+\begin{quote}``Evaluating our approach using cryptocurrency options data from 2021-2024'' (\emph{OPHR}, p. 1)\end{quote}
+
+\end{itemize}
+
+\section{How the papers connect}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Paper} & \textbf{Builds on / agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
+\midrule
+Buehler et al., \emph{Deep Hedging} & The foundation & --- & Hedging with RL under costs, trained against a risk measure \\
+Cao, Chen, Hull \& Poulos & Buehler; Kolm \& Ritter & Uses a mean + standard-deviation objective & Cost-aware under- and over-hedging; P\&L measured at each step works better than tracking cash flows \\
+Bracha et al. & Buehler, Cao & Real intraday S\&P 500 data & RL beats delta hedging out of sample, less so when more risk-averse \\
+François et al. 2025 (IV surface) & Buehler; their own 2024 paper & Hedges with options as well as the underlying & Real straddles 2020--23; uses the volatility risk premium; smaller trades \\
+François et al. 2024 (statistical arbitrage) & Horikawa \& Nakagawa & GARCH market rather than a complete market & Loosely penalized objectives create a speculative overlay \\
+Sepp 2013 & Whalley \& Wilmott; Leland & Formulas, not RL & Optimal hedge frequency and thresholds; the benchmark to beat \\
+PRISM (whitepaper) & Whalley \& Wilmott; Sepp & Not peer-reviewed; results are simulated & A drift threshold that adapts to the regime; RL proposed as the next version \\
+OPHR & Buehler; Murray et al. 2022; Hull \& White & Optimizes profit, not risk; crypto & One agent picks long/short vol, another picks the hedger \\
+Ruf \& Wang & --- & Skeptical of neural networks & Linear regressions match them on S\&P options \\
+Cao et al. 2023 (gamma and vega) & Cao 2021 & Neutralizes gamma, the opposite of scalping it & Hedging choices depend on costs and the objective \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item \textbf{The papers split on the objective.} Most papers train the agent to \emph{reduce risk}. OPHR and PRISM train or propose training it to \emph{maximize P\&L}, which is what ``P\&L driver'' means. The 2024 statistical-arbitrage paper warns that this is exactly where speculation creeps in.
+
+\item \textbf{They agree on costs and thresholds.} Sepp, PRISM, Cao and the IV-surface paper all find you should rehedge less often, or in smaller steps, than pure delta hedging says. RL learns a smarter version of that threshold.
+
+\item \textbf{Lineage:} Buehler 2019 leads to Cao 2021 and Murray 2022, which lead to OPHR's set of hedgers. Separately, Whalley \& Wilmott lead to Sepp and PRISM, with RL proposed as PRISM's next step.
+
+\end{itemize}
+
+\section{Relevance to the LS Gamma desk}
+
+These are suggestions, not decisions the desk has made:
+
+\begin{itemize}
+
+\item \textbf{The desk's code already matches OPHR's structure.} The signals file picks long or short gamma and the structure, like OPHR's position agent. \texttt{Hedging/\allowbreak{}} holds interchangeable hedgers, like OPHR's hedger set. A future router choosing between \texttt{delta\_\allowbreak{}hedge} and a deep hedger by regime would be the equivalent of OPHR's hedger-routing agent.
+
+\item \textbf{Train it on scalping P\&L after costs, with a strong tail penalty,} rather than on minimizing hedging error. For example, penalize bad outcomes heavily (a high-confidence CVaR) so it doesn't start speculating.
+
+\item \textbf{Compare it against three baselines, not just plain delta hedging:} a no-trade threshold à la Whalley--Wilmott, and Sepp's optimal hedging frequency.
+
+\item \textbf{Treat long and short gamma separately.} Hedging is the profit engine for long gamma but only risk control for short gamma (OPHR p. 4), so one objective probably won't suit both.
+
+\item \textbf{Start with simple models.} Given Ruf \& Wang, try a linear regression or threshold baseline before a deep network.
+
+\end{itemize}
+
+\section{Gaps and open questions}
+
+\begin{itemize}
+
+\item \textbf{No paper in the library tests an RL hedger that maximizes scalping profit on SPY.} OPHR is crypto; PRISM is simulated and not peer-reviewed; the SPY and S\&P studies minimize risk.
+
+\item \textbf{Intraday data for training.} The club's R2 bucket has SPY option trades but no intraday SPY prices (according to the R2 guide), and the live pipeline is daily. An intraday hedger would need a separate source of intraday SPY prices.
+
+\item \textbf{Too little data.} A decade of daily data is only a few thousand samples. That pushes you toward simulated markets (\emph{Deep Hedging: Learning to Simulate Equity Option Markets}, p. 1), and results from simulators may not carry over to the real market.
+
+\item \textbf{Costs.} Most results assume proportional costs. SPY share hedges on IBKR are cheap, so the cost-driven advantage RL shows may be smaller for the desk.
+
+\item \textbf{Overnight gaps.} Hedging can't respond to them. OPHR's hedge-frequency results are for crypto, which trades 24/7.
+
+\end{itemize}
+
+\section{Sources}
+
+\textbf{Repo papers used, with pages cited:}
+
+\begin{itemize}
+
+\item \texttt{OPHR-\allowbreak{}Mastering-\allowbreak{}Volatility-\allowbreak{}Trading-\allowbreak{}with-\allowbreak{}Multi-\allowbreak{}Agent-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf} (pp. 1, 4, 5, 9, 10)
+
+\item \texttt{Deep-\allowbreak{}Hedging.\allowbreak{}pdf} (p. 1)
+
+\item \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}of-\allowbreak{}Derivatives-\allowbreak{}Using-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf} (p. 2)
+
+\item \texttt{When-\allowbreak{}You-\allowbreak{}Hedge-\allowbreak{}Discretely-\allowbreak{}Optimization-\allowbreak{}of-\allowbreak{}Sharpe-\allowbreak{}Ratio-\allowbreak{}for-\allowbreak{}Delta-\allowbreak{}Hedging-\allowbreak{}Strategy-\allowbreak{}under-\allowbreak{}Discrete-\allowbreak{}Hedging-\allowbreak{}and-\allowbreak{}Transaction-\allowbreak{}Costs.\allowbreak{}pdf} (pp. 3, 12)
+
+\item \texttt{PRISM-\allowbreak{}A-\allowbreak{}Probabilistic-\allowbreak{}Regime-\allowbreak{}Integrated-\allowbreak{}Scalping-\allowbreak{}Model-\allowbreak{}for-\allowbreak{}Derivatives-\allowbreak{}Arbitrage.\allowbreak{}pdf} (pp. 21, 40)
+
+\item \texttt{Is-\allowbreak{}the-\allowbreak{}Difference-\allowbreak{}between-\allowbreak{}Deep-\allowbreak{}Hedging-\allowbreak{}and-\allowbreak{}Delta-\allowbreak{}Hedging-\allowbreak{}a-\allowbreak{}Statistical-\allowbreak{}Arbitrage?.\allowbreak{}pdf} (pp. 1, 10)
+
+\item \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}with-\allowbreak{}Options-\allowbreak{}Using-\allowbreak{}the-\allowbreak{}Implied-\allowbreak{}Volatility-\allowbreak{}Surface.\allowbreak{}pdf} (pp. 3, 4)
+
+\item \texttt{Application-\allowbreak{}of-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}At-\allowbreak{}the-\allowbreak{}Money-\allowbreak{}S\&P-\allowbreak{}500-\allowbreak{}Options-\allowbreak{}Hedging.\allowbreak{}pdf} (p. 2)
+
+\item \texttt{Hedging-\allowbreak{}with-\allowbreak{}Linear-\allowbreak{}Regressions-\allowbreak{}and-\allowbreak{}Neural-\allowbreak{}Networks.\allowbreak{}pdf} (p. 1)
+
+\item \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}with-\allowbreak{}Reinforcement-\allowbreak{}Learning-\allowbreak{}A-\allowbreak{}Practical-\allowbreak{}Framework-\allowbreak{}for-\allowbreak{}Option-\allowbreak{}Risk-\allowbreak{}Management.\allowbreak{}pdf} (p. 1)
+
+\item \texttt{Gamma-\allowbreak{}and-\allowbreak{}Vega-\allowbreak{}Hedging-\allowbreak{}Using-\allowbreak{}Deep-\allowbreak{}Distributional-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf} (p. 1)
+
+\end{itemize}
+
+\textbf{Relevant but used only as background:}
+
+\begin{itemize}
+
+\item \texttt{Deep-\allowbreak{}Bellman-\allowbreak{}Hedging.\allowbreak{}pdf}: learns hedging from historical data alone
+
+\item \texttt{Learning-\allowbreak{}to-\allowbreak{}Trade-\allowbreak{}II-\allowbreak{}Deep-\allowbreak{}Hedging.\allowbreak{}pdf}: lecture notes that cover statistical arbitrage
+
+\item \texttt{Enhancing-\allowbreak{}Deep-\allowbreak{}Hedging-\allowbreak{}of-\allowbreak{}Options-\allowbreak{}with-\allowbreak{}Implied-\allowbreak{}Volatility-\allowbreak{}Surface-\allowbreak{}Feedback-\allowbreak{}Information.\allowbreak{}pdf}: IV-surface inputs; results strongest with costs
+
+\item \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}Simulate-\allowbreak{}Equity-\allowbreak{}Option-\allowbreak{}Markets.\allowbreak{}pdf}: market simulators for training data
+
+\end{itemize}
+
+\textbf{Checked, nothing on hedging (they're about the forecasting and VRP signal side):}
+
+\begin{itemize}
+
+\item \texttt{Volatility-\allowbreak{}of-\allowbreak{}Volatility-\allowbreak{}and-\allowbreak{}Leverage-\allowbreak{}Effect-\allowbreak{}from-\allowbreak{}Options.\allowbreak{}pdf} (Chong \& Todorov, vol-of-vol)
+
+\item \texttt{Identifying-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Price-\allowbreak{}Through-\allowbreak{}the-\allowbreak{}Leverage-\allowbreak{}Effect.\allowbreak{}pdf} (Cheng, Renault \& Sangrey)
+
+\item \texttt{A-\allowbreak{}machine-\allowbreak{}learning-\allowbreak{}approach-\allowbreak{}to-\allowbreak{}volatility-\allowbreak{}forecasting.\allowbreak{}pdf}
+
+\item \texttt{Realised-\allowbreak{}Volatility-\allowbreak{}Forecasting-\allowbreak{}Machine-\allowbreak{}Learning-\allowbreak{}via-\allowbreak{}Financial-\allowbreak{}Word-\allowbreak{}Embedding.\allowbreak{}pdf}
+
+\item \texttt{Realized-\allowbreak{}GARCH,-\allowbreak{}CBOE-\allowbreak{}VIX,-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}
+
+\item \texttt{Volatility-\allowbreak{}Forecasting-\allowbreak{}and-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}
+
+\end{itemize}
+
+\textbf{Web sources (outside the repo):}
+
+\begin{itemize}
+
+\item \href{https://openreview.net/pdf?id=2p4AtivyZz}{OPHR on OpenReview}
+
+\item \href{https://arxiv.org/abs/2207.07467}{Murray et al. 2022, \emph{Deep Hedging: Continuous RL \ldots{} Multiple Risk Aversions} (arXiv)}, \href{https://dl.acm.org/doi/abs/10.1145/3533271.3561731}{ACM}
+
+\item \href{https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3281235}{Kolm \& Ritter 2019, \emph{Dynamic Replication and Hedging: An RL Approach} (SSRN)}
+
+\item \href{https://arxiv.org/abs/2409.13567}{Armstrong \& Tatlow 2024, \emph{Deep Gamma Hedging} (arXiv)}
+
+\item \href{https://arxiv.org/pdf/2205.05614}{Cao et al., \emph{Gamma and Vega Hedging} (arXiv)}
+
+\end{itemize}
+
+\textbf{Suggested papers to add to \texttt{docs/\allowbreak{}papers/\allowbreak{}}:}
+
+\begin{enumerate}
+
+\item \textbf{Murray et al. 2022:} the source of OPHR's set of hedgers, trained across many risk-aversion levels at once. It's the most direct template for a family of deep hedgers.
+
+\item \textbf{Kolm \& Ritter 2019:} the RL hedging paper Cao et al. build on. Simple and practical.
+
+\item \textbf{Whalley \& Wilmott 1997:} the original no-trade threshold, the baseline any RL hedger must beat. Found only through citations in PRISM and Cao et al., not on the web.
+
+\item \textbf{Horikawa \& Nakagawa 2024:} the original ``deep hedging contains a statistical arbitrage'' claim. Found only through its citation in François et al. 2024, not on the web.
+
+\end{enumerate}
+
+\end{document}

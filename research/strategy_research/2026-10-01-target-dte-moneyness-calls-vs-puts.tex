@@ -1,0 +1,271 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Target DTE, Moneyness, and Calls vs Puts for Single-Leg Delta-Hedged SPY Options}
+\author{Strategy research \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-01}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Question:} what target DTE (days to expiry) and moneyness (how far out of the money, delta) should we use for single-leg delta-hedged SPY options in a long/short gamma VRP strategy; and should long gamma use calls or puts and short gamma calls or puts
+
+\textbf{Method:} Searched all 27 papers in \texttt{docs/\allowbreak{}papers/\allowbreak{}} (page-tagged index) + web search + the desk's own IBKR chain snapshot (2026-09-29). Quotes verified against the cited PDF pages. Page numbers are PDF pages; printed page numbers are given where they differ.
+
+\textbf{Related research:} \href{2026-09-27-volatility-surface-for-the-strategy.pdf}{Volatility surface} \textperiodcentered{} \href{2026-09-27-leverage-effect-and-the-ls-gamma-desk.pdf}{Leverage effect} \textperiodcentered{} \href{2026-10-01-position-size-and-exit-rules.pdf}{Size and exit rules}
+
+\textbf{Desk decisions already made (PM, 2026-10-01):} VRP band as v1 (long gamma if forecast RV \ensuremath{-} IV > +5\%, short gamma if < \ensuremath{-}2\%, else flat); single-leg calls and puts only to start; daily delta hedging.
+
+\section{Short answer}
+
+Enter \textbf{at the money (about 50 delta)}, at the \textbf{Friday expiry closest to 30 DTE}, within a 21--45 DTE window.
+
+Use \textbf{long ATM calls for long gamma} and \textbf{short ATM puts for short gamma}:
+
+\begin{itemize}
+
+\item \textbf{Why ATM:} it carries the most gamma and vega per contract, and it's where S\&P delta-hedged option losses, i.e. the VRP, are largest per option.
+
+\item \textbf{Why \textasciitilde{}30 DTE:} Sepp finds the delta-hedged Sharpe ratio peaks at 1--2 month maturities.
+
+\item \textbf{Why calls for long, puts for short:} once delta-hedged, an ATM call and an ATM put are economically almost identical. The choice is operational. Short puts avoid early assignment around SPY's ex-dividend dates, and long calls avoid paying the put skew.
+
+\end{itemize}
+
+Selling \emph{out-of-the-money} puts would collect more premium (puts are 3--4 vol points richer), but that's a later variant with more crash risk and less gamma to scalp.
+
+\section{What the papers say}
+
+\subsection{Maturity: 1--2 months is the sweet spot}
+
+\begin{itemize}
+
+\item \textbf{Sharpe peaks at 1--2 months:}
+
+\begin{quote}``We observe that the optimal Sharpe ratio peaks for options with maturities of one and two month and declines as maturity increases because expected transaction costs increase.'' (Sepp 2013, \emph{When You Hedge Discretely}, p. 17)\end{quote}
+
+\item \textbf{Short maturities need frequent hedging:}
+
+\begin{quote}``The optimal re-hedging period increases for longer maturities from as low as hedging once per 3 days for short-term maturities (up to 2 month) to 7-8 days for longer-term maturities (above 2 years).'' (Sepp, p. 17)\end{quote}
+
+So daily hedging is more frequent than Sepp's optimum for 1--2 month options. That's fine, but costs should be watched.
+
+\item \textbf{Practice converges on about one month:}
+
+\begin{quote}``at-the-money call options on S\&P 500 with maturity of approximately 30 days'' (Bracha, Sakowski \& Michańków 2025, \emph{DRL for ATM S\&P 500 Options Hedging}, p. 6, printed p. 5)\end{quote}
+
+\begin{quote}``VRC buys the nearest monthly expiry ATM straddle'' (Verma 2026, \emph{PRISM}, p. 35)\end{quote}
+
+\item \textbf{Very short dates dominate volume but behave differently:}
+
+\begin{quote}``In 2022, more than 60\% of the trading volume of S\&P 500 index options was in options expiring within 7 calendar days.'' (Chong \& Todorov 2024, \emph{Volatility of Volatility and Leverage Effect from Options}, p. 2)\end{quote}
+
+There's plenty of liquidity there, but gamma near expiry swings too fast for once-a-day hedging (inference).
+
+\end{itemize}
+
+\subsection{Moneyness: at the money}
+
+\begin{itemize}
+
+\item \textbf{Most gamma and vega per contract:}
+
+\begin{quote}``At-the-money options are efficient hedging instruments because they have a large gamma and vega compared with similar maturity options that are significantly in- or out-of-the-money.'' (Cao, Chen, Farghadani, Hull, Poulos, Wang \& Yuan 2022, \emph{Gamma and Vega Hedging Using Deep Distributional RL}, p. 3)\end{quote}
+
+\begin{quote}``Whereas short maturity at-the-money options are most useful for hedging gamma, longer maturity options work better for vega.'' (same, p. 17)\end{quote}
+
+\item \textbf{Standard practice in the RL papers:}
+
+\begin{quote}``the strategy selects the nearest-to-the-money (ATM) straddle within a predefined maturity range as the underlying instrument.'' (Chen, Cai, Qin \& An, \emph{OPHR}, p. 26)\end{quote}
+
+\item \textbf{The theory fits ATM best:}
+
+\begin{quote}``Our current framework is best suited to analyzing at-the-money options for which the impact of the skew is limited.'' (Sepp, p. 19)\end{quote}
+
+\item \textbf{ATM needs the most hedging:}
+
+\begin{quote}``Thus, for at-the-money options with high gamma, the rebalancing is expected to be more frequent, while, for out-of-the money options with low gamma, the re-hedging is only applied for big moves in the spot price.'' (Sepp, p. 8)\end{quote}
+
+\item \textbf{ATM shorts take jumps hardest:}
+
+\begin{quote}``We note that a jump leads to a large realized loss in a short option position only if the option is near at-the-money.'' (Sepp, p. 18)\end{quote}
+
+\end{itemize}
+
+\subsection{Where the VRP is largest (web, Bakshi \& Kapadia 2003)}
+
+The classic study of delta-hedged S\&P 500 options (1988--1995, 14--60 day maturities) finds:
+
+\begin{itemize}
+
+\item ``the delta-hedged strategy underperforms zero''
+
+\item ``the documented underperformance is less for options away from the money''
+
+\item for ATM calls, the loss ``amounts to 8\% of the option value''
+
+\item the result is robust ``to the inclusion of put options''
+
+\end{itemize}
+
+So \textbf{selling ATM collects the most premium per option}, and \textbf{buying ATM pays the most}. Long gamma should only be bought when the RV forecast clearly beats IV, which is what the +5\% band enforces.
+
+\subsection{Calls vs puts}
+
+\begin{itemize}
+
+\item \textbf{Option buyers lose most on puts, especially out of the money.} Sepp cites Broadie, Chernov \& Johannes:
+
+\begin{quote}``the average monthly return (for long position in a put) is \ensuremath{-}30\% for at-the-money puts and \ensuremath{-}57\% for 6\% out-of-the-money puts.'' (Sepp, p. 3)\end{quote}
+
+These are unhedged long-put returns, but they show where the richest premium sits.
+
+\item \textbf{The market prices in more crash risk than actually happens:}
+
+\begin{quote}``a stronger (more negative) leverage correlation under Q than under P.'' (Hansen, Huang, Tong \& Wang 2021, \emph{Realized GARCH, CBOE VIX, and the VRP}, p. 3)\end{quote}
+
+Q is the risk-neutral world implied by option prices; P is the real world. This gap is why OTM puts carry the skew premium (see the leverage report).
+
+\item \textbf{After delta hedging, call vs put at the same strike is mostly equivalent} (put-call parity; see \texttt{docs/\allowbreak{}education/\allowbreak{}Forward\_\allowbreak{}and\_\allowbreak{}reverse\_\allowbreak{}scalping.\allowbreak{}md}, section 6). The real differences:
+
+\begin{itemize}
+
+\item \textbf{Early exercise:} short ITM SPY calls can be assigned before ex-dividend dates.
+
+\item \textbf{Skew:} matters for OTM strikes, little at ATM.
+
+\item \textbf{Liquidity}, and the initial hedge size, which is about 50 shares per contract at ATM either way.
+
+\end{itemize}
+
+\end{itemize}
+
+\subsection{The desk's own data (IBKR chain, 2026-09-29, spot 765.05)}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{DTE} & \textbf{ATM IV} & \textbf{25\ensuremath{\Delta} put IV} & \textbf{25\ensuremath{\Delta} call IV} & \textbf{25\ensuremath{\Delta} skew} & \textbf{10\ensuremath{\Delta} put IV} & \textbf{ATM gamma} \\
+\midrule
+17 & 12.6\% & 14.8\% & 11.4\% & 3.3 pts & 17.7\% & 0.019 \\
+24 & 12.6\% & 14.9\% & 11.3\% & 3.5 pts & 18.2\% & 0.016 \\
+31 & 13.2\% & 15.6\% & 11.8\% & 3.8 pts & 19.4\% & 0.014 \\
+38 & 13.4\% & 16.1\% & 12.1\% & 4.1 pts & 19.9\% & 0.012 \\
+52 & 13.6\% & 16.4\% & 12.1\% & 4.3 pts & 20.6\% & 0.010 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item The put skew is clear and grows with maturity.
+
+\item ATM gamma per contract roughly halves from 17 to 52 DTE.
+
+\end{itemize}
+
+\section{How the papers connect}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Source} & \textbf{Agrees with} & \textbf{Key contribution} \\
+\midrule
+Sepp 2013 & Bakshi \& Kapadia & Sharpe peaks at 1--2 month maturities; framework suited to ATM \\
+Cao et al. 2022 & OPHR, Bracha & ATM gives the most gamma and vega \\
+Bakshi \& Kapadia 2003 (web) & Sepp, Hansen & Delta-hedged losses (the VRP) are largest at the money \\
+Hansen et al. 2021 & Leverage report & Crash risk priced higher than it occurs, which drives put skew \\
+OPHR, Bracha, PRISM & each other & Practice: nearest-ATM, about 1-month options \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item \textbf{All sources point to ATM and roughly one-month options} for a delta-hedged VRP trade.
+
+\item \textbf{The only pull away from ATM is the skew premium} in OTM puts. It's richer, but it comes with more crash exposure and less gamma.
+
+\end{itemize}
+
+\section{Relevance to the LS Gamma desk}
+
+These are suggestions; the PM sets the final numbers:
+
+\begin{itemize}
+
+\item \textbf{Entry expiry:} the Friday expiry closest to 30 DTE within 21--45 DTE. The pipeline already pulls Friday expiries out to 60 DTE.
+
+\item \textbf{Strike:} the listed strike closest to spot, which the pipeline's \texttt{atm\_\allowbreak{}iv} logic already finds.
+
+\item \textbf{Long gamma} (forecast RV \ensuremath{-} IV > +5\%): \texttt{LG\_\allowbreak{}LongCall}, ATM.
+
+\item \textbf{Short gamma} (forecast RV \ensuremath{-} IV < \ensuremath{-}2\%): \texttt{SG\_\allowbreak{}ShortPut}, ATM.
+
+\item \textbf{IV for the signal:} use the ATM IV at the chosen expiry, not VIX, so the signal matches the option actually traded.
+
+\item \textbf{Later variant:} a short 25-delta put to harvest the skew, once the ATM version is running and measured.
+
+\end{itemize}
+
+\section{Gaps and open questions}
+
+\begin{itemize}
+
+\item \textbf{No paper tests single-leg, daily-hedged SPY options} with these exact choices. Bakshi \& Kapadia's data is 1988--1995, before weekly and daily expiries existed.
+
+\item \textbf{Daily hedging vs Sepp's optimum.} Daily is more frequent than his roughly 3-day optimum, so watch commissions.
+
+\item \textbf{Dividend dates:} check SPY's ex-dividend calendar if short calls are ever used.
+
+\end{itemize}
+
+\section{Sources}
+
+\textbf{Repo papers used, with pages cited:}
+
+\begin{itemize}
+
+\item \texttt{When-\allowbreak{}You-\allowbreak{}Hedge-\allowbreak{}Discretely-\allowbreak{}Optimization-\allowbreak{}of-\allowbreak{}Sharpe-\allowbreak{}Ratio-\allowbreak{}for-\allowbreak{}Delta-\allowbreak{}Hedging-\allowbreak{}Strategy-\allowbreak{}under-\allowbreak{}Discrete-\allowbreak{}Hedging-\allowbreak{}and-\allowbreak{}Transaction-\allowbreak{}Costs.\allowbreak{}pdf}: Sepp 2013 (pp. 3, 8, 17, 18, 19)
+
+\item \texttt{Gamma-\allowbreak{}and-\allowbreak{}Vega-\allowbreak{}Hedging-\allowbreak{}Using-\allowbreak{}Deep-\allowbreak{}Distributional-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf}: Cao et al. (pp. 3, 17)
+
+\item \texttt{OPHR-\allowbreak{}Mastering-\allowbreak{}Volatility-\allowbreak{}Trading-\allowbreak{}with-\allowbreak{}Multi-\allowbreak{}Agent-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf} (p. 26)
+
+\item \texttt{Application-\allowbreak{}of-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}At-\allowbreak{}the-\allowbreak{}Money-\allowbreak{}S\&P-\allowbreak{}500-\allowbreak{}Options-\allowbreak{}Hedging.\allowbreak{}pdf}: Bracha et al. (p. 6)
+
+\item \texttt{PRISM-\allowbreak{}A-\allowbreak{}Probabilistic-\allowbreak{}Regime-\allowbreak{}Integrated-\allowbreak{}Scalping-\allowbreak{}Model-\allowbreak{}for-\allowbreak{}Derivatives-\allowbreak{}Arbitrage.\allowbreak{}pdf} (p. 35)
+
+\item \texttt{Volatility-\allowbreak{}of-\allowbreak{}Volatility-\allowbreak{}and-\allowbreak{}Leverage-\allowbreak{}Effect-\allowbreak{}from-\allowbreak{}Options.\allowbreak{}pdf}: Chong \& Todorov (p. 2)
+
+\item \texttt{Realized-\allowbreak{}GARCH,-\allowbreak{}CBOE-\allowbreak{}VIX,-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}: Hansen et al. (p. 3)
+
+\end{itemize}
+
+\textbf{Checked, not relevant to DTE/moneyness:} the forecasting papers, the agent and LLM papers, \texttt{From-\allowbreak{}Deep-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}LLMs-\allowbreak{}A-\allowbreak{}Survey-\allowbreak{}of-\allowbreak{}AI-\allowbreak{}in-\allowbreak{}Quantitative-\allowbreak{}Investment.\allowbreak{}pdf} (an AI-in-quant survey), and the remaining deep hedging papers. They use ATM or about 30-day options without studying the choice.
+
+\textbf{Web sources (outside the repo):}
+
+\begin{itemize}
+
+\item \href{https://people.umass.edu/~nkapadia/docs/Bakshi_and_Kapadia_2003_RFS.pdf}{Bakshi \& Kapadia 2003, \emph{Delta-Hedged Gains and the Negative Market Volatility Risk Premium} (RFS)}, \href{https://www.jstor.org/stable/1262684}{JSTOR}
+
+\end{itemize}
+
+\textbf{Suggested papers to add to \texttt{docs/\allowbreak{}papers/\allowbreak{}}:}
+
+\begin{enumerate}
+
+\item \textbf{Bakshi \& Kapadia 2003:} the core evidence on delta-hedged option returns by moneyness and maturity.
+
+\item \textbf{Broadie, Chernov \& Johannes 2009, \emph{Understanding Index Option Returns}:} the source of Sepp's put-return figures. Found only through Sepp's citation.
+
+\end{enumerate}
+
+\end{document}

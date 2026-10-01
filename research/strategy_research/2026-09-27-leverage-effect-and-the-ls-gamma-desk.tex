@@ -1,0 +1,290 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{The Leverage Effect and What It Means for the LS Gamma Desk}
+\author{Strategy research \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-09-27}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Question:} investigate the leverage effect and its relevance to out LS gamma desk
+
+\textbf{Method:} Searched all 21 papers in \texttt{docs/\allowbreak{}papers/\allowbreak{}} (page-tagged index) + web search. Quotes verified against the cited PDF pages. Page numbers are PDF pages; printed page numbers are given where they differ.
+
+\textbf{Related research:} \href{2026-09-27-deep-hedging-as-gamma-scalping-pnl-driver.pdf}{Deep hedging as the gamma scalping P\&L driver}
+
+\section{Short answer}
+
+The leverage effect is the tendency of volatility to rise when prices fall, and to fall when prices rise. For SPY it is strong, and it gets much stronger in crises. It touches four parts of the desk:
+
+\begin{enumerate}
+
+\item \textbf{Hedging:} the standard delta assumes implied vol stays put when SPY moves. Because IV actually moves opposite to spot, a straddle or strangle hedged to ``zero delta'' still carries hidden directional exposure through vega.
+
+\item \textbf{Forecasting:} a symmetric GARCH(1,1), like the one in \texttt{forecasting/\allowbreak{}GARCH.\allowbreak{}py}, ignores the effect. Papers find that models including it forecast equity volatility better.
+
+\item \textbf{The VRP signal:} part of what option sellers are paid for is carrying this crash-and-vol-spike risk. Which part, and how much, is disputed between the papers.
+
+\item \textbf{Regimes and structure choice:} short gamma gets hit two ways at once in selloffs, through realized moves (gamma) and rising IV (vega). Long gamma benefits two ways in the same scenario.
+
+\end{enumerate}
+
+The two most practical fixes are cheap: a delta that accounts for the spot-vol relationship (a minimum-variance delta), and a forecasting model that includes the leverage effect.
+
+\section{What the papers say}
+
+\subsection{What the leverage effect is, and how big it is for the S\&P 500}
+
+\begin{itemize}
+
+\item \textbf{Definition:}
+
+\begin{quote}``Following Black (1976), this negative covariance/correlation between asset return and asset volatility is referred to as leverage effect.'' (Chong \& Todorov 2024, \emph{Volatility of Volatility and Leverage Effect from Options}, p. 1)\end{quote}
+
+\item \textbf{It spikes in crises.} Estimated from intraday SPX option prices (2016--2020):
+
+\begin{quote}``the leverage effect increases sharply in magnitude at the onset of the pandemic in the Spring of 2020'' (Chong \& Todorov, p. 19)\end{quote}
+
+\item \textbf{It moves with the level of vol, while vol-of-vol stays fairly flat:}
+
+\begin{quote}``the estimated volatility of volatility exhibits little time series variation while the estimated leverage effect is inversely related to the market volatility.'' (Chong \& Todorov, p. 20)\end{quote}
+
+``Inversely related'' here is literal: the leverage effect is a negative number, so it goes \emph{down} (becomes more negative, i.e. larger in size) when market vol goes up.
+
+The standard Heston model doesn't reproduce this:
+
+\begin{quote}``These features of the observed estimates are at odds with those implied by the classical Heston model.'' (Chong \& Todorov, p. 20)\end{quote}
+
+\item \textbf{Hard to measure from prices alone:}
+
+\begin{quote}``although we expect the leverage effect to be negative, it is difficult to quantify empirically and its estimate usually is small'' (Cheng, Renault \& Sangrey 2024, \emph{Identifying the Volatility Risk Price Through the Leverage Effect}, p. 4, printed p. 3)\end{quote}
+
+Chong \& Todorov get around this by estimating it from option prices instead of returns.
+
+\end{itemize}
+
+\subsection{Hedging: the standard delta over-hedges calls and under-hedges puts}
+
+\begin{itemize}
+
+\item \textbf{Why:}
+
+\begin{quote}``The leverage effect describes the negative correlation between an underlying's price and its volatility.'' (Ruf \& Wang, \emph{Hedging with Linear Regressions and Neural Networks}, p. 2)\end{quote}
+
+\begin{quote}``Due to the leverage effect, the underlying (implied) volatility tends to go down simultaneously, thus having a negative effect on the option price.'' (Ruf \& Wang, p. 2)\end{quote}
+
+\item \textbf{The estimated fix points the direction you'd expect:}
+
+\begin{quote}``The Delta coefficients of calls being smaller than one implies that hedging a short position on a call, one would usually buy less of the underlying than implied by the BS Delta. On the other hand, for hedging a short position on a put, one needs to short more of the underlying.'' (Ruf \& Wang, p. 11)\end{quote}
+
+\item \textbf{Simple beats fancy.} Regressions that add vega-type terms to delta match neural networks:
+
+\begin{quote}``All competing methods outperform the BS Delta. Among them, the Delta-Vega-Vanna and (relaxed) Hull-White regressions perform the best'' (Ruf \& Wang, p. 10)\end{quote}
+
+\begin{quote}``Hence, the ANN seems to be able to learn the leverage effect, but cannot improve on a simple linear regression involving the relevant option sensitivities.'' (Ruf \& Wang, p. 2)\end{quote}
+
+\item \textbf{Deep hedging confirms it on recent S\&P 500 data.} A delta that uses the volatility smile (which captures how IV moves with spot) keeps up with RL, while the plain delta falls behind:
+
+\begin{quote}``the RL algorithm with IV information and the smile-implied delta hedging, both of which leverage the IV surface, deliver comparable performance in terms of MSE. They are closely followed by the RL algorithm with restricted information, while the practitioners' delta hedging lags significantly behind.'' (François, Gauthier, Godin \& Pérez-Mendoza 2025, \emph{Enhancing Deep Hedging \ldots{} IV Surface Feedback}, p. 29, printed p. 28)\end{quote}
+
+That backtest used real prices:
+
+\begin{quote}``Backtests are conducted on 4,134 around-the-money call options, using actual market prices observed between December 31, 2020 and October 31, 2023.'' (same, p. 29, printed p. 28)\end{quote}
+
+\end{itemize}
+
+\subsection{Forecasting: plain GARCH misses it}
+
+\begin{itemize}
+
+\item
+
+> ``The original GARCH model tends to perform well with exchange rate data, but it is typically outperformed by models that can accommodate a leverage effect when applied to equity returns'' (Hansen, Huang, Tong \& Wang 2021, \emph{Realized GARCH, CBOE VIX, and the VRP}, p. 12)
+
+\end{itemize}
+
+\subsection{The VRP: the market prices in more leverage than actually happens, but the papers disagree on how much of the premium it explains}
+
+\begin{itemize}
+
+\item \textbf{Option prices imply a stronger leverage effect than realized data shows:}
+
+\begin{quote}``a stronger (more negative) leverage correlation under Q than under P.'' (Hansen et al., p. 3)\end{quote}
+
+Q is the risk-neutral world (option prices); P is the real world. This gap is one source of the steep put skew.
+
+\item \textbf{Hansen et al. attribute only a small part of the VRP to it:}
+
+\begin{quote}``This suggests that the majority of VRP is due to compensation for the volatility shock, ut, and only a small of fraction of the VRP can be attributed to the leverage effect and the equity premium.'' (Hansen et al., p. 18)\end{quote}
+
+They flag that this depends on their model:
+
+\begin{quote}``This finding is specific to the RG model structure, that only includes a short-term leverage effect.'' (Hansen et al., p. 18)\end{quote}
+
+\item \textbf{Cheng, Renault \& Sangrey push the other way:}
+
+\begin{quote}``most of the signal in the risk premia comes from the covariance of the returns with the variance.'' (Cheng et al., p. 37, printed p. 36)\end{quote}
+
+They also warn that the VRP mixes two different risks together:
+
+\begin{quote}``the presence of a leverage effect implies that the variance risk premium does not separately identify the risk aversion to volatility of volatility and the standard risk aversion to volatility level.'' (Cheng et al., p. 37, printed p. 36)\end{quote}
+
+\end{itemize}
+
+\subsection{Why this makes short gamma painful in selloffs}
+
+\begin{itemize}
+
+\item Sepp, discussing the option seller's side:
+
+\begin{quote}``losses (especially for equity index options) will inevitably occur at bad times during market declines and risk-aversion periods.'' (Sepp 2013, \emph{When You Hedge Discretely}, p. 3)\end{quote}
+
+\end{itemize}
+
+\section{How the papers connect}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Paper} & \textbf{Builds on / agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
+\midrule
+Chong \& Todorov 2024 & Black 1976; Aït-Sahalia, Fan \& Li & Uses options, not returns, to measure it & Leverage effect spikes in stress; vol-of-vol fairly stable; Heston doesn't fit \\
+Cheng, Renault \& Sangrey 2024 & Bandi \& Renò 2016 & Hansen et al. on what drives the VRP & Leverage effect is hard to measure; VRP mixes two risks \\
+Hansen et al. 2021 & EGARCH-type models & Cheng et al. & Leverage stronger under Q than P; leverage models beat plain GARCH \\
+Ruf \& Wang & Hull \& White 2017; Black 1976 & Neural network hedging papers & Simple leverage-adjusted delta regressions work as well as neural networks \\
+François et al. 2025 (IV feedback) & Bates 2005 (smile-implied delta) & Plain delta hedging & Smile-aware deltas keep up with RL; plain delta lags \\
+Sepp 2013 & --- & --- & Short options lose in bad times \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item \textbf{Agreement on hedging.} Ruf \& Wang, François et al. and Hull \& White (web) all find that a delta which accounts for how IV moves with spot beats the plain delta on S\&P 500 options, and that simple versions are enough.
+
+\item \textbf{Agreement on forecasting.} Hansen et al. favor leverage-aware models for equity volatility. Corsi \& Renò (web) extend HAR in the same direction.
+
+\item \textbf{Disagreement on the VRP.} Hansen et al. put only 2.2\% of the log-VRP on the leverage/equity term in their model. Cheng et al. find most of the risk-premium signal comes from the return-variance covariance. Both caution that their answer depends on how the model is set up.
+
+\end{itemize}
+
+\section{Relevance to the LS Gamma desk}
+
+These are suggestions, not decisions the desk has made:
+
+\begin{itemize}
+
+\item \textbf{Hedging (\texttt{Algos/\allowbreak{}Hedging/\allowbreak{}}).} \texttt{delta\_\allowbreak{}hedge.\allowbreak{}py} hedges to IBKR's model delta. If that delta holds IV fixed as SPY moves (worth checking), the papers say it's biased for SPY options:
+
+\begin{itemize}
+
+\item \textbf{Long straddle or strangle:} delta-hedged to zero, it still gains when SPY falls, because IV rises and the position is long vega. In effect it carries a hidden short-SPY position.
+
+\item \textbf{Short straddle, strangle or iron condor:} the reverse. It carries a hidden long-SPY position, so a selloff hurts through both gamma and vega at once.
+
+\end{itemize}
+
+A candidate new hedger is a minimum-variance delta hedger: target shares from delta plus a vega adjustment (Ruf \& Wang's $\delta = a\,\delta_{BS} + b\,V_{BS}$, or the Hull--White form), with the coefficients fitted on history. The pipeline already saves vega in the chain, and daily ATM IV and VIX to estimate the spot-vol relationship. The \texttt{new-\allowbreak{}hedger} skill fits this.
+
+\item \textbf{Forecasting (\texttt{forecasting/\allowbreak{}}).} \texttt{GARCH.\allowbreak{}py} is symmetric GARCH(1,1). Candidates are GJR-GARCH (the same \texttt{arch} library with \texttt{o=1}), EGARCH, or a leverage-aware HAR (LHAR, which adds lagged negative returns). The \texttt{new-\allowbreak{}forecaster} skill fits this.
+
+\item \textbf{Regime features (\texttt{pipeline/\allowbreak{}}).} Suggested additions:
+
+\begin{itemize}
+
+\item a rolling correlation between SPY returns and VIX changes, as a direct leverage-effect gauge
+
+\item keeping VVIX as a separate input, since Chong \& Todorov find vol-of-vol behaves differently from vol level
+
+\end{itemize}
+
+The pipeline already collects SPY, VIX and VVIX.
+
+\item \textbf{Structure choice.} Because volatility rises in selloffs, the downside is where short-gamma structures take the most damage. Defined-risk structures (iron condor) or the put side's size deserve attention when the leverage effect is strong. That's an inference from the papers, not a tested result.
+
+\end{itemize}
+
+\section{Gaps and open questions}
+
+\begin{itemize}
+
+\item \textbf{No paper tests leverage-adjusted hedging on a gamma scalping P\&L.} Ruf \& Wang and Hull \& White minimize one-day hedging error on single options. A minimum-variance delta may reduce P\&L noise but could change how much gamma P\&L you capture. That needs a backtest.
+
+\item \textbf{Estimation noise.} Cheng et al. say the effect is hard to measure from returns, and Chong \& Todorov needed intraday option data. The desk's live pipeline is daily, so a daily spot-vol slope will be noisy.
+
+\item \textbf{SPX vs SPY.} Most evidence uses SPX or S\&P 500 index options. SPY options are American-style and pay dividends. The differences are probably small, but they haven't been tested here.
+
+\item \textbf{Time variation.} The effect is strongest exactly when vol spikes (Chong \& Todorov), so fixed-coefficient hedges and forecasts may be too weak in a crisis.
+
+\item \textbf{The VRP split is unresolved.} How much of the VRP pays for leverage/crash risk versus pure vol risk depends on the model (Hansen et al. vs Cheng et al.).
+
+\end{itemize}
+
+\section{Sources}
+
+\textbf{Repo papers used, with pages cited:}
+
+\begin{itemize}
+
+\item \texttt{Volatility-\allowbreak{}of-\allowbreak{}Volatility-\allowbreak{}and-\allowbreak{}Leverage-\allowbreak{}Effect-\allowbreak{}from-\allowbreak{}Options.\allowbreak{}pdf}: Chong \& Todorov, \emph{Volatility of Volatility and Leverage Effect from Options} (pp. 1, 18, 19, 20)
+
+\item \texttt{Identifying-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Price-\allowbreak{}Through-\allowbreak{}the-\allowbreak{}Leverage-\allowbreak{}Effect.\allowbreak{}pdf}: Cheng, Renault \& Sangrey, \emph{Identifying the Volatility Risk Price Through the Leverage Effect} (pp. 4, 37)
+
+\item \texttt{Hedging-\allowbreak{}with-\allowbreak{}Linear-\allowbreak{}Regressions-\allowbreak{}and-\allowbreak{}Neural-\allowbreak{}Networks.\allowbreak{}pdf}: Ruf \& Wang (pp. 2, 10, 11)
+
+\item \texttt{Realized-\allowbreak{}GARCH,-\allowbreak{}CBOE-\allowbreak{}VIX,-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}: Hansen, Huang, Tong \& Wang (pp. 3, 12, 18)
+
+\item \texttt{Enhancing-\allowbreak{}Deep-\allowbreak{}Hedging-\allowbreak{}of-\allowbreak{}Options-\allowbreak{}with-\allowbreak{}Implied-\allowbreak{}Volatility-\allowbreak{}Surface-\allowbreak{}Feedback-\allowbreak{}Information.\allowbreak{}pdf}: François et al. (p. 29)
+
+\item \texttt{When-\allowbreak{}You-\allowbreak{}Hedge-\allowbreak{}Discretely-\allowbreak{}Optimization-\allowbreak{}of-\allowbreak{}Sharpe-\allowbreak{}Ratio-\allowbreak{}for-\allowbreak{}Delta-\allowbreak{}Hedging-\allowbreak{}Strategy-\allowbreak{}under-\allowbreak{}Discrete-\allowbreak{}Hedging-\allowbreak{}and-\allowbreak{}Transaction-\allowbreak{}Costs.\allowbreak{}pdf}: Sepp (p. 3)
+
+\end{itemize}
+
+\textbf{Checked, only passing mentions or none:}
+
+\begin{itemize}
+
+\item \texttt{Is-\allowbreak{}the-\allowbreak{}Difference-\allowbreak{}between-\allowbreak{}Deep-\allowbreak{}Hedging-\allowbreak{}and-\allowbreak{}Delta-\allowbreak{}Hedging-\allowbreak{}a-\allowbreak{}Statistical-\allowbreak{}Arbitrage?.\allowbreak{}pdf}: its GARCH simulator includes a leverage effect; not analyzed
+
+\item \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}with-\allowbreak{}Options-\allowbreak{}Using-\allowbreak{}the-\allowbreak{}Implied-\allowbreak{}Volatility-\allowbreak{}Surface.\allowbreak{}pdf}: uses the IV surface, but no leverage-effect discussion
+
+\item \texttt{PRISM-\allowbreak{}\ldots{}pdf}: discusses SPX put skew from regime switches, not the leverage effect as such
+
+\item Nothing relevant (hits were ``leverages'' in the ordinary sense or position-size limits): the other deep hedging and RL papers, the RV-forecasting papers, OPHR
+
+\end{itemize}
+
+\textbf{Web sources (outside the repo):}
+
+\begin{itemize}
+
+\item \href{https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2658343}{Hull \& White 2017, \emph{Optimal Delta Hedging for Options} (SSRN)} and the \href{https://optionmetrics.com/research/hull_white_2017/}{OptionMetrics summary}. The abstract says the minimum-variance delta accounts for ``the expected change in volatility conditional on a price change''. I couldn't access the full text to confirm its reported error reductions, so none are quoted here.
+
+\item \href{https://www.tandfonline.com/doi/full/10.1080/07350015.2012.663261}{Corsi \& Renò 2012, \emph{Discrete-Time Volatility Forecasting with Persistent Leverage Effect} (JBES)}, \href{https://openaccess.city.ac.uk/id/eprint/4434/1/CorsiReno_LHAR_sub2012.pdf}{open-access PDF}
+
+\item \href{https://ideas.repec.org/a/eee/jfinec/v109y2013i1p224-249.html}{Aït-Sahalia, Fan \& Li 2013, \emph{The Leverage Effect Puzzle} (JFE)}
+
+\end{itemize}
+
+\textbf{Suggested papers to add to \texttt{docs/\allowbreak{}papers/\allowbreak{}}:}
+
+\begin{enumerate}
+
+\item \textbf{Hull \& White 2017:} the minimum-variance delta, the most direct upgrade to \texttt{delta\_\allowbreak{}hedge.\allowbreak{}py}.
+
+\item \textbf{Corsi \& Renò 2012 (LHAR):} a leverage-aware HAR, the natural next model after GARCH.
+
+\item \textbf{Aït-Sahalia, Fan \& Li 2013:} why the effect is hard to measure; useful before trusting any daily estimate.
+
+\item \textbf{Bates 2005 (smile-implied delta):} the benchmark delta used by François et al. Found only through their citation, not on the web.
+
+\end{enumerate}
+
+\end{document}

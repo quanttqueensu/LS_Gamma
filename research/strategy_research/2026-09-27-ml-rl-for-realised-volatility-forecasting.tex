@@ -1,0 +1,302 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Machine Learning and Reinforcement Learning for Realised Volatility Forecasting}
+\author{Strategy research \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-09-27}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Question:} Machine learning/reinforcement learning for Realised volatility forecasting
+
+\textbf{Method:} Searched all 22 papers in \texttt{docs/\allowbreak{}papers/\allowbreak{}} (page-tagged index) + web search. Quotes verified against the cited PDF pages. Page numbers are PDF pages; printed page numbers are given where they differ.
+
+\textbf{Related research:} \href{2026-09-27-leverage-effect-and-the-ls-gamma-desk.pdf}{Leverage effect and the desk} (GJR-GARCH / LHAR suggestions) \textperiodcentered{} \href{2026-09-27-agent-routing-which-algo-to-run.pdf}{Agent routing} \textperiodcentered{} \href{2026-09-27-deep-hedging-as-gamma-scalping-pnl-driver.pdf}{Deep hedging as the P\&L driver}
+
+\section{Short answer}
+
+\textbf{Machine learning can beat HAR models for realized volatility, mostly at longer horizons, but HAR stays a tough baseline.} Christensen, Siggaard \& Veliyev find random forests and neural networks beat the HAR family even using only HAR's own inputs (daily, weekly and monthly RV). The gains grow with the forecast horizon. The most useful inputs are recent RV, implied vol, and recent returns.
+
+\textbf{Reinforcement learning isn't used to produce the forecast itself} in any paper in the library. Where RL shows up, it's in two other roles:
+
+\begin{enumerate}
+
+\item \textbf{Choosing or blending forecasting models} over time (web).
+
+\item \textbf{Skipping the forecast} and learning the vol-trading decision directly, which is what OPHR does. OPHR's point is that ML forecasters with good accuracy still failed to make money.
+
+\end{enumerate}
+
+\textbf{For the desk:} build up from GARCH to HAR, then HAR with implied vol, then a random forest or small network, all on the same inputs. Judge them by trading P\&L as well as forecast error.
+
+\section{What the papers say}
+
+\subsection{ML vs HAR: ML wins, especially at longer horizons}
+
+\begin{itemize}
+
+\item
+
+> ``ML is competitive and beats the HAR lineage, even when the only predictors are the daily, weekly, and monthly lags of realized variance. The forecast gains are more pronounced at longer horizons.'' (Christensen, Siggaard \& Veliyev 2022, \emph{A Machine Learning Approach to Volatility Forecasting}, p. 1)
+
+\item Without heavy tuning:
+
+\begin{quote}``ML is implemented with minimal hyperparameter tuning.'' (same, p. 1)\end{quote}
+
+\item \textbf{Which models:}
+
+\begin{quote}``The random forest and neural networks are preferred among ML algorithms and significantly improve prediction relative to HAR.'' (same, p. 36, printed p. 35)\end{quote}
+
+\item \textbf{But HAR is hard to beat on risk measures:}
+
+\begin{quote}``Interestingly, the basic HAR model is remarkably solid and tough to beat in the VaR framework.'' (same, p. 33, printed p. 32)\end{quote}
+
+\item \textbf{Their data is single stocks, not an index:}
+
+\begin{quote}``The empirical investigation is based on high-frequency data from 29 of the 30 Dow Jones Industrial'' (same, p. 12, printed p. 11)\end{quote}
+
+\end{itemize}
+
+\subsection{Which inputs matter}
+
+\begin{itemize}
+
+\item
+
+> ``the most influential drivers of volatility, namely RVD, RVW, IV and M1W'' (Christensen et al., p. 24, printed p. 23)
+
+These are daily RV, weekly RV, implied volatility, and 1-week momentum (the past week's return).
+
+\item \textbf{The past week's return works in the leverage-effect direction:}
+
+\begin{quote}``the marginal association between RVt and M1W is negative.'' (same, p. 24, printed p. 23)\end{quote}
+
+So recent losses predict higher volatility.
+
+\end{itemize}
+
+\subsection{News and text help as an add-on, not a replacement}
+
+\begin{itemize}
+
+\item
+
+> ``News-only forecasts contain useful predictive information but generally do not outperform strong volatility-history benchmarks.'' (Rahimikia, Zohren \& Poon, \emph{Realised Volatility Forecasting: ML via Financial Word Embedding}, p. 1)
+
+\item
+
+> ``combining stock-related news forecasts with a strong volatility-history benchmark lowers forecast losses for several specifications and increases realised utility'' (same, p. 1)
+
+\end{itemize}
+
+\subsection{Data matters more than model size}
+
+\begin{itemize}
+
+\item \textbf{Rahimikia et al. summarize Liu et al. (2026):}
+
+\begin{quote}``Liu et al. (2026) show that neural-network volatility forecasting depends importantly on the estimation regime and data scale, with global estimation and larger, more diverse training samples generating substantially greater gains than increases in model size or changes in network architecture.'' (Rahimikia et al., p. 3)\end{quote}
+
+``Global estimation'' means training one model across many assets rather than one model per asset.
+
+\item \textbf{How RV is measured sets the bar:}
+
+\begin{quote}``consistent with Liu et al. (2015), who highlight the difficulty of significantly beating the 5-minute RV benchmark.'' (same, p. 22)\end{quote}
+
+Both main papers measure RV from 5-minute intraday returns.
+
+\end{itemize}
+
+\subsection{Using realized measures inside GARCH-type models}
+
+\begin{itemize}
+
+\item
+
+> ``we find that the Realized GARCH model significantly outperforms conventional GARCH models.'' (Hansen, Huang, Tong \& Wang 2021, \emph{Realized GARCH, CBOE VIX, and the VRP}, p. 1)
+
+They test on the S\&P 500.
+
+\end{itemize}
+
+\subsection{Accurate forecasts don't guarantee P\&L}
+
+\begin{itemize}
+
+\item \textbf{OPHR's machine-learning baselines forecast vol but don't make money:}
+
+\begin{quote}``Similarly, ML baselines (GBDT, MLP, LSTM, DeepVol, GARCH) struggle with profitability despite occasionally achieving lower volatility'' (\emph{OPHR}, p. 9)\end{quote}
+
+\begin{quote}``they fail to bridge the gap between forecasting RV and optimizing path-dependent PnL outcomes in options trading'' (\emph{OPHR}, p. 9)\end{quote}
+
+OPHR's answer is RL that learns the long/short vol decision directly, rather than a better forecast.
+
+\end{itemize}
+
+\subsection{Practitioner use and a weak dissenting paper}
+
+\begin{itemize}
+
+\item \textbf{PRISM uses a HAR-based model to drive its VRP entry signal:}
+
+\begin{quote}``as computed by the VRC HAR-RV-Regime model'' (Verma 2026, \emph{PRISM}, p. 35)\end{quote}
+
+PRISM is a non-peer-reviewed whitepaper.
+
+\item \textbf{Cheng (2015) claims implied vol beats GARCH and that there is no VRP:}
+
+\begin{quote}``model-free implied volatility is more accurate to forecast the future volatility and the volatility risk premium does not exist.'' (J. Cheng 2015, \emph{Volatility Forecasting and Volatility Risk Premium}, p. 1, printed p. 98)\end{quote}
+
+This is a 5-page paper from a low-profile journal. It conflicts with the rest of the library, which finds a sizable VRP (Hansen et al.; Cheng, Renault \& Sangrey), so treat it with caution.
+
+\end{itemize}
+
+\section{How the papers connect}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Paper} & \textbf{Builds on / agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
+\midrule
+Christensen, Siggaard \& Veliyev 2022 & Corsi 2009 (HAR, web) & HAR-only studies & Random forests and neural nets beat HAR, more so at longer horizons; RV lags, IV and momentum matter most \\
+Rahimikia, Zohren \& Poon & HAR family; Liu et al. 2026 & News-only approaches & Text helps only when combined with an RV-history model; data scale beats model size \\
+Hansen et al. 2021 & GARCH, EGARCH & Plain GARCH & Adding realized measures to GARCH improves S\&P 500 forecasts \\
+OPHR & Deep RL & Forecast-first pipelines & Forecast accuracy doesn't translate into P\&L; RL learns the trading decision directly \\
+PRISM & HAR & Not peer-reviewed & HAR-based VRP signal used for trading \\
+Cheng 2015 & Britten-Jones \& Neuberger & Most of the library & Claims implied vol dominates and there's no VRP; weak evidence \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item \textbf{Agreement:} HAR-type inputs (daily, weekly and monthly RV) are the core of every serious model, and ML adds value on top of them rather than replacing them.
+
+\item \textbf{Implied vol is a key input} in Christensen et al. and in Hansen et al.'s Realized GARCH, which uses VIX. That fits the desk, since the pipeline already collects VIX and ATM IV.
+
+\item \textbf{The disagreement is about what counts as success.} The forecasting papers judge by forecast error, while OPHR judges by P\&L and finds the two can diverge.
+
+\end{itemize}
+
+\section{Relevance to the LS Gamma desk}
+
+These are suggestions, not decisions the desk has made:
+
+\begin{itemize}
+
+\item \textbf{What already exists:} \texttt{forecasting/\allowbreak{}GARCH.\allowbreak{}py} (symmetric GARCH(1,1)); pipeline features \texttt{rv\_\allowbreak{}d}, \texttt{rv\_\allowbreak{}w}, \texttt{rv\_\allowbreak{}m} (the HAR inputs, from daily Garman-Klass RV), \texttt{ret}, VIX and \texttt{atm\_\allowbreak{}iv}; and a \texttt{research/\allowbreak{}RV\_\allowbreak{}Forecasting/\allowbreak{}} folder.
+
+\item \textbf{A model ladder}, each step using the \texttt{new-\allowbreak{}forecaster} skill and the same \texttt{fit}/\texttt{predict} interface:
+
+\begin{enumerate}
+
+\item \textbf{HAR} on \texttt{rv\_\allowbreak{}d}, \texttt{rv\_\allowbreak{}w}, \texttt{rv\_\allowbreak{}m}: the baseline everything must beat.
+
+\item \textbf{HAR-X}: add VIX or ATM IV, and the past week's return. These are Christensen et al.'s most influential inputs, and the return term is also the leverage effect.
+
+\item \textbf{LHAR / GJR-GARCH}, from the leverage report.
+
+\item \textbf{Random forest or a small neural network} on the same inputs. This is where the evidence says ML helps, especially for longer horizons like the 7--60 day tenors the desk trades. That's an inference: their longest horizon is monthly.
+
+\end{enumerate}
+
+\item \textbf{Evaluate two ways:}
+
+\begin{enumerate}
+
+\item \textbf{Forecast error}, out of sample with walk-forward windows, using QLIKE or MSE.
+
+\item \textbf{Signal P\&L:} whether the forecast's VRP signal picks winning long/short gamma trades. OPHR warns these two can disagree.
+
+\end{enumerate}
+
+\item \textbf{Where RL fits:}
+
+\begin{itemize}
+
+\item \textbf{Not as the forecaster.}
+
+\item \textbf{As a model picker:} choosing or weighting forecasters over time, the same idea as the agent-routing report.
+
+\item \textbf{As OPHR-style end-to-end vol timing:} a separate research track.
+
+\end{itemize}
+
+\item \textbf{Lower priority:} news and NLP features. They help only on top of a strong RV model, and they add data plumbing.
+
+\end{itemize}
+
+\section{Gaps and open questions}
+
+\begin{itemize}
+
+\item \textbf{Daily vs intraday RV.} The papers use 5-minute RV. The desk's live RV is daily Garman-Klass, which is noisier and misses overnight moves. yfinance only serves about 60 days of intraday data. The club's R2 bucket (checked 2026-09-27) has \textbf{intraday SPY option trades} (millisecond timestamps, 2014-06 to 2026-07) but \textbf{no intraday SPY stock prices}: SPY is daily only (CRSP), and there's no TAQ data. A 5-minute SPY price series could be \emph{backed out} from the option trades using put-call parity (call minus put at the same strike and expiry \ensuremath{\approx} SPY minus the discounted strike). It would be noisier than real stock prices, but it would give intraday RV back to 2014. Better RV input may matter more than a better model.
+
+\item \textbf{Index vs single stocks.} Christensen et al. forecast Dow component stocks, not SPY. Index vol has a stronger leverage effect and fewer idiosyncratic jumps, so gains may differ.
+
+\item \textbf{Data scale.} ML gains depend on large, diverse training data (Liu et al. via Rahimikia). One asset's daily history is small; using a long SPY history (yfinance goes back to 1993) or training across several assets could help.
+
+\item \textbf{Horizon match.} The papers test 1-day to 1-month horizons. The desk's relevant horizon is the option's remaining life (1--60 DTE).
+
+\item \textbf{RL for forecasting is thin.} The web sources on RL model selection are recent or from other domains (load forecasting, M4, surveys), not tested on SPY RV.
+
+\end{itemize}
+
+\section{Sources}
+
+\textbf{Repo papers used, with pages cited:}
+
+\begin{itemize}
+
+\item \texttt{A-\allowbreak{}machine-\allowbreak{}learning-\allowbreak{}approach-\allowbreak{}to-\allowbreak{}volatility-\allowbreak{}forecasting.\allowbreak{}pdf}: Christensen, Siggaard \& Veliyev (pp. 1, 12, 24, 33, 36)
+
+\item \texttt{Realised-\allowbreak{}Volatility-\allowbreak{}Forecasting-\allowbreak{}Machine-\allowbreak{}Learning-\allowbreak{}via-\allowbreak{}Financial-\allowbreak{}Word-\allowbreak{}Embedding.\allowbreak{}pdf}: Rahimikia, Zohren \& Poon (pp. 1, 3, 22)
+
+\item \texttt{Realized-\allowbreak{}GARCH,-\allowbreak{}CBOE-\allowbreak{}VIX,-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}: Hansen, Huang, Tong \& Wang (p. 1)
+
+\item \texttt{OPHR-\allowbreak{}Mastering-\allowbreak{}Volatility-\allowbreak{}Trading-\allowbreak{}with-\allowbreak{}Multi-\allowbreak{}Agent-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf} (p. 9)
+
+\item \texttt{PRISM-\allowbreak{}A-\allowbreak{}Probabilistic-\allowbreak{}Regime-\allowbreak{}Integrated-\allowbreak{}Scalping-\allowbreak{}Model-\allowbreak{}for-\allowbreak{}Derivatives-\allowbreak{}Arbitrage.\allowbreak{}pdf} (p. 35)
+
+\item \texttt{Volatility-\allowbreak{}Forecasting-\allowbreak{}and-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}: J. Cheng 2015 (p. 1)
+
+\end{itemize}
+
+\textbf{Checked, nothing on forecasting RV:} the deep hedging and RL hedging papers (they use RV as an input, not a target), \texttt{Agents-\allowbreak{}Are-\allowbreak{}not-\allowbreak{}Algorithms.\allowbreak{}pdf}, \texttt{Volatility-\allowbreak{}of-\allowbreak{}Volatility-\allowbreak{}and-\allowbreak{}Leverage-\allowbreak{}Effect-\allowbreak{}from-\allowbreak{}Options.\allowbreak{}pdf}, \texttt{Identifying-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Price-\allowbreak{}Through-\allowbreak{}the-\allowbreak{}Leverage-\allowbreak{}Effect.\allowbreak{}pdf}, \texttt{When-\allowbreak{}You-\allowbreak{}Hedge-\allowbreak{}Discretely-\allowbreak{}\ldots{}pdf}, \texttt{Hedging-\allowbreak{}with-\allowbreak{}Linear-\allowbreak{}Regressions-\allowbreak{}and-\allowbreak{}Neural-\allowbreak{}Networks.\allowbreak{}pdf}.
+
+\textbf{Web sources (outside the repo):}
+
+\begin{itemize}
+
+\item \href{https://academic.oup.com/jfec/article-abstract/7/2/174/856522}{Corsi 2009, \emph{A Simple Approximate Long-Memory Model of Realized Volatility} (J. Financial Econometrics)}, \href{https://papers.ssrn.com/sol3/papers.cfm?abstract_id=1365738}{SSRN}: the original HAR model
+
+\item \href{https://arxiv.org/abs/2508.20795}{Medeiros et al. 2025, \emph{Time Series Embedding and Combination of Forecasts: A Reinforcement Learning Approach} (arXiv)}: RL for choosing and weighting forecasts; tested on simulated, M4 and SPF data, not volatility
+
+\item \href{https://arxiv.org/abs/2505.11163}{Goel, Pasricha, Magris \& Kanniainen 2025, \emph{Foundation Time-Series AI Model for Realized Volatility Forecasting} (arXiv)}: a fine-tuned TimesFM beats econometric benchmarks
+
+\item Also seen, not reviewed: \href{https://arxiv.org/pdf/1811.01846}{RL dynamic model selection for load forecasting}; \href{https://www.sciencedirect.com/science/article/abs/pii/S0957417423013829}{a deep-RL approach to RV forecast optimization (Expert Systems with Applications)}
+
+\end{itemize}
+
+\textbf{Suggested papers to add to \texttt{docs/\allowbreak{}papers/\allowbreak{}}:}
+
+\begin{enumerate}
+
+\item \textbf{Corsi 2009 (HAR):} the baseline every forecaster on the desk should be compared against.
+
+\item \textbf{Goel et al. 2025 (TimesFM for RV):} a modern alternative to training your own ML model; tests incremental fine-tuning.
+
+\item \textbf{Medeiros et al. 2025 (RL forecast combination):} the cleanest ``RL as model picker'' design.
+
+\item \textbf{Liu et al. 2026, neural-network volatility forecasting and data scale:} why training data size matters more than architecture. Found only through Rahimikia et al.'s citation; not located on the web.
+
+\end{enumerate}
+
+\end{document}

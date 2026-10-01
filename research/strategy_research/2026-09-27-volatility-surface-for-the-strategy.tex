@@ -1,0 +1,302 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Should the Desk Build a Volatility Surface?}
+\author{Strategy research \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-09-27}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Question:} would a volatility surface make sense to create for our strategy?
+
+\textbf{Method:} Searched all 22 papers in \texttt{docs/\allowbreak{}papers/\allowbreak{}} (page-tagged index) + web search. Quotes verified against the cited PDF pages. Page numbers are PDF pages; printed page numbers are given where they differ.
+
+\textbf{Related research:} \href{2026-09-27-leverage-effect-and-the-ls-gamma-desk.pdf}{Leverage effect and the desk} (surface-based deltas) \textperiodcentered{} \href{2026-09-27-deep-hedging-as-gamma-scalping-pnl-driver.pdf}{Deep hedging as the P\&L driver}
+
+\section{Short answer}
+
+Yes, but in two stages, and the first stage is small.
+
+\textbf{Stage 1 (useful now): a surface \emph{summary}.} A handful of numbers pulled from the daily IBKR chain the pipeline already collects:
+
+\begin{itemize}
+
+\item ATM implied vol at a couple of tenors (days to expiry), e.g. 30 and 60 days
+
+\item the term-structure slope between them
+
+\item 25-delta put and call IV, and the skew between them
+
+\end{itemize}
+
+This is what the papers actually feed their models. It gives the VRP signal an implied vol at the tenor you trade, instead of VIX (which is SPX, fixed at 30 days), and it adds regime and structure-choice inputs.
+
+\textbf{Stage 2 (only when needed): a full fitted surface,} meaning IV for any strike and expiry. It's needed for pricing options in backtests, for surface-based deltas, and for deep hedging research, but not for choosing today's trade.
+
+The strongest evidence in the library: surface information clearly improves RL hedging. The surface's \textbf{level and term slope} matter most, and the \textbf{smile shape} is second-order, except for short-dated options when the focus is tail risk.
+
+\section{What the papers say}
+
+\subsection{Which parts of the surface matter}
+
+\begin{itemize}
+
+\item \textbf{One compact way to describe a whole surface is five numbers:}
+
+\begin{quote}``the long-term at-the-money (ATM) level, the time-to-maturity slope, the moneyness slope, the smile attenuation and the smirk, respectively'' (François, Gauthier, Godin \& Pérez-Mendoza 2025, \emph{Enhancing Deep Hedging \ldots{} IV Surface Feedback}, p. 10, printed p. 9)\end{quote}
+
+``Smile attenuation'' is how quickly the smile flattens as expiry lengthens; ``smirk'' is the extra steepness on the downside (put) side.
+
+\item \textbf{Level and term slope drive hedging decisions:}
+
+\begin{quote}``Overall, the conditional variance of the underlying asset returns, the long-term ATM level \ensuremath{\beta}1 and the time-to-maturity slope \ensuremath{\beta}2 of the IV surface play a major role, no matter what risk measure or moneyness is considered.'' (same, p. 26, printed p. 25)\end{quote}
+
+\begin{quote}``The moneyness slope, the smile attenuation and the smirk have a second order effect.'' (same, p. 26, printed p. 25)\end{quote}
+
+\item \textbf{Except for short-dated tail risk,} which is relevant because the desk trades 1--60 DTE:
+
+\begin{quote}``high values of the smile attenuation (\ensuremath{\beta}4) and the smirk (\ensuremath{\beta}5) indicate a steep slope and a strong smirk for the short term smile which, in turn, induces a high exposure to tail risk for short term options.'' (same, p. 26, printed p. 25)\end{quote}
+
+\end{itemize}
+
+\subsection{Surface information improves results, but only as an input to a good method}
+
+\begin{itemize}
+
+\item \textbf{Their conclusion:}
+
+\begin{quote}``Out-of-sample backtests underscore the critical role of IV surface information in unlocking the full potential of RL-based hedging strategies.'' (François et al. 2025, \emph{Enhancing\ldots{}}, p. 31, printed p. 30)\end{quote}
+
+\item \textbf{On hedging straddles:}
+
+\begin{quote}``The main conclusion is that RL approaches do not necessarily dominate traditional methods; their performance critically depends on the information provided to the algorithm.'' (François et al. 2025, \emph{Deep Hedging with Options Using the IV Surface}, p. 29, printed p. 28)\end{quote}
+
+\begin{quote}``receiving information about the IV surface clearly improves the performance the RL algorithm.'' (same, p. 29, printed p. 28)\end{quote}
+
+\item \textbf{The surface also carries the VRP:}
+
+\begin{quote}``but also capture the current price levels for options (and the associated variance risk premium) within rebalancing decisions.'' (same, p. 33, printed p. 32)\end{quote}
+
+\item \textbf{A full surface is needed to price and mark positions.} In their setup the straddle's value:
+
+\begin{quote}``is determined using the IV surface prevailing at that moment.'' (same, p. 12, printed p. 11)\end{quote}
+
+\end{itemize}
+
+\subsection{What a practical SPY setup actually uses: a summary, not a full surface}
+
+\begin{itemize}
+
+\item \textbf{Their features:}
+
+\begin{quote}``at--the--money (ATM) implied volatility at 30d and 91d horizons; term-structure slope (iv\_91d - iv\_30d); 25-delta put/call and skew; VIX and the 10-year Treasury yield; and realized/historical volatilities'' (\emph{Deep Hedging with RL: A Practical Framework}, p. 3)\end{quote}
+
+\item \textbf{Why it's worth tracking:}
+
+\begin{quote}``term structure and skew swing within weeks'' (same, p. 2)\end{quote}
+
+\item \textbf{The data-quality catch:}
+
+\begin{quote}``Deep out-of-the-money (OTM) strikes frequently drop observations, forcing strict quality filters and guarded forward-fills before features become usable.'' (same, p. 2)\end{quote}
+
+\end{itemize}
+
+\subsection{Surface shape as a trading signal}
+
+\begin{itemize}
+
+\item \textbf{PRISM watches the surface constantly:}
+
+\begin{quote}``The VRC derivatives desk monitors the SPX implied volatility surface in real time'' (Verma 2026, \emph{PRISM}, p. 28)\end{quote}
+
+It also claims skew predicts stress. This is the firm's own observation, not tested evidence, since PRISM is a non-peer-reviewed whitepaper:
+
+\begin{quote}``consistent with VRC's observation that SPX skew steepens in the 2--3 weeks before elevated-volatility episodes.'' (\emph{PRISM}, p. 28)\end{quote}
+
+\item \textbf{OPHR names smile and term structure as its next opportunities:}
+
+\begin{quote}``Future work could explore additional volatility trading opportunities, such as volatility smile skewness and term structure anomalies'' (\emph{OPHR}, p. 10)\end{quote}
+
+\end{itemize}
+
+\subsection{How the surface moves with spot (links to the leverage-effect report)}
+
+\begin{itemize}
+
+\item
+
+> ``Cont and Da Fonseca [2002] claim that the leverage effect is due to a shift in the overall level of the implied volatility surface and not due to relative movements, that is, changes in the shape of the implied volatility surface.'' (Ruf \& Wang, \emph{Hedging with Linear Regressions and Neural Networks}, p. 8)
+
+This supports tracking the surface \emph{level} closely, and its shape less often.
+
+\end{itemize}
+
+\section{How the papers connect}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Paper} & \textbf{Builds on / agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
+\midrule
+François et al. 2025, \emph{Enhancing\ldots{}} & François et al. 2022 (five-factor surface, web); Bates 2005 & Hedges with the underlying only & Level and term slope matter most; smile shape matters for short-dated tails \\
+François et al. 2025, \emph{\ldots{}with Options Using the IV Surface} & \emph{Enhancing\ldots{}}; Buehler & Hedges with options too, which requires pricing them off the surface & Surface info improves RL; carries the VRP \\
+\emph{Practical Framework} (SPY) & Buehler & A handful of summary features, not a full surface & ATM at 30d/91d, term slope, 25\ensuremath{\Delta} skew; warns about wing data quality \\
+PRISM & --- & Not peer-reviewed & Monitors the surface; claims skew leads vol spikes \\
+Ruf \& Wang & Cont \& Da Fonseca & --- & The surface's level moves with spot; its shape moves less \\
+OPHR & --- & --- & Smile and term structure named as untapped signals \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item \textbf{Agreement:} every paper that uses surface information reduces it to a few factors, either five parametric ones or ATM/slope/skew summaries. None feeds a raw grid of IVs into a decision.
+
+\item \textbf{Ranking:} level and term slope first, smile shape second (François et al.), with the exception of short-dated tail risk.
+
+\item \textbf{A full fitted surface appears only where options must be \emph{priced}:} marking a position, or hedging with options.
+
+\end{itemize}
+
+\section{Relevance to the LS Gamma desk}
+
+These are suggestions, not decisions the desk has made:
+
+\begin{itemize}
+
+\item \textbf{What already exists:}
+
+\begin{itemize}
+
+\item The live pipeline's IBKR \texttt{chain} has per-contract IV and delta for Friday expiries, 1--60 DTE, strikes within \ensuremath{\pm}10\%, and \texttt{atm\_\allowbreak{}iv} per expiry. That's already the raw material for Stage 1.
+
+\item The desk's v1 code (branch \texttt{archive/\allowbreak{}v1-\allowbreak{}ls-\allowbreak{}gamma}) built fuller surfaces from R2 trade data (\texttt{surface/\allowbreak{}smile\_\allowbreak{}params}, \texttt{term\_\allowbreak{}structure}, a smile-based pricer in \texttt{marks.\allowbreak{}py}). That code can be reused for Stage 2 in backtesting.
+
+\end{itemize}
+
+\item \textbf{Stage 1: surface summary features} (a small addition to \texttt{pipeline/\allowbreak{}features.\allowbreak{}py}):
+
+\begin{itemize}
+
+\item ATM IV interpolated to fixed tenors (e.g. 30 and 60 DTE; you set the tenors)
+
+\item the term slope between them
+
+\item 25-delta put IV, 25-delta call IV, and the skew (put minus call)
+
+\item optionally a put-wing measure for the short-gamma structures
+
+\end{itemize}
+
+Uses:
+
+\begin{enumerate}
+
+\item \textbf{VRP at the traded tenor:} IV at the structure's DTE minus the RV forecast, rather than VIX.
+
+\item \textbf{Regime features} for the router, alongside the VIX term-structure ratios already collected.
+
+\item \textbf{Structure choice:} e.g. whether puts are rich relative to calls when choosing a strangle, a straddle or an iron condor.
+
+\end{enumerate}
+
+\item \textbf{Stage 2: a fitted surface, when a project needs it:}
+
+\begin{itemize}
+
+\item backtesting on R2 data, which has trades but no quotes, so every strike must be priced from a fitted smile
+
+\item smile-implied or minimum-variance deltas (see the leverage report)
+
+\item deep hedging state and simulation
+
+\end{itemize}
+
+Standard choices are SVI per expiry, fitted so it can't produce arbitrage (Gatheral \& Jacquier, web), or the five-factor model the François et al. papers use (web).
+
+\item \textbf{Not recommended:} building a full surface only to pick today's trade. The evidence says the summary numbers carry most of the useful information.
+
+\end{itemize}
+
+\section{Gaps and open questions}
+
+\begin{itemize}
+
+\item \textbf{No paper tests surface features as a \emph{signal} for choosing long vs short gamma.} The evidence is about hedging. OPHR lists it as future work, and PRISM's skew claim isn't independently tested.
+
+\item \textbf{Delayed, gappy wing data.} IBKR's free data is about 15 minutes delayed, and far out-of-the-money strikes can be missing. The \emph{Practical Framework} warns about this (p. 2). The pipeline's \ensuremath{\pm}10\% strike range and Friday-only expiries may limit how well the far put wing is measured.
+
+\item \textbf{SPX vs SPY.} The five-factor model was fitted to S\&P 500 index options. Whether its factors carry over cleanly to SPY options is untested here.
+
+\item \textbf{Fitting risk.} A badly fitted surface can quote prices that allow arbitrage. That's why a Stage 2 surface should use a constrained method like arbitrage-free SVI.
+
+\item \textbf{Which tenors?} The papers use 30/91 days or 21/63/126 days. The desk's tenors should match the DTEs it actually trades, which is the PM's call.
+
+\end{itemize}
+
+\section{Sources}
+
+\textbf{Repo papers used, with pages cited:}
+
+\begin{itemize}
+
+\item \texttt{Enhancing-\allowbreak{}Deep-\allowbreak{}Hedging-\allowbreak{}of-\allowbreak{}Options-\allowbreak{}with-\allowbreak{}Implied-\allowbreak{}Volatility-\allowbreak{}Surface-\allowbreak{}Feedback-\allowbreak{}Information.\allowbreak{}pdf}: François, Gauthier, Godin \& Pérez-Mendoza (pp. 10, 26, 31)
+
+\item \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}with-\allowbreak{}Options-\allowbreak{}Using-\allowbreak{}the-\allowbreak{}Implied-\allowbreak{}Volatility-\allowbreak{}Surface.\allowbreak{}pdf}: François et al. (pp. 12, 29, 33)
+
+\item \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}with-\allowbreak{}Reinforcement-\allowbreak{}Learning-\allowbreak{}A-\allowbreak{}Practical-\allowbreak{}Framework-\allowbreak{}for-\allowbreak{}Option-\allowbreak{}Risk-\allowbreak{}Management.\allowbreak{}pdf} (pp. 2, 3)
+
+\item \texttt{PRISM-\allowbreak{}A-\allowbreak{}Probabilistic-\allowbreak{}Regime-\allowbreak{}Integrated-\allowbreak{}Scalping-\allowbreak{}Model-\allowbreak{}for-\allowbreak{}Derivatives-\allowbreak{}Arbitrage.\allowbreak{}pdf}: Verma (p. 28)
+
+\item \texttt{Hedging-\allowbreak{}with-\allowbreak{}Linear-\allowbreak{}Regressions-\allowbreak{}and-\allowbreak{}Neural-\allowbreak{}Networks.\allowbreak{}pdf}: Ruf \& Wang (p. 8)
+
+\item \texttt{OPHR-\allowbreak{}Mastering-\allowbreak{}Volatility-\allowbreak{}Trading-\allowbreak{}with-\allowbreak{}Multi-\allowbreak{}Agent-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf} (p. 10)
+
+\end{itemize}
+
+\textbf{Checked, only passing mentions or none:}
+
+\begin{itemize}
+
+\item \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}Simulate-\allowbreak{}Equity-\allowbreak{}Option-\allowbreak{}Markets.\allowbreak{}pdf}: simulates option markets from a compressed surface representation; relevant only if the desk builds a simulator
+
+\item \texttt{Realized-\allowbreak{}GARCH,-\allowbreak{}CBOE-\allowbreak{}VIX,-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}: ``skew'' there means return skewness, not the IV smile
+
+\item \texttt{Agents-\allowbreak{}Are-\allowbreak{}not-\allowbreak{}Algorithms.\allowbreak{}pdf}, the other deep hedging and RL papers, and the RV-forecasting papers: no surface discussion
+
+\end{itemize}
+
+\textbf{Web sources (outside the repo):}
+
+\begin{itemize}
+
+\item \href{https://www.tandfonline.com/doi/abs/10.1080/14697688.2013.819986}{Gatheral \& Jacquier 2014, \emph{Arbitrage-free SVI volatility surfaces} (Quantitative Finance)}, \href{https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2033323}{SSRN}, \href{https://github.com/JackJacquier/SSVI}{reference code}
+
+\item \href{https://onlinelibrary.wiley.com/doi/abs/10.1002/fut.22364}{François, Galarneau-Vincent, Gauthier \& Godin 2022, \emph{Venturing into Uncharted Territory: An Extensible Implied Volatility Surface Model} (J. Futures Markets)}, \href{https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3888243}{SSRN}
+
+\item \href{https://onlinelibrary.wiley.com/doi/10.1002/fut.70068}{François et al. 2026, \emph{Joint Dynamics for the Underlying Asset and Its IV Surface} (J. Futures Markets)}
+
+\end{itemize}
+
+\textbf{Suggested papers to add to \texttt{docs/\allowbreak{}papers/\allowbreak{}}:}
+
+\begin{enumerate}
+
+\item \textbf{Gatheral \& Jacquier 2014:} the standard way to fit an arbitrage-free smile per expiry; the likely Stage 2 method.
+
+\item \textbf{François et al. 2022:} the five-factor surface model behind both deep hedging papers; the factors are directly interpretable as features.
+
+\item \textbf{François et al. 2026 (joint dynamics):} how spot and the surface move together; useful for simulation and deep hedging.
+
+\item \textbf{Cont \& Da Fonseca 2002, \emph{Dynamics of implied volatility surfaces}:} the classic study of how surfaces move. Found only through Ruf \& Wang's citation, not on the web.
+
+\end{enumerate}
+
+\end{document}

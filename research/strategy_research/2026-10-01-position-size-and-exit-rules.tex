@@ -1,0 +1,226 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Position Size and Exit Rules for Single-Leg Delta-Hedged SPY Options}
+\author{Strategy research \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-01}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Question:} for the size and exit rules lets also run a /strategy-research on this
+
+\textbf{Method:} Searched all 27 papers in \texttt{docs/\allowbreak{}papers/\allowbreak{}} (page-tagged index) + web search + the desk's v1 rules (\texttt{archive/\allowbreak{}v1-\allowbreak{}ls-\allowbreak{}gamma} README). Quotes verified against the cited PDF pages. Page numbers are PDF pages; printed page numbers are given where they differ.
+
+\textbf{Related research:} \href{2026-10-01-target-dte-moneyness-calls-vs-puts.pdf}{Target DTE, moneyness, calls vs puts} \textperiodcentered{} \href{2026-09-29-signal-generation-for-market-state.pdf}{Signal generation}
+
+\textbf{Desk decisions already made (PM, 2026-10-01):} v1 VRP band; single-leg calls and puts; daily delta hedging.
+
+\section{Short answer}
+
+The papers agree on \textbf{four kinds of exit}:
+
+\begin{enumerate}
+
+\item \textbf{Time:} get out before the final week.
+
+\item \textbf{Signal reversal:} the thesis is gone.
+
+\item \textbf{Loss limit:} a hard risk stop.
+
+\item \textbf{Profit take:} optional.
+
+\end{enumerate}
+
+For \textbf{size}, the serious frameworks either cap a risk measure (vega, max loss, collateral) or use a fraction of Kelly. Kelly needs P\&L statistics the desk doesn't have yet.
+
+For paper trading, the simplest sound start is \textbf{1 contract per trade} with time, signal and loss exits. Scale up only once real P\&L data exists.
+
+\section{What the papers say}
+
+\subsection{Time exits: avoid the final week}
+
+\begin{itemize}
+
+\item \textbf{PRISM rolls before the last week:}
+
+\begin{quote}``VRC rolls all options positions when time to expiry falls below 5 trading days.'' (Verma 2026, \emph{PRISM}, p. 36)\end{quote}
+
+The reason given is that it:
+
+\begin{quote}``avoids the theta cliff of the final week'' (\emph{PRISM}, p. 36)\end{quote}
+
+\item \textbf{v1 desk rule:} enter at 7--28 DTE and exit no later than 3 DTE (v1 README).
+
+\item \textbf{The Cboe PutWrite benchmark is the opposite extreme:} it sells 1-month ATM puts monthly and \textbf{holds them to expiry}, fully collateralized (\href{https://en.wikipedia.org/wiki/CBOE_S\&P_500_PutWrite_Index}{Wikipedia}, \href{https://cdn.cboe.com/api/global/us_indices/governance/Cboe_SP_500_PutWrite_Indices_Methodology.pdf}{Cboe methodology}). That index isn't delta-hedged, though.
+
+\end{itemize}
+
+\subsection{Signal exits: close when the thesis reverses}
+
+\begin{itemize}
+
+\item \textbf{PRISM's VRP reversal trigger} fires when the VRP z-score stays negative for three consecutive closes. This:
+
+\begin{quote}``signals that implied vol has fallen below VRC's regime-adjusted realized vol estimate'' (\emph{PRISM}, p. 37)\end{quote}
+
+\item \textbf{OPHR's baselines close and flip:}
+
+\begin{quote}``If predicted volatility crosses the opposite threshold, the position is closed and reversed.'' (Chen, Cai, Qin \& An, \emph{OPHR}, p. 28)\end{quote}
+
+\end{itemize}
+
+\subsection{Loss and profit limits}
+
+\begin{itemize}
+
+\item \textbf{OPHR's baselines use percentage limits plus a maximum hold:}
+
+\begin{quote}``the position is closed if the profit reaches p\% or if the loss reaches l\%. In addition, a maximum holding period'' (\emph{OPHR}, p. 26)\end{quote}
+
+Their settings (take-profit 5\%, stop 3\%, 96-hour maximum hold, 60--90 day options, p. 27) are tuned for hourly crypto trading and \textbf{don't transfer} to daily SPY.
+
+\item \textbf{v1 desk rules:} for long gamma, a VRP hard stop and a realized-vol trailing check; for short gamma, a stop at 30\% of premium.
+
+\item \textbf{Profit taking at 50\% of premium} on short puts is common practitioner advice. I couldn't verify a rigorous study (the one found couldn't be accessed), so treat it as untested.
+
+\end{itemize}
+
+\subsection{Sizing}
+
+\begin{itemize}
+
+\item \textbf{Fractional Kelly:}
+
+\begin{quote}``VRC applies a fractional Kelly factor of 1/2 as standard policy'' (\emph{PRISM}, p. 23)\end{quote}
+
+Kelly needs the mean and variance of trade P\&L, which the desk will only have after paper trading.
+
+\item \textbf{PRISM's hard limits (p. 38):}
+
+\begin{itemize}
+
+\item net vega at most 3\% of assets
+
+\item 99\% daily CVaR at most 0.75\% of notional
+
+\item delta exposure at most 2\ensuremath{\times} assets
+
+\item exit if ATM bid-ask spreads exceed 100bp of vol
+
+\end{itemize}
+
+\item \textbf{The PutWrite index} sizes so that T-bills ``can finance the maximum possible loss from final settlement'' of the puts sold. That's the most conservative rule.
+
+\item \textbf{v1 desk caps:} long gamma at 5--10\% of capital; a 20\% budget for the short side.
+
+\end{itemize}
+
+\section{How the papers connect}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Source} & \textbf{Exit approach} & \textbf{Sizing approach} \\
+\midrule
+PRISM (whitepaper) & Roll at under 5 trading days; signal reversal; P\&L at 2.5\ensuremath{\sigma} below expectation; hard limits & Half-Kelly with an uncertainty penalty; vega, CVaR and leverage caps \\
+OPHR baselines & Take-profit, stop-loss, max hold; close and reverse on opposite signal & By margin use \\
+Cboe PutWrite (web) & Hold to expiry & Fully collateralized \\
+v1 desk & Exit at 3 DTE; VRP and premium stops & 5--10\% long, 20\% short budget \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item \textbf{Everyone uses a time exit and a thesis exit.} They differ mostly on whether to add profit and loss stops.
+
+\item \textbf{Sizing goes from simplest (full collateral) to most data-hungry (Kelly).} Risk caps such as vega or max loss sit in between.
+
+\end{itemize}
+
+\section{Relevance to the LS Gamma desk}
+
+Suggested starting rules for paper trading. These are suggestions; the PM sets the numbers.
+
+\begin{enumerate}
+
+\item \textbf{Size:} 1 contract per trade. Paper trading is first a mechanics test. Later, size by a vega or max-loss budget, and only consider half-Kelly once there's P\&L history.
+
+\item \textbf{Time exit:} close at about 7 calendar DTE, which is roughly PRISM's 5 trading days.
+
+\item \textbf{Signal exit:} close when the signal is back to flat for 3 consecutive days. Close and flip on an opposite signal.
+
+\item \textbf{Loss stop:}
+
+\begin{itemize}
+
+\item short put: when the position loss reaches 1--2\ensuremath{\times} the premium received
+
+\item long call: at 50\% of the premium paid
+
+\end{itemize}
+
+Measure losses including the hedge P\&L.
+
+\item \textbf{Optional profit take:} close short puts at 50\% of premium. Untested; consider running it in shadow to compare.
+
+\item \textbf{Log every exit and its trigger,} so the rules can be tuned from data.
+
+\end{enumerate}
+
+\section{Gaps and open questions}
+
+\begin{itemize}
+
+\item \textbf{No paper tests these exits on daily-hedged single SPY options.} The OPHR numbers are crypto; PRISM is simulated; PutWrite is unhedged.
+
+\item \textbf{Stops and daily hedging interact.} A stop on option P\&L alone ignores hedge gains, so P\&L should be measured on the combined position.
+
+\item \textbf{The account's starting capital and risk budget} aren't set yet, and they're needed before scaling past 1 contract.
+
+\end{itemize}
+
+\section{Sources}
+
+\textbf{Repo papers used, with pages cited:}
+
+\begin{itemize}
+
+\item \texttt{PRISM-\allowbreak{}A-\allowbreak{}Probabilistic-\allowbreak{}Regime-\allowbreak{}Integrated-\allowbreak{}Scalping-\allowbreak{}Model-\allowbreak{}for-\allowbreak{}Derivatives-\allowbreak{}Arbitrage.\allowbreak{}pdf} (pp. 23, 36, 37, 38)
+
+\item \texttt{OPHR-\allowbreak{}Mastering-\allowbreak{}Volatility-\allowbreak{}Trading-\allowbreak{}with-\allowbreak{}Multi-\allowbreak{}Agent-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf} (pp. 26, 27, 28)
+
+\end{itemize}
+
+\textbf{Checked, nothing on sizing or exits:} the deep hedging papers (they size hedges, not positions), the forecasting papers, \texttt{Agents-\allowbreak{}Are-\allowbreak{}not-\allowbreak{}Algorithms.\allowbreak{}pdf}, \texttt{From-\allowbreak{}Deep-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}LLMs-\allowbreak{}A-\allowbreak{}Survey-\allowbreak{}of-\allowbreak{}AI-\allowbreak{}in-\allowbreak{}Quantitative-\allowbreak{}Investment.\allowbreak{}pdf}, Sepp (hedging frequency, not exits).
+
+\textbf{Web sources (outside the repo):}
+
+\begin{itemize}
+
+\item \href{https://cdn.cboe.com/api/global/us_indices/governance/Cboe_SP_500_PutWrite_Indices_Methodology.pdf}{Cboe S\&P 500 PutWrite Indices methodology}
+
+\item \href{https://en.wikipedia.org/wiki/CBOE_S\&P_500_PutWrite_Index}{CBOE S\&P 500 PutWrite Index (Wikipedia)}
+
+\item \href{https://cdn.cboe.com/resources/education/research_publications/PUTIndexEnnisKnupp.pdf}{Ennis Knupp, \emph{Evaluating the Performance Characteristics of the CBOE S\&P 500 PutWrite Index}}
+
+\end{itemize}
+
+\textbf{Suggested papers to add to \texttt{docs/\allowbreak{}papers/\allowbreak{}}:}
+
+\begin{enumerate}
+
+\item \textbf{Ennis Knupp PUT index evaluation:} a long-run benchmark for a systematic ATM put-selling program.
+
+\item \textbf{A rigorous study of profit and loss rules for short index options,} if one can be found. The practitioner claims remain unverified.
+
+\end{enumerate}
+
+\end{document}

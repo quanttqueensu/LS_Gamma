@@ -1,0 +1,256 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Should a Clustering Algorithm like K-Means Decide Which Algo to Run?}
+\author{Strategy research \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-01}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Question:} to determine which algo to run based on the LS or LG thresholds should we use a clustering algo like K means? search on the web is none of the papers adress this
+
+\textbf{Method:} Searched all 27 papers in \texttt{docs/\allowbreak{}papers/\allowbreak{}} (page-tagged index) + web search. Quotes verified against the cited PDF pages. Page numbers are PDF pages; printed page numbers are given where they differ.
+
+\textbf{Previous research:} \href{2026-09-29-signal-generation-for-market-state.pdf}{Signal generation for market state} \textperiodcentered{} \href{2026-09-27-agent-routing-which-algo-to-run.pdf}{Agent routing}
+
+\section{Short answer}
+
+\textbf{Not as the thing that picks the algo.} K-means is \emph{unsupervised}: it groups days that look alike in the features, but it never sees which algo made money on those days. Its clusters come out unlabeled, can change meaning every time it is refit, and ignore time order. That makes it switch often, which is costly when each switch means trading options.
+
+The long / short / flat decision is already a sharper rule: the VRP band directly says whether forecast RV beats IV. Today there is also only one algo per side (long call, short put), so there's nothing extra for a clustering model to choose between yet.
+
+Where clustering \emph{can} help is as a \textbf{regime layer}:
+
+\begin{itemize}
+
+\item First label the market state.
+
+\item Then measure, in a backtest, which algo actually pays in each state.
+
+\item If you go that way, use a time-aware version: a \textbf{statistical jump model}, which is k-means plus a penalty on switching, or a \textbf{hidden Markov model} with probabilities.
+
+\end{itemize}
+
+None of the 27 repo papers tests clustering for choosing long vs short gamma. The answer leans on adjacent repo papers plus web sources.
+
+\section{What the papers say}
+
+\subsection{Repo papers: the closest thing is ``cluster, then pick a model per cluster''}
+
+\begin{itemize}
+
+\item \textbf{The load-forecasting paper describes exactly the k-means idea,} then says why it moved past it:
+
+\begin{quote}``load patterns are classified into clusters based on some similarities to select the best load forecasting model in each cluster.'' (Feng \& Zhang 2018, \emph{RL based Dynamic Model Selection for Short-Term Load Forecasting}, p. 1)\end{quote}
+
+\begin{quote}``Though these strategies help improve the forecasting accuracy, it is still challenging to select the best forecasting model at each forecasting time step.'' (same, p. 1)\end{quote}
+
+Their fix was a Q-learning selector that picks the model at every step. This is electricity load, not options.
+
+\item \textbf{The IV-surface deep hedging paper's ``clusters'' are hand-labelled date ranges, not k-means.} They are used to report results by regime, not to decide trades:
+
+\begin{quote}``we analyze the performance metrics of hedging strategies across clusters of paths representing different economic states'' (François, Gauthier, Godin \& Pérez-Mendoza 2025, \emph{Deep Hedging with Options Using the IV Surface}, p. 18, printed p. 17)\end{quote}
+
+\begin{quote}``These periods aim to approximate different states of the economy'' (same, p. 19, printed p. 18)\end{quote}
+
+\begin{quote}``both benchmarks and RL agents are sensitive to the environment'' (same, p. 19, printed p. 18)\end{quote}
+
+\end{itemize}
+
+\subsection{Repo papers: regimes as probabilities, not hard clusters}
+
+\begin{itemize}
+
+\item \textbf{PRISM uses a hidden Markov model and acts on regime probabilities rather than one label:}
+
+\begin{quote}``VRC does not forecast which volatility regime will prevail tomorrow; VRC maintains a continuously updated probability distribution over all possible regimes and acts proportionally to it.'' (Verma 2026, \emph{PRISM}, p. 10)\end{quote}
+
+\begin{quote}``VRC calibrates these transition rates to S\&P 500 daily returns (2000--2024) using maximum likelihood on the hidden Markov model'' (\emph{PRISM}, p. 14)\end{quote}
+
+\item \textbf{PRISM also sizes down when the regime is unclear,} which a hard k-means label can't do:
+
+\begin{quote}``The VRC entropy penalty (48) automatically compensates for this latency by reducing the VRC position size during the ambiguous transition window.'' (\emph{PRISM}, p. 33)\end{quote}
+
+PRISM is a non-peer-reviewed whitepaper with simulated results.
+
+\end{itemize}
+
+\subsection{Repo papers: the long/short decision itself is an RV-vs-IV rule}
+
+\begin{itemize}
+
+\item \textbf{OPHR's starting policy is the same idea as the desk's VRP band:}
+
+\begin{quote}``generates long/short signals by comparing the future RV and current IV'' (Chen, Cai, Qin \& An, \emph{OPHR}, p. 7)\end{quote}
+
+\item \textbf{What matters is P\&L, not a cleaner state description:}
+
+\begin{quote}``they fail to bridge the gap between forecasting RV and optimizing path-dependent PnL outcomes in options trading'' (\emph{OPHR}, p. 9)\end{quote}
+
+By the same logic, clusters that separate the features nicely aren't guaranteed to separate \emph{profitable} from unprofitable trades (inference).
+
+\end{itemize}
+
+\subsection{Web: k-means ignores time, and that causes too many switches}
+
+These sources are outside the repo.
+
+\begin{itemize}
+
+\item \textbf{Statistical jump models are k-means with a cost on switching.} Shu, Yu \& Mulvey (2024) state:
+
+\begin{quote}``With a zero jump penalty, the model reduces to a k-means clustering algorithm, ignoring temporal information.''\end{quote}
+
+\begin{quote}``a regime signal that flips very frequently is unlikely to be useful for investment purposes''\end{quote}
+
+In their example, a small penalty cut regime switches from 9.7 to 2.7. Out of sample on US, German and Japanese indices (1990--2023, with costs and delays), the jump-model strategy beat both an HMM-guided strategy and buy-and-hold on volatility, drawdown and Sharpe (\href{https://arxiv.org/abs/2402.05272}{arXiv 2402.05272}).
+
+\item \textbf{The original jump estimator} (Nystrup, Lindström \& Madsen 2020, \emph{Expert Systems with Applications} 150) was built because misspecified HMMs give ``unrealistically rapid switching dynamics''. It works by clustering temporal features while penalizing jumps (\href{https://orbit.dtu.dk/en/publications/learning-hidden-markov-models-with-persistent-states-by-penalizin}{DTU record}).
+
+\item \textbf{Plain k-means compares feature averages, not distributions.} Horvath, Issa \& Muguruza (2021; \emph{J. Computational Finance} 2024) cluster the return \emph{distributions} instead (Wasserstein k-means). They report it ``vastly outperforms all considered competitor approaches'' on cluster-quality scores (\href{https://arxiv.org/abs/2110.11848}{arXiv 2110.11848}). That is a clustering-quality result, not a trading P\&L result.
+
+\item \textbf{K-means as a state label, with something else deciding.} Li, Xie \& Seco (2025) segment the market into ten volatility states with k-means, but forecast transitions with a Bayesian Markov-switching model, and use that to adjust portfolio allocations (\href{https://arxiv.org/abs/2504.02841}{arXiv 2504.02841}).
+
+\item \textbf{Choosing the trade directly (supervised).} Wysocki (2026) ranks eight delta-targeted short-put strategies plus a ``skip'' each day on S\&P 500 weekly options with a learning-to-rank model. Removing the regime features ``collapses walk-forward statistical confidence'' (\href{https://arxiv.org/abs/2608.24786}{arXiv 2608.24786}). It is a preprint, and it doesn't compare against clustering.
+
+\end{itemize}
+
+\section{How the papers connect}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Paper} & \textbf{Builds on / agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
+\midrule
+Feng \& Zhang 2018 (repo) & Wang et al. (k-means + per-cluster model) & Replaces clustering with Q-learning & Cluster-then-select works, but per-step selection is better \\
+François et al. 2025 (repo) & Their 2024 paper & Hand-defined regimes, used only for evaluation & Strategy performance depends on regime \\
+PRISM (repo, whitepaper) & Hamilton-style HMMs & Probabilities, not hard labels; simulated & Size by regime confidence \\
+OPHR (repo) & Rule baseline from RV vs IV & Learns the policy with RL & P\&L, not forecast accuracy, is the target \\
+Nystrup et al. 2020 (web) & HMMs & Penalizes jumps & Persistent regimes from clustering \\
+Shu, Yu \& Mulvey 2024 (web) & Nystrup & Penalty tuned on strategy performance & Jump model beats HMM out of sample; \ensuremath{\lambda} = 0 is k-means \\
+Horvath et al. 2021 (web) & k-means & Clusters distributions, not moments & Better-separated regimes \\
+Wysocki 2026 (web) & Learning-to-rank & Supervised, no clustering & Picks among short-put variants directly \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item \textbf{K-means sits at the bottom of a ladder.} Each step up adds something it lacks: jump models add persistence, HMMs add probabilities, Wasserstein k-means adds distribution shape.
+
+\item \textbf{The trading papers that use regimes don't trade on the cluster label alone.} They add transition models, probabilities, sizing, or a supervised selector on top.
+
+\item \textbf{Feng \& Zhang and OPHR point the same way:} pick the action from its outcome (RL or supervised), not from similarity alone.
+
+\end{itemize}
+
+\section{Relevance to the LS Gamma desk}
+
+These are suggestions; the thresholds and structures are the PM's decisions:
+
+\begin{itemize}
+
+\item \textbf{Keep the VRP band as the long / short / flat decision for paper trading.} It is already the RV-vs-IV rule the papers start from, and it has fixed thresholds in \texttt{configs/\allowbreak{}paper.\allowbreak{}toml}.
+
+\item \textbf{Clustering becomes useful once there are several algos per side,} e.g. short put vs short strangle vs iron condor. It would then be a \emph{regime feature} that feeds the selector, not the selector itself.
+
+\item \textbf{If you test it, use the jump model, not plain k-means.}
+
+\begin{itemize}
+
+\item Features already in the pipeline: VRP spread, VIX9D/VIX and VIX/VIX3M, VVIX, RV lags, trend.
+
+\item Standardize the features, use 2--3 states, and tune the switching penalty on walk-forward P\&L.
+
+\item An open-source Python implementation exists (\href{https://github.com/Yizhan-Oliver-Shu/jump-models}{jump-models}).
+
+\end{itemize}
+
+\item \textbf{Score any regime model on what matters:}
+
+\begin{enumerate}
+
+\item Does mean delta-hedged P\&L of the long call and short put differ by regime in a backtest on the club's R2 options data?
+
+\item How often does the regime flip?
+
+\item Are the regimes stable when the model is refit?
+
+\end{enumerate}
+
+\item \textbf{Run it in shadow mode first.} Log the regime next to the live VRP signal every day and compare, without trading on it.
+
+\end{itemize}
+
+\section{Gaps and open questions}
+
+\begin{itemize}
+
+\item \textbf{No paper tests clustering for long vs short gamma selection on SPY options.} The web evidence is from equity allocation (Shu et al., Li et al.) and short-put ranking (Wysocki, a preprint).
+
+\item \textbf{Tiny sample of regime changes.} A decade of daily data has only a handful of crisis episodes, so more than 2--3 clusters will be poorly estimated.
+
+\item \textbf{Look-ahead risk.} Fitting clusters on the full history and then backtesting leaks the future. Fit walk-forward only.
+
+\item \textbf{Label switching.} Cluster IDs are arbitrary. Each refit needs a rule to match new clusters to old ones, e.g. by average VIX.
+
+\item \textbf{Clustering doesn't remove thresholds.} It moves them into the choice of features, number of clusters and penalty.
+
+\end{itemize}
+
+\section{Sources}
+
+\textbf{Repo papers used, with pages cited:}
+
+\begin{itemize}
+
+\item \texttt{Reinforcement-\allowbreak{}Learning-\allowbreak{}based-\allowbreak{}Dynamic-\allowbreak{}Model-\allowbreak{}Selection-\allowbreak{}for-\allowbreak{}Short-\allowbreak{}Term-\allowbreak{}Load-\allowbreak{}Forecasting.\allowbreak{}pdf}: Feng \& Zhang 2018, \emph{Reinforcement Learning based Dynamic Model Selection for Short-Term Load Forecasting} (p. 1)
+
+\item \texttt{Enhancing-\allowbreak{}Deep-\allowbreak{}Hedging-\allowbreak{}of-\allowbreak{}Options-\allowbreak{}with-\allowbreak{}Implied-\allowbreak{}Volatility-\allowbreak{}Surface-\allowbreak{}Feedback-\allowbreak{}Information.\allowbreak{}pdf}: François, Gauthier, Godin \& Pérez-Mendoza (pp. 18, 19)
+
+\item \texttt{PRISM-\allowbreak{}A-\allowbreak{}Probabilistic-\allowbreak{}Regime-\allowbreak{}Integrated-\allowbreak{}Scalping-\allowbreak{}Model-\allowbreak{}for-\allowbreak{}Derivatives-\allowbreak{}Arbitrage.\allowbreak{}pdf}: Verma 2026 (pp. 10, 14, 33)
+
+\item \texttt{OPHR-\allowbreak{}Mastering-\allowbreak{}Volatility-\allowbreak{}Trading-\allowbreak{}with-\allowbreak{}Multi-\allowbreak{}Agent-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf}: Chen, Cai, Qin \& An (pp. 7, 9)
+
+\end{itemize}
+
+\textbf{Checked, no relevant clustering content:}
+
+\begin{itemize}
+
+\item Uses of ``cluster'' that mean \emph{volatility clustering} or clustered standard errors: \texttt{Foundation-\allowbreak{}Time-\allowbreak{}Series-\allowbreak{}AI-\allowbreak{}Model-\allowbreak{}for-\allowbreak{}Realized-\allowbreak{}Volatility-\allowbreak{}Forecasting.\allowbreak{}pdf}, \texttt{Agents-\allowbreak{}Are-\allowbreak{}not-\allowbreak{}Algorithms.\allowbreak{}pdf}, \texttt{Realised-\allowbreak{}Volatility-\allowbreak{}Forecasting-\allowbreak{}Machine-\allowbreak{}Learning-\allowbreak{}via-\allowbreak{}Financial-\allowbreak{}Word-\allowbreak{}Embedding.\allowbreak{}pdf}
+
+\item A k-means-LSTM reference in the bibliography only: \texttt{Novel-\allowbreak{}Optimization-\allowbreak{}Approach-\allowbreak{}for-\allowbreak{}Realized-\allowbreak{}Volatility-\allowbreak{}Forecast-\allowbreak{}of-\allowbreak{}Stock-\allowbreak{}Price-\allowbreak{}Index-\allowbreak{}Based-\allowbreak{}on-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning-\allowbreak{}Model.\allowbreak{}pdf}
+
+\item The remaining deep hedging, forecasting and survey papers have no regime clustering.
+
+\end{itemize}
+
+\textbf{Web sources (outside the repo):}
+
+\begin{itemize}
+
+\item \href{https://arxiv.org/abs/2402.05272}{Shu, Yu \& Mulvey 2024, \emph{Downside Risk Reduction Using Regime-Switching Signals: A Statistical Jump Model Approach} (arXiv 2402.05272)}
+
+\item \href{https://orbit.dtu.dk/en/publications/learning-hidden-markov-models-with-persistent-states-by-penalizin}{Nystrup, Lindström \& Madsen 2020, \emph{Learning hidden Markov models with persistent states by penalizing jumps} (ESWA 150)}
+
+\item \href{https://arxiv.org/abs/2110.11848}{Horvath, Issa \& Muguruza 2021, \emph{Clustering Market Regimes using the Wasserstein Distance} (arXiv 2110.11848)}
+
+\item \href{https://arxiv.org/abs/2504.02841}{Li, Xie \& Seco 2025, \emph{Dynamic Investment Strategies Through Market Classification and Volatility} (arXiv 2504.02841)}
+
+\item \href{https://arxiv.org/abs/2608.24786}{Wysocki 2026, \emph{Harvesting the Volatility Risk Premium: A Learning-to-Rank Approach} (arXiv 2608.24786)}
+
+\item \href{https://arxiv.org/abs/2510.03236}{Blake, Gandhi \& Jakkula 2025, \emph{Improving S\&P 500 Volatility Forecasting through Regime-Switching Methods} (arXiv 2510.03236)}: soft regime and clustering methods for S\&P 500 vol forecasting
+
+\end{itemize}
+
+\textbf{Added to \texttt{docs/\allowbreak{}papers/\allowbreak{}} after this report (2026-10-01):} \texttt{Downside-\allowbreak{}Risk-\allowbreak{}Reduction-\allowbreak{}Using-\allowbreak{}Regime-\allowbreak{}Switching-\allowbreak{}Signals-\allowbreak{}A-\allowbreak{}Statistical-\allowbreak{}Jump-\allowbreak{}Model-\allowbreak{}Approach.\allowbreak{}pdf}, \texttt{Learning-\allowbreak{}Hidden-\allowbreak{}Markov-\allowbreak{}Models-\allowbreak{}with-\allowbreak{}Persistent-\allowbreak{}States-\allowbreak{}by-\allowbreak{}Penalizing-\allowbreak{}Jumps.\allowbreak{}pdf}, \texttt{Clustering-\allowbreak{}Market-\allowbreak{}Regimes-\allowbreak{}Using-\allowbreak{}the-\allowbreak{}Wasserstein-\allowbreak{}Distance.\allowbreak{}pdf}, \texttt{Dynamic-\allowbreak{}Investment-\allowbreak{}Strategies-\allowbreak{}Through-\allowbreak{}Market-\allowbreak{}Classification-\allowbreak{}and-\allowbreak{}Volatility-\allowbreak{}A-\allowbreak{}Machine-\allowbreak{}Learning-\allowbreak{}Approach.\allowbreak{}pdf}, \texttt{Improving-\allowbreak{}S\&P-\allowbreak{}500-\allowbreak{}Volatility-\allowbreak{}Forecasting-\allowbreak{}through-\allowbreak{}Regime-\allowbreak{}Switching-\allowbreak{}Methods.\allowbreak{}pdf}, \texttt{Harvesting-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium-\allowbreak{}A-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}Rank-\allowbreak{}Approach.\allowbreak{}pdf}. Their quotes above were taken from the web versions.
+
+\end{document}

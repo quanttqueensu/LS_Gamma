@@ -32,19 +32,7 @@ def _complete(t):
 
 
 def _stream(ib, contracts, wait=WAIT):
-    """Stream quotes until every ticker has bid/ask and greeks, or `wait` runs out.
-
-    A reqTickers snapshot returns before most delayed quotes arrive, so we
-    stream briefly instead and then cancel.
-    """
-    tickers = [ib.reqMktData(c, "", False, False) for c in contracts]
-    waited = 0.0
-    while waited < wait and not all(_complete(t) for t in tickers):
-        ib.sleep(0.5)
-        waited += 0.5
-    for c in contracts:
-        ib.cancelMktData(c)
-    return tickers
+    return broker.stream(ib, contracts, _complete, wait)
 
 
 def spot(ib, underlying=broker.UNDERLYING):

@@ -111,8 +111,24 @@ def mid(ticker):
     return price
 
 
+def stream(ib, contracts, ready, wait=5.0):
+    # delayed snapshots arrive empty, so stream briefly
+    tickers = [ib.reqMktData(c, "", False, False) for c in contracts]
+    waited = 0.0
+    while waited < wait and not all(ready(t) for t in tickers):
+        ib.sleep(0.5)
+        waited += 0.5
+    for c in contracts:
+        ib.cancelMktData(c)
+    return tickers
+
+
+def has_mid(ticker):
+    return not math.isnan(ticker.midpoint())
+
+
 def net_mid(ib, legs, contracts):
-    tickers = ib.reqTickers(*contracts)
+    tickers = stream(ib, contracts, has_mid)
     sign = {"BUY": 1, "SELL": -1}
     return sum(sign[leg.action] * leg.ratio * mid(t) for leg, t in zip(legs, tickers))
 

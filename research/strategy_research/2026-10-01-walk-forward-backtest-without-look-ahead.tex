@@ -1,0 +1,334 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Building a Walk-Forward Backtest with No Look-Ahead Bias and a True Out-of-Sample Test}
+\author{Strategy research \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-01}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Question:} look into making a backtest that has no look ahead bias and uses walk forward optimization and out of sample testing
+
+\textbf{Method:} Searched all 35 papers in \texttt{docs/\allowbreak{}papers/\allowbreak{}} (page-tagged index) + web search. Quotes verified against the cited PDF pages. Page numbers are PDF pages; printed page numbers are given where they differ.
+
+\textbf{Related research:} \href{2026-10-01-clustering-k-means-for-algo-selection.pdf}{Clustering for algo selection} \textperiodcentered{} \href{2026-10-01-position-size-and-exit-rules.pdf}{Position size and exit rules} \textperiodcentered{} \href{2026-09-29-signal-generation-for-market-state.pdf}{Signal generation}
+
+\section{Short answer}
+
+A trustworthy backtest needs three separate protections.
+
+\begin{enumerate}
+
+\item \textbf{No look-ahead.} Every decision on day \emph{t} may use only what was knowable at that decision time. Forecast models are refit on data up to \emph{t}, and trades fill at prices from \emph{after} the decision.
+
+\item \textbf{Walk-forward optimization.} Parameters such as the VRP bands, DTE and stops are chosen on a training window and then run, unchanged, on the next unseen window. Repeat, rolling forward. Leave a gap (an \textbf{embargo}) at least as long as a trade's holding period between training and test, so trades don't straddle the boundary.
+
+\item \textbf{A final hold-out.} Lock away a last slice of data, e.g. the final 12 months, and run the chosen configuration on it \textbf{exactly once}. Every look at it after that makes it in-sample.
+
+\end{enumerate}
+
+Two more things the papers stress:
+
+\begin{itemize}
+
+\item \textbf{Count every configuration you try,} and judge the winner with a selection-aware statistic, such as the Deflated Sharpe Ratio or the probability of backtest overfitting.
+
+\item \textbf{Use realistic option fills,} not the mid price.
+
+\end{itemize}
+
+The simplest way to stay honest on this desk is to make the backtest call \textbf{the same signal, selection, exit and P\&L code as the live runner}, fed day by day.
+
+\section{What the papers say}
+
+\subsection{Walk-forward: refit on the past, test on the next unseen period}
+
+\begin{itemize}
+
+\item \textbf{How it works}, as used in a repo paper on real S\&P 500 options:
+
+\begin{quote}``In each iteration, the model is re-estimated using the most recent information, and performance is assessed on the next unseen period.'' (Bracha, Sakowski \& Michańków 2025, \emph{DRL for ATM S\&P 500 Options Hedging}, p. 20, printed p. 19)\end{quote}
+
+\item \textbf{Tuning happens only inside the training data:}
+
+\begin{quote}``Hyperparameters are tuned exclusively on the training and validation time periods to avoid information leakage, with the validation year performance serving as the criterion for selecting the best configuration.'' (same, p. 21, printed p. 20)\end{quote}
+
+\item \textbf{The window lengths are themselves a choice that changes results:}
+
+\begin{quote}``the performance of a trading strategy using the Exponential Moving Average (EMA) evaluated within a walk-forward procedure based on the Robust Sharpe Ratio is highly dependent on the chosen window size.'' (Mroziewicz \& \'{S}lepaczuk 2026, \emph{Double Out-of-Sample Walk-Forward Optimization}, p. 1)\end{quote}
+
+So pick the window lengths in advance, or treat them as one more parameter chosen inside training.
+
+\item \textbf{Retraining is part of the method,} not an afterthought:
+
+\begin{quote}``Generalization relies on walk-forward discipline and policies should be retrained periodically as volatility regimes evolve.'' (\emph{Deep Hedging with RL: A Practical Framework}, p. 8)\end{quote}
+
+\end{itemize}
+
+\subsection{A final hold-out, used once}
+
+\begin{itemize}
+
+\item \textbf{Mroziewicz \& \'{S}lepaczuk split the data into two periods first,} then ran walk-forward only on the first:
+
+\begin{quote}``All strategy parameter optimization was performed on the Global Training Data Period, while the Unseen Data Period was used only once to calculate the performance for the final best parameter combination.'' (Mroziewicz \& \'{S}lepaczuk 2026, p. 7)\end{quote}
+
+\item \textbf{Wysocki does the same on S\&P 500 options,} with a four-window walk-forward and then:
+
+\begin{quote}``a strictly held-out 2025 out-of-time slice that is never used during training, hyperparameter search, or model selection.'' (Wysocki 2026, \emph{Harvesting the VRP: A Learning-to-Rank Approach}, p. 3)\end{quote}
+
+\end{itemize}
+
+\subsection{Sources of look-ahead to guard against}
+
+\begin{itemize}
+
+\item \textbf{Timing of returns versus decisions:}
+
+\begin{quote}``The simulator eliminates look-ahead bias by aligning returns with the action timestamp'' (\emph{Deep Hedging with RL: A Practical Framework}, p. 2)\end{quote}
+
+\item \textbf{Model and feature choices made on the full sample.} Wysocki reruns feature selection inside each window:
+
+\begin{quote}``Running the pipeline per window prevents look-ahead leakage from later periods into earlier-window selections'' (Wysocki 2026, p. 9)\end{quote}
+
+\item \textbf{Regime models that peek ahead.} A regime model fitted over the whole history labels day \emph{t} using later days. Shu, Yu \& Mulvey instead infer each day's regime online, saying they
+
+\begin{quote}``need to infer the state to which day t belongs based on the features'' available at the end of that day, ``without access to future data'' (Shu, Yu \& Mulvey 2024, \emph{Statistical Jump Model Approach}, p. 11)\end{quote}
+
+\item \textbf{Execution delay belongs in the validation too.} Shu et al. tune with the same trading delay as the test:
+
+\begin{quote}``we align the validation period with the out-of-sample testing period by assuming the same delay'' (same, p. 16)\end{quote}
+
+\item \textbf{Using true future values of features in multi-step forecasts:}
+
+\begin{quote}``using feature's real values introduces look-ahead bias as the model forecasts future days based on previous predictions.'' (Blake, Gandhi \& Jakkula 2025, \emph{Improving S\&P 500 Volatility Forecasting through Regime-Switching}, p. 12)\end{quote}
+
+\end{itemize}
+
+\subsection{Leakage across the train/test boundary, and too many tries}
+
+\begin{itemize}
+
+\item \textbf{An embargo gap between training and validation:}
+
+\begin{quote}``Embargo period: 30 days between train and validation to prevent data leakage'' (Sheppert 2026, \emph{The GT-Score}, p. 3)\end{quote}
+
+\item \textbf{Multiple testing:}
+
+\begin{quote}``When many trading rules or parameterizations are tried, the best in-sample performer is likely to be a false discovery unless multiple testing is accounted for.'' (Sheppert 2026, p. 2)\end{quote}
+
+The same paper points to the Deflated Sharpe Ratio and the probability of backtest overfitting (PBO) as corrections.
+
+\end{itemize}
+
+\subsection{Web: purging, embargo, selection-aware statistics, option fills}
+
+These sources are outside the repo.
+
+\begin{itemize}
+
+\item \textbf{Purging and embargo} come from López de Prado's \emph{Advances in Financial Machine Learning} (2018). Purging removes training observations whose outcome window overlaps the test period. An embargo then drops a short stretch after each test period from training. Combinatorial purged cross-validation (CPCV) builds many train/test splits under these rules, rather than walk-forward's single path (\href{https://en.wikipedia.org/wiki/Purged_cross-validation}{overview}).
+
+\item \textbf{The Deflated Sharpe Ratio} (Bailey \& López de Prado 2014, \emph{Journal of Portfolio Management} 40(5)) adjusts a Sharpe ratio for the number of trials, short samples and non-normal returns (\href{https://jpm.pm-research.com/content/40/5/94.abstract}{JPM}).
+
+\item \textbf{The probability of backtest overfitting} (Bailey, Borwein, López de Prado \& Zhu, \emph{J. Computational Finance} 20(4), 2017). Its abstract notes that standard hold-out methods ``tend to be unreliable and inaccurate in the context of investment backtests'' (\href{https://www.risk.net/journal-of-computational-finance/2471206/the-probability-of-backtest-overfitting}{Risk.net}).
+
+\item \textbf{Option fills.} ORATS, a commercial options data vendor, simulates buys and sells at ``the mid-point plus or minus slippage'' and marks positions at the mid. It snapshots quotes ``14-minutes before the close'' because ``market makers will often widen out as the close approaches'' (\href{https://orats.com/blog/answers-to-common-questions-backtesting}{ORATS}).
+
+\end{itemize}
+
+\section{How the papers connect}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Source} & \textbf{Builds on / agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
+\midrule
+Bracha et al. 2025 (repo) & Baranochnikov \& \'{S}lepaczuk & Rolls the training window forward & Walk-forward with per-window tuning on S\&P 500 options \\
+Mroziewicz \& \'{S}lepaczuk 2026 (repo) & Pardo; Bracha & Treats window lengths as parameters & Walk-forward plus a single-use unseen period \\
+Wysocki 2026 (repo) & López de Prado & Expanding windows & Per-window feature selection; strict out-of-time hold-out on S\&P options \\
+Sheppert 2026, GT-Score (repo) & López de Prado; Bailey & Changes the objective function & Embargo; multiple-testing awareness \\
+Practical Deep Hedging (repo) & Buehler & --- & Align returns to the action timestamp \\
+Shu, Yu \& Mulvey 2024 (repo) & Nystrup & Validation tuned on strategy P\&L & Online inference; same delay in validation and test \\
+López de Prado 2018 (web) & --- & Combinatorial splits instead of one path & Purging, embargo, CPCV \\
+Bailey et al. 2014, 2017 (web) & --- & Statistics, not a split scheme & Deflated Sharpe ratio; PBO \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item \textbf{Everyone agrees on the core:} tune only on the past, test on unseen data, and keep a final hold-out you don't reuse.
+
+\item \textbf{They differ on windows.} Bracha rolls a fixed window forward, while Wysocki expands his. Mroziewicz shows the choice matters.
+
+\item \textbf{López de Prado and Bailey go further than walk-forward.} They argue one walk-forward path is still a single noisy sample, and add combinatorial splits and selection-aware statistics.
+
+\end{itemize}
+
+\section{Relevance to the LS Gamma desk}
+
+These are suggestions. The PM sets the windows and the parameter grid.
+
+\begin{itemize}
+
+\item \textbf{One code path.} Build \texttt{src/\allowbreak{}lsgamma/\allowbreak{}backtest/\allowbreak{}} so that each simulated day calls the existing pure modules:
+
+\begin{itemize}
+
+\item \texttt{signals.\allowbreak{}SIGNALS}, \texttt{forecasting.\allowbreak{}FORECASTERS}, \texttt{trading.\allowbreak{}selection}, \texttt{trading.\allowbreak{}exits} and \texttt{trading.\allowbreak{}pnl}
+
+\item with a simulated broker in place of IBKR
+
+\end{itemize}
+
+Then the backtest tests the code that trades, and the live and backtest rules can't drift apart.
+
+\item \textbf{Decision timestamp.} The live runner decides at about 10:15 ET. In the backtest, the decision on day \emph{t} uses:
+
+\begin{itemize}
+
+\item the forecast fitted on returns up to the \textbf{close of t\ensuremath{-}1}
+
+\item VIX and features up to t\ensuremath{-}1
+
+\item the option chain as of the decision time
+
+\end{itemize}
+
+The fill price must come from \textbf{after} the decision. Today's partial yfinance bar must never enter. (This is already an open item for the live runner too.)
+
+\item \textbf{Refit every day, walk-forward.} Refit GARCH or HAR each day on data up to t\ensuremath{-}1, never once on the full sample.
+
+\item \textbf{Parameters to optimize, kept to a minimum:} the long and short bands, maybe the target DTE, and the stop multiples. Every extra parameter multiplies the number of trials.
+
+\item \textbf{A suggested schedule} for the R2 options data (2014-06 to 2026-07):
+
+\begin{itemize}
+
+\item expanding training window of at least 3 years
+
+\item 1-year test windows, stepping 1 year
+
+\item an embargo of about 30 trading days, longer than a \textasciitilde{}23-day trade
+
+\item the last 12 months (about 2025-07 to 2026-07) as the single-use hold-out
+
+\end{itemize}
+
+\item \textbf{Positions overlap the boundary.} A trade opened in training can still be open in the test window. Either close everything at each boundary, or purge and embargo by holding period.
+
+\item \textbf{Fills and marks:}
+
+\begin{itemize}
+
+\item Enter and exit at mid \ensuremath{\pm} slippage (the same slippage as \texttt{configs/\allowbreak{}paper.\allowbreak{}toml}), or at bid/ask where quotes exist.
+
+\item Mark at mid.
+
+\item Add share commissions for the hedge.
+
+\end{itemize}
+
+\item \textbf{Report honestly:}
+
+\begin{itemize}
+
+\item Log every configuration tried.
+
+\item Report the walk-forward test P\&L stitched together, the hold-out result once, and a Deflated Sharpe ratio across all trials.
+
+\end{itemize}
+
+\end{itemize}
+
+\section{Gaps and open questions}
+
+\begin{itemize}
+
+\item \textbf{The data has trades, not quotes.} R2 holds intraday SPY option \emph{trades} but no bid/ask quotes and no intraday SPY price. Marks would have to be built from trades near a fixed time, and the bid-ask spread modelled.
+
+\item \textbf{Few independent trades.} About 12 years of \textasciitilde{}23-day trades gives at most around 130 non-overlapping trades, so a large parameter grid will overfit. The Deflated Sharpe ratio and PBO become important.
+
+\item \textbf{Regime shifts.} 2014--2026 includes the COVID-19 crash and the 2022 bear market. A one-year test window can be dominated by a single episode.
+
+\item \textbf{No repo paper tests a daily-hedged single-leg SPY option strategy with this protocol.} The closest are Wysocki (0DTE short puts) and Bracha (hedging, not signal trading).
+
+\item \textbf{Look-ahead in data vendors.} Index values from yfinance (e.g. VIX) are end-of-day. Using them at 10:15 on day \emph{t} is look-ahead unless lagged one day.
+
+\end{itemize}
+
+\section{Sources}
+
+\textbf{Repo papers used, with pages cited:}
+
+\begin{itemize}
+
+\item \texttt{Application-\allowbreak{}of-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}At-\allowbreak{}the-\allowbreak{}Money-\allowbreak{}S\&P-\allowbreak{}500-\allowbreak{}Options-\allowbreak{}Hedging.\allowbreak{}pdf}: Bracha, Sakowski \& Michańków (pp. 20, 21)
+
+\item \texttt{A-\allowbreak{}Novel-\allowbreak{}Approach-\allowbreak{}to-\allowbreak{}Trading-\allowbreak{}Strategy-\allowbreak{}Parameter-\allowbreak{}Optimization-\allowbreak{}Using-\allowbreak{}Double-\allowbreak{}Out-\allowbreak{}of-\allowbreak{}Sample-\allowbreak{}Data-\allowbreak{}and-\allowbreak{}Walk-\allowbreak{}Forward-\allowbreak{}Techniques.\allowbreak{}pdf}: Mroziewicz \& \'{S}lepaczuk (pp. 1, 7)
+
+\item \texttt{Harvesting-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium-\allowbreak{}A-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}Rank-\allowbreak{}Approach.\allowbreak{}pdf}: Wysocki (pp. 3, 9)
+
+\item \texttt{The-\allowbreak{}GT-\allowbreak{}Score-\allowbreak{}A-\allowbreak{}Robust-\allowbreak{}Objective-\allowbreak{}Function-\allowbreak{}for-\allowbreak{}Reducing-\allowbreak{}Overfitting-\allowbreak{}in-\allowbreak{}Data-\allowbreak{}Driven-\allowbreak{}Trading-\allowbreak{}Strategies.\allowbreak{}pdf}: Sheppert (pp. 2, 3)
+
+\item \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}with-\allowbreak{}Reinforcement-\allowbreak{}Learning-\allowbreak{}A-\allowbreak{}Practical-\allowbreak{}Framework-\allowbreak{}for-\allowbreak{}Option-\allowbreak{}Risk-\allowbreak{}Management.\allowbreak{}pdf} (pp. 2, 8)
+
+\item \texttt{Downside-\allowbreak{}Risk-\allowbreak{}Reduction-\allowbreak{}Using-\allowbreak{}Regime-\allowbreak{}Switching-\allowbreak{}Signals-\allowbreak{}A-\allowbreak{}Statistical-\allowbreak{}Jump-\allowbreak{}Model-\allowbreak{}Approach.\allowbreak{}pdf}: Shu, Yu \& Mulvey (pp. 11, 16)
+
+\item \texttt{Improving-\allowbreak{}S\&P-\allowbreak{}500-\allowbreak{}Volatility-\allowbreak{}Forecasting-\allowbreak{}through-\allowbreak{}Regime-\allowbreak{}Switching-\allowbreak{}Methods.\allowbreak{}pdf}: Blake, Gandhi \& Jakkula (p. 12)
+
+\end{itemize}
+
+\textbf{Checked, only standard in-sample/out-of-sample splits with no protocol detail:}
+
+\begin{itemize}
+
+\item \texttt{Hedging-\allowbreak{}with-\allowbreak{}Linear-\allowbreak{}Regressions-\allowbreak{}and-\allowbreak{}Neural-\allowbreak{}Networks.\allowbreak{}pdf} (rolling 900/180-day windows)
+
+\item \texttt{Realised-\allowbreak{}Volatility-\allowbreak{}Forecasting-\allowbreak{}Machine-\allowbreak{}Learning-\allowbreak{}via-\allowbreak{}Financial-\allowbreak{}Word-\allowbreak{}Embedding.\allowbreak{}pdf} (rolling estimation windows; embeddings trained only on pre-sample text)
+
+\item \texttt{A-\allowbreak{}machine-\allowbreak{}learning-\allowbreak{}approach-\allowbreak{}to-\allowbreak{}volatility-\allowbreak{}forecasting.\allowbreak{}pdf}
+
+\item the IV-surface deep hedging papers
+
+\item OPHR, PRISM (simulated)
+
+\end{itemize}
+
+The other papers have no backtest methodology.
+
+\textbf{Web sources (outside the repo):}
+
+\begin{itemize}
+
+\item \href{https://en.wikipedia.org/wiki/Purged_cross-validation}{Purged cross-validation overview (López de Prado 2018, \emph{Advances in Financial Machine Learning})}
+
+\item \href{https://jpm.pm-research.com/content/40/5/94.abstract}{Bailey \& López de Prado 2014, \emph{The Deflated Sharpe Ratio} (JPM 40(5))}
+
+\item \href{https://www.risk.net/journal-of-computational-finance/2471206/the-probability-of-backtest-overfitting}{Bailey, Borwein, López de Prado \& Zhu 2017, \emph{The Probability of Backtest Overfitting} (J. Comp. Finance 20(4))}
+
+\item \href{https://orats.com/blog/answers-to-common-questions-backtesting}{ORATS, \emph{Answers to Common Questions: Backtesting}}
+
+\end{itemize}
+
+\textbf{Suggested papers to add to \texttt{docs/\allowbreak{}papers/\allowbreak{}}:}
+
+\begin{enumerate}
+
+\item \textbf{Bailey \& López de Prado 2014, \emph{The Deflated Sharpe Ratio}:} the statistic for judging a winner chosen from many trials.
+
+\item \textbf{Bailey et al. 2017, \emph{The Probability of Backtest Overfitting}:} measures how likely the chosen configuration is overfit.
+
+\item \textbf{López de Prado 2018, chapters 7 and 12} (cross-validation and backtesting through CPCV): the purging and embargo method.
+
+\end{enumerate}
+
+\end{document}

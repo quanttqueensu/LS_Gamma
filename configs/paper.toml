@@ -1,0 +1,29 @@
+[signal]
+model = "vrp_band"
+forecaster = "garch"
+long_band = 0.05  # rv forecast - iv above: long
+short_band = -0.02  # rv forecast - iv below: short
+
+[entry]
+target_dte = 30
+min_dte = 21
+max_dte = 45
+
+[size]
+quantity = 1  # contracts per leg
+max_positions = 1
+
+[exit]
+exit_dte = 7  # close at or below this DTE
+flat_days = 3  # flat signal days before closing
+short_stop_mult = 1.0  # stop at credit times this
+long_stop_frac = 0.5  # stop after losing this premium fraction
+short_profit_frac = 0.5  # take profit at this credit fraction
+
+[execution]
+slippage = 0.05
+fill_timeout = 60  # seconds
+gateway = true  # Gateway paper port 4002
+
+[hedge]
+min_shares = 1  # skip smaller rebalances

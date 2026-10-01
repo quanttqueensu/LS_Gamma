@@ -4,7 +4,7 @@ A hedger only decides a target share position. rebalance() trades the
 difference through the broker.
 """
 
-from lsgamma.core.Algos.broker import EXCHANGE, MULTIPLIER, UNDERLYING, submit_stock
+from lsgamma.core.Algos.broker import EXCHANGE, MULTIPLIER, UNDERLYING, stream, submit_stock
 
 
 def stock_position(ib, underlying=UNDERLYING):
@@ -22,13 +22,17 @@ def option_positions(ib, underlying=UNDERLYING):
     return positions
 
 
+def has_delta(ticker):
+    return ticker.modelGreeks is not None and ticker.modelGreeks.delta is not None
+
+
 def option_delta(ib, underlying=UNDERLYING):
     """Delta of the option positions only, in shares."""
     positions = option_positions(ib, underlying)
     if not positions:
         return 0.0
 
-    tickers = ib.reqTickers(*[c for c, _ in positions])
+    tickers = stream(ib, [c for c, _ in positions], has_delta)
     delta = 0.0
     for (c, qty), t in zip(positions, tickers):
         if t.modelGreeks is None or t.modelGreeks.delta is None:

@@ -1,7 +1,5 @@
-# QUANTT 2026 - Long/Short Gamma desk
+# Long/Short Gamma desk, QUANTT
 **Regime-dependent gamma scalping on SPY options**
-
-The RV forecast gives the signal, and market regime data picks which algo to run.
 
 ---
 
@@ -16,11 +14,11 @@ src/lsgamma/
 │   └── Hedging/       # hedging policies (delta hedge)
 ├── forecasting/
 └── backtest/
-research/              # sandbox notebooks by topic
+research/              # Research notes (AI), papers (Written by Analysts or PM), etc.
 docs/
 ├── education/         # team learning material
 ├── decisions/         # decision records
-└── papers/            # research papers
+└── papers/            # research papers (Academic)
 configs/
 tests/
 ```

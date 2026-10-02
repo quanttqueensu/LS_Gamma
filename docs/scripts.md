@@ -66,5 +66,16 @@ To read a log:
 PYTHONPATH=src python -c "from lsgamma.trading import ledger; print(ledger.read_log('trades'))"
 ```
 
-## 7. Changing the rules
+## 7. Research experiments
+See `research/README.md` for the workflow. To run an experiment (every run is logged to `results/research/<name>/`, gitignored):
+```bash
+PYTHONPATH=src python research/RV_Forecasting/2026-10-05-har-vs-garch/experiment.py
+```
+To start a new one:
+```bash
+cp -r research/_template research/<Topic>/YYYY-MM-DD-short-slug
+cp configs/experiments/TEMPLATE.toml configs/experiments/YYYY-MM-DD-short-slug.toml
+```
+
+## 8. Changing the rules
 All numbers live in `configs/paper.toml`: the VRP bands, forecaster (`garch` or `har`), DTE window, size, exits, slippage, fill timeout and hedge band. No code changes are needed.

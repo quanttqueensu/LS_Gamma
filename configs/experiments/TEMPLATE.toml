@@ -1,0 +1,17 @@
+[experiment]
+name = "YYYY-MM-DD-short-slug"  # same as the folder name
+topic = "RV_Forecasting"
+owner = "TBD"
+
+[data]
+symbol = "SPY"
+years = 10
+holdout_start = "YYYY-MM-DD"  # never touched until the final run
+
+[walk_forward]
+train_years = 3  # minimum training window (expanding)
+test_years = 1
+embargo_days = 30  # gap between train and test
+
+[model]
+# experiment-specific parameters go here

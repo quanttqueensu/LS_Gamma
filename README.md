@@ -16,9 +16,12 @@ src/lsgamma/
 ├── forecasting/           # RV forecasters: GARCH, HAR
 ├── signals/               # signal models: VRP band
 ├── trading/               # contract selection, exits, P&L, ledger, daily runner, smoke test
+├── experiments.py         # research run logger (results/research/)
 └── backtest/              # (not built yet)
 research/                  # Research notes (AI), papers (Written by Analysts or PM), etc.
-├── Agentic_Routing/       # sandbox by topic
+├── README.md              # how research works: workflow, rules, path to live
+├── _template/             # copy to start an experiment (hypothesis card, script, summary)
+├── Agentic_Routing/       # topic sandboxes: README (who's on it, experiments) + one folder per hypothesis
 ├── Deep_Hedging/
 ├── RV_Forecasting/
 ├── strategy_research/     # research reports (LaTeX + PDF)
@@ -31,7 +34,7 @@ docs/
 └── repo-architecture.png  # architecture diagram
 configs/
 ├── paper.toml             # every strategy number for paper trading
-└── experiments/
+└── experiments/           # one TOML per research experiment (+ TEMPLATE.toml)
 tests/                     # offline tests (pytest, fake IBKR)
 ```
 

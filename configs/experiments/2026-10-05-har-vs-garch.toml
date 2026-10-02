@@ -1,0 +1,19 @@
+[experiment]
+name = "2026-10-05-har-vs-garch"
+topic = "RV_Forecasting"
+owner = "TBD"
+
+[data]
+symbol = "SPY"
+years = 10
+holdout_start = "2025-10-01"  # last 12 months: do not use until final run
+
+[walk_forward]
+train_years = 3  # minimum training window (expanding)
+test_years = 1
+embargo_days = 20  # = horizon: target windows never cross into the hold-out
+
+[model]
+forecasters = ["garch", "har"]
+horizon = 20  # trading days ahead
+step = 5  # forecast every 5th trading day

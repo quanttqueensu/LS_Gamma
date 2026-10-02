@@ -27,7 +27,7 @@ def decide(feats, chain, atm, cfg, today):
     iv = float(row["atm_iv"])
     signal = SIGNALS[cfg["signal"]["model"]](rv, iv, cfg)
     return {"date": str(today), "expiry": str(expiry), "dte": int(row["dte"]),
-            "rv_forecast": rv, "iv": iv, "spread": rv - iv, "signal": signal}
+            "rv_forecast": rv, "iv": iv, "vrp": iv - rv, "signal": signal}
 
 
 def history(today, signal, n):
@@ -126,7 +126,7 @@ def run(ib, cfg, today, dry=False):
     feats, chain, atm = store.load("features"), store.load("chain"), store.load("atm_iv")
     d = decide(feats, chain, atm, cfg, today)
     print(f"{d['date']}  rv {d['rv_forecast']:.3f}  iv {d['iv']:.3f}  "
-          f"spread {d['spread']:+.3f}  signal {d['signal']}  ({d['expiry']}, {d['dte']} DTE)")
+          f"vrp {d['vrp']:+.3f}  signal {d['signal']}  ({d['expiry']}, {d['dte']} DTE)")
     hist = history(today, d["signal"], cfg["exit"]["flat_days"])
     if not dry:
         ledger.log("signals", d)

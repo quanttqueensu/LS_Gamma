@@ -22,7 +22,7 @@ PYTHONPATH=src python -m lsgamma.pipeline.build --gateway     # full run with th
 - `Error 200 (No security definition)` and `Error 10091` are expected and harmless.
 
 ## 3. Dry run (no orders)
-Prints the forecast, IV, spread, signal, and any trade it would make.
+Prints the forecast, IV, VRP (IV − forecast), signal, and any trade it would make.
 ```bash
 PYTHONPATH=src python -m lsgamma.trading.runner --dry-run --skip-pipeline   # latest saved data, no Gateway
 PYTHONPATH=src python -m lsgamma.trading.runner --dry-run                   # fresh data, Gateway open

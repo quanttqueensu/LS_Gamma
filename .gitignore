@@ -236,3 +236,7 @@ results/
 
 # Claude Code workspace (local only)
 .claude/
+
+# deep-research skill scratch output (converted to research/Misc_Research_Notes/)
+/research_notes/
+/reports/

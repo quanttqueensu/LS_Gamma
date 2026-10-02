@@ -24,7 +24,7 @@
 
 \textbf{Not as the thing that picks the algo.} K-means is \emph{unsupervised}: it groups days that look alike in the features, but it never sees which algo made money on those days. Its clusters come out unlabeled, can change meaning every time it is refit, and ignore time order. That makes it switch often, which is costly when each switch means trading options.
 
-The long / short / flat decision is already a sharper rule: the VRP band directly says whether forecast RV beats IV. Today there is also only one algo per side (long call, short put), so there's nothing extra for a clustering model to choose between yet.
+The long /\allowbreak{} short /\allowbreak{} flat decision is already a sharper rule: the VRP band directly says whether forecast RV beats IV. Today there is also only one algo per side (long call, short put), so there's nothing extra for a clustering model to choose between yet.
 
 Where clustering \emph{can} help is as a \textbf{regime layer}:
 
@@ -82,13 +82,13 @@ PRISM is a non-peer-reviewed whitepaper with simulated results.
 
 \end{itemize}
 
-\subsection{Repo papers: the long/short decision itself is an RV-vs-IV rule}
+\subsection{Repo papers: the long/\allowbreak{}short decision itself is an RV-vs-IV rule}
 
 \begin{itemize}
 
 \item \textbf{OPHR's starting policy is the same idea as the desk's VRP band:}
 
-\begin{quote}``generates long/short signals by comparing the future RV and current IV'' (Chen, Cai, Qin \& An, \emph{OPHR}, p. 7)\end{quote}
+\begin{quote}``generates long/\allowbreak{}short signals by comparing the future RV and current IV'' (Chen, Cai, Qin \& An, \emph{OPHR}, p. 7)\end{quote}
 
 \item \textbf{What matters is P\&L, not a cleaner state description:}
 
@@ -127,7 +127,7 @@ In their example, a small penalty cut regime switches from 9.7 to 2.7. Out of sa
 \begin{center}\small
 \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
 \toprule
-\textbf{Paper} & \textbf{Builds on / agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
+\textbf{Paper} & \textbf{Builds on /\allowbreak{} agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
 \midrule
 Feng \& Zhang 2018 (repo) & Wang et al. (k-means + per-cluster model) & Replaces clustering with Q-learning & Cluster-then-select works, but per-step selection is better \\
 François et al. 2025 (repo) & Their 2024 paper & Hand-defined regimes, used only for evaluation & Strategy performance depends on regime \\
@@ -157,7 +157,7 @@ These are suggestions; the thresholds and structures are the PM's decisions:
 
 \begin{itemize}
 
-\item \textbf{Keep the VRP band as the long / short / flat decision for paper trading.} It is already the RV-vs-IV rule the papers start from, and it has fixed thresholds in \texttt{configs/\allowbreak{}paper.\allowbreak{}toml}.
+\item \textbf{Keep the VRP band as the long /\allowbreak{} short /\allowbreak{} flat decision for paper trading.} It is already the RV-vs-IV rule the papers start from, and it has fixed thresholds in \texttt{configs/\allowbreak{}paper.\allowbreak{}toml}.
 
 \item \textbf{Clustering becomes useful once there are several algos per side,} e.g. short put vs short strangle vs iron condor. It would then be a \emph{regime feature} that feeds the selector, not the selector itself.
 
@@ -165,7 +165,7 @@ These are suggestions; the thresholds and structures are the PM's decisions:
 
 \begin{itemize}
 
-\item Features already in the pipeline: VRP spread, VIX9D/VIX and VIX/VIX3M, VVIX, RV lags, trend.
+\item Features already in the pipeline: VRP spread, VIX9D/\allowbreak{}VIX and VIX/\allowbreak{}VIX3M, VVIX, RV lags, trend.
 
 \item Standardize the features, use 2--3 states, and tune the switching penalty on walk-forward P\&L.
 

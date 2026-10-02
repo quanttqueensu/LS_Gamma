@@ -14,7 +14,7 @@
 
 \maketitle
 
-\textbf{Question:} what target DTE (days to expiry) and moneyness (how far out of the money, delta) should we use for single-leg delta-hedged SPY options in a long/short gamma VRP strategy; and should long gamma use calls or puts and short gamma calls or puts
+\textbf{Question:} what target DTE (days to expiry) and moneyness (how far out of the money, delta) should we use for single-leg delta-hedged SPY options in a long/\allowbreak{}short gamma VRP strategy; and should long gamma use calls or puts and short gamma calls or puts
 
 \textbf{Method:} Searched all 27 papers in \texttt{docs/\allowbreak{}papers/\allowbreak{}} (page-tagged index) + web search + the desk's own IBKR chain snapshot (2026-09-29). Quotes verified against the cited PDF pages. Page numbers are PDF pages; printed page numbers are given where they differ.
 
@@ -149,7 +149,7 @@ Q is the risk-neutral world implied by option prices; P is the real world. This 
 \subsection{The desk's own data (IBKR chain, 2026-09-29, spot 765.05)}
 
 \begin{center}\small
-\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\begin{tabularx}{\linewidth}{l l l l l l >{\raggedright\arraybackslash}X}
 \toprule
 \textbf{DTE} & \textbf{ATM IV} & \textbf{25\ensuremath{\Delta} put IV} & \textbf{25\ensuremath{\Delta} call IV} & \textbf{25\ensuremath{\Delta} skew} & \textbf{10\ensuremath{\Delta} put IV} & \textbf{ATM gamma} \\
 \midrule
@@ -244,11 +244,11 @@ These are suggestions; the PM sets the final numbers:
 
 \item \texttt{Volatility-\allowbreak{}of-\allowbreak{}Volatility-\allowbreak{}and-\allowbreak{}Leverage-\allowbreak{}Effect-\allowbreak{}from-\allowbreak{}Options.\allowbreak{}pdf}: Chong \& Todorov (p. 2)
 
-\item \texttt{Realized-\allowbreak{}GARCH,-\allowbreak{}CBOE-\allowbreak{}VIX,-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}: Hansen et al. (p. 3)
+\item \texttt{Realized-\allowbreak{}GARCH,\allowbreak{}-\allowbreak{}CBOE-\allowbreak{}VIX,\allowbreak{}-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}: Hansen et al. (p. 3)
 
 \end{itemize}
 
-\textbf{Checked, not relevant to DTE/moneyness:} the forecasting papers, the agent and LLM papers, \texttt{From-\allowbreak{}Deep-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}LLMs-\allowbreak{}A-\allowbreak{}Survey-\allowbreak{}of-\allowbreak{}AI-\allowbreak{}in-\allowbreak{}Quantitative-\allowbreak{}Investment.\allowbreak{}pdf} (an AI-in-quant survey), and the remaining deep hedging papers. They use ATM or about 30-day options without studying the choice.
+\textbf{Checked, not relevant to DTE/\allowbreak{}moneyness:} the forecasting papers, the agent and LLM papers, \texttt{From-\allowbreak{}Deep-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}LLMs-\allowbreak{}A-\allowbreak{}Survey-\allowbreak{}of-\allowbreak{}AI-\allowbreak{}in-\allowbreak{}Quantitative-\allowbreak{}Investment.\allowbreak{}pdf} (an AI-in-quant survey), and the remaining deep hedging papers. They use ATM or about 30-day options without studying the choice.
 
 \textbf{Web sources (outside the repo):}
 

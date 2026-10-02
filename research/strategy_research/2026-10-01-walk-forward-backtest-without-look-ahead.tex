@@ -112,7 +112,7 @@ So pick the window lengths in advance, or treat them as one more parameter chose
 
 \end{itemize}
 
-\subsection{Leakage across the train/test boundary, and too many tries}
+\subsection{Leakage across the train/\allowbreak{}test boundary, and too many tries}
 
 \begin{itemize}
 
@@ -134,7 +134,7 @@ These sources are outside the repo.
 
 \begin{itemize}
 
-\item \textbf{Purging and embargo} come from López de Prado's \emph{Advances in Financial Machine Learning} (2018). Purging removes training observations whose outcome window overlaps the test period. An embargo then drops a short stretch after each test period from training. Combinatorial purged cross-validation (CPCV) builds many train/test splits under these rules, rather than walk-forward's single path (\href{https://en.wikipedia.org/wiki/Purged_cross-validation}{overview}).
+\item \textbf{Purging and embargo} come from López de Prado's \emph{Advances in Financial Machine Learning} (2018). Purging removes training observations whose outcome window overlaps the test period. An embargo then drops a short stretch after each test period from training. Combinatorial purged cross-validation (CPCV) builds many train/\allowbreak{}test splits under these rules, rather than walk-forward's single path (\href{https://en.wikipedia.org/wiki/Purged_cross-validation}{overview}).
 
 \item \textbf{The Deflated Sharpe Ratio} (Bailey \& López de Prado 2014, \emph{Journal of Portfolio Management} 40(5)) adjusts a Sharpe ratio for the number of trials, short samples and non-normal returns (\href{https://jpm.pm-research.com/content/40/5/94.abstract}{JPM}).
 
@@ -149,7 +149,7 @@ These sources are outside the repo.
 \begin{center}\small
 \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
 \toprule
-\textbf{Source} & \textbf{Builds on / agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
+\textbf{Source} & \textbf{Builds on /\allowbreak{} agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
 \midrule
 Bracha et al. 2025 (repo) & Baranochnikov \& \'{S}lepaczuk & Rolls the training window forward & Walk-forward with per-window tuning on S\&P 500 options \\
 Mroziewicz \& \'{S}lepaczuk 2026 (repo) & Pardo; Bracha & Treats window lengths as parameters & Walk-forward plus a single-use unseen period \\
@@ -229,7 +229,7 @@ The fill price must come from \textbf{after} the decision. Today's partial yfina
 
 \begin{itemize}
 
-\item Enter and exit at mid \ensuremath{\pm} slippage (the same slippage as \texttt{configs/\allowbreak{}paper.\allowbreak{}toml}), or at bid/ask where quotes exist.
+\item Enter and exit at mid \ensuremath{\pm} slippage (the same slippage as \texttt{configs/\allowbreak{}paper.\allowbreak{}toml}), or at bid/\allowbreak{}ask where quotes exist.
 
 \item Mark at mid.
 
@@ -253,7 +253,7 @@ The fill price must come from \textbf{after} the decision. Today's partial yfina
 
 \begin{itemize}
 
-\item \textbf{The data has trades, not quotes.} R2 holds intraday SPY option \emph{trades} but no bid/ask quotes and no intraday SPY price. Marks would have to be built from trades near a fixed time, and the bid-ask spread modelled.
+\item \textbf{The data has trades, not quotes.} R2 holds intraday SPY option \emph{trades} but no bid/\allowbreak{}ask quotes and no intraday SPY price. Marks would have to be built from trades near a fixed time, and the bid-ask spread modelled.
 
 \item \textbf{Few independent trades.} About 12 years of \textasciitilde{}23-day trades gives at most around 130 non-overlapping trades, so a large parameter grid will overfit. The Deflated Sharpe ratio and PBO become important.
 
@@ -287,11 +287,11 @@ The fill price must come from \textbf{after} the decision. Today's partial yfina
 
 \end{itemize}
 
-\textbf{Checked, only standard in-sample/out-of-sample splits with no protocol detail:}
+\textbf{Checked, only standard in-sample/\allowbreak{}out-of-sample splits with no protocol detail:}
 
 \begin{itemize}
 
-\item \texttt{Hedging-\allowbreak{}with-\allowbreak{}Linear-\allowbreak{}Regressions-\allowbreak{}and-\allowbreak{}Neural-\allowbreak{}Networks.\allowbreak{}pdf} (rolling 900/180-day windows)
+\item \texttt{Hedging-\allowbreak{}with-\allowbreak{}Linear-\allowbreak{}Regressions-\allowbreak{}and-\allowbreak{}Neural-\allowbreak{}Networks.\allowbreak{}pdf} (rolling 900/\allowbreak{}180-day windows)
 
 \item \texttt{Realised-\allowbreak{}Volatility-\allowbreak{}Forecasting-\allowbreak{}Machine-\allowbreak{}Learning-\allowbreak{}via-\allowbreak{}Financial-\allowbreak{}Word-\allowbreak{}Embedding.\allowbreak{}pdf} (rolling estimation windows; embeddings trained only on pre-sample text)
 

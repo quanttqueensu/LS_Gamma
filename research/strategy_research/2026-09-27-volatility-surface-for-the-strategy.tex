@@ -96,7 +96,7 @@ The strongest evidence in the library: surface information clearly improves RL h
 
 \item \textbf{Their features:}
 
-\begin{quote}``at--the--money (ATM) implied volatility at 30d and 91d horizons; term-structure slope (iv\_91d - iv\_30d); 25-delta put/call and skew; VIX and the 10-year Treasury yield; and realized/historical volatilities'' (\emph{Deep Hedging with RL: A Practical Framework}, p. 3)\end{quote}
+\begin{quote}``at--the--money (ATM) implied volatility at 30d and 91d horizons; term-structure slope (iv\_91d - iv\_30d); 25-delta put/\allowbreak{}call and skew; VIX and the 10-year Treasury yield; and realized/\allowbreak{}historical volatilities'' (\emph{Deep Hedging with RL: A Practical Framework}, p. 3)\end{quote}
 
 \item \textbf{Why it's worth tracking:}
 
@@ -143,11 +143,11 @@ This supports tracking the surface \emph{level} closely, and its shape less ofte
 \begin{center}\small
 \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
 \toprule
-\textbf{Paper} & \textbf{Builds on / agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
+\textbf{Paper} & \textbf{Builds on /\allowbreak{} agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
 \midrule
 François et al. 2025, \emph{Enhancing\ldots{}} & François et al. 2022 (five-factor surface, web); Bates 2005 & Hedges with the underlying only & Level and term slope matter most; smile shape matters for short-dated tails \\
 François et al. 2025, \emph{\ldots{}with Options Using the IV Surface} & \emph{Enhancing\ldots{}}; Buehler & Hedges with options too, which requires pricing them off the surface & Surface info improves RL; carries the VRP \\
-\emph{Practical Framework} (SPY) & Buehler & A handful of summary features, not a full surface & ATM at 30d/91d, term slope, 25\ensuremath{\Delta} skew; warns about wing data quality \\
+\emph{Practical Framework} (SPY) & Buehler & A handful of summary features, not a full surface & ATM at 30d/\allowbreak{}91d, term slope, 25\ensuremath{\Delta} skew; warns about wing data quality \\
 PRISM & --- & Not peer-reviewed & Monitors the surface; claims skew leads vol spikes \\
 Ruf \& Wang & Cont \& Da Fonseca & --- & The surface's level moves with spot; its shape moves less \\
 OPHR & --- & --- & Smile and term structure named as untapped signals \\
@@ -157,7 +157,7 @@ OPHR & --- & --- & Smile and term structure named as untapped signals \\
 
 \begin{itemize}
 
-\item \textbf{Agreement:} every paper that uses surface information reduces it to a few factors, either five parametric ones or ATM/slope/skew summaries. None feeds a raw grid of IVs into a decision.
+\item \textbf{Agreement:} every paper that uses surface information reduces it to a few factors, either five parametric ones or ATM/\allowbreak{}slope/\allowbreak{}skew summaries. None feeds a raw grid of IVs into a decision.
 
 \item \textbf{Ranking:} level and term slope first, smile shape second (François et al.), with the exception of short-dated tail risk.
 
@@ -237,7 +237,7 @@ Standard choices are SVI per expiry, fitted so it can't produce arbitrage (Gathe
 
 \item \textbf{Fitting risk.} A badly fitted surface can quote prices that allow arbitrage. That's why a Stage 2 surface should use a constrained method like arbitrage-free SVI.
 
-\item \textbf{Which tenors?} The papers use 30/91 days or 21/63/126 days. The desk's tenors should match the DTEs it actually trades, which is the PM's call.
+\item \textbf{Which tenors?} The papers use 30/\allowbreak{}91 days or 21/\allowbreak{}63/\allowbreak{}126 days. The desk's tenors should match the DTEs it actually trades, which is the PM's call.
 
 \end{itemize}
 
@@ -267,7 +267,7 @@ Standard choices are SVI per expiry, fitted so it can't produce arbitrage (Gathe
 
 \item \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}Simulate-\allowbreak{}Equity-\allowbreak{}Option-\allowbreak{}Markets.\allowbreak{}pdf}: simulates option markets from a compressed surface representation; relevant only if the desk builds a simulator
 
-\item \texttt{Realized-\allowbreak{}GARCH,-\allowbreak{}CBOE-\allowbreak{}VIX,-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}: ``skew'' there means return skewness, not the IV smile
+\item \texttt{Realized-\allowbreak{}GARCH,\allowbreak{}-\allowbreak{}CBOE-\allowbreak{}VIX,\allowbreak{}-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}: ``skew'' there means return skewness, not the IV smile
 
 \item \texttt{Agents-\allowbreak{}Are-\allowbreak{}not-\allowbreak{}Algorithms.\allowbreak{}pdf}, the other deep hedging and RL papers, and the RV-forecasting papers: no surface discussion
 

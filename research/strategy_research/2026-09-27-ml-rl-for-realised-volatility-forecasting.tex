@@ -14,11 +14,11 @@
 
 \maketitle
 
-\textbf{Question:} Machine learning/reinforcement learning for Realised volatility forecasting
+\textbf{Question:} Machine learning/\allowbreak{}reinforcement learning for Realised volatility forecasting
 
 \textbf{Method:} Searched all 22 papers in \texttt{docs/\allowbreak{}papers/\allowbreak{}} (page-tagged index) + web search. Quotes verified against the cited PDF pages. Page numbers are PDF pages; printed page numbers are given where they differ.
 
-\textbf{Related research:} \href{2026-09-27-leverage-effect-and-the-ls-gamma-desk.pdf}{Leverage effect and the desk} (GJR-GARCH / LHAR suggestions) \textperiodcentered{} \href{2026-09-27-agent-routing-which-algo-to-run.pdf}{Agent routing} \textperiodcentered{} \href{2026-09-27-deep-hedging-as-gamma-scalping-pnl-driver.pdf}{Deep hedging as the P\&L driver}
+\textbf{Related research:} \href{2026-09-27-leverage-effect-and-the-ls-gamma-desk.pdf}{Leverage effect and the desk} (GJR-GARCH /\allowbreak{} LHAR suggestions) \textperiodcentered{} \href{2026-09-27-agent-routing-which-algo-to-run.pdf}{Agent routing} \textperiodcentered{} \href{2026-09-27-deep-hedging-as-gamma-scalping-pnl-driver.pdf}{Deep hedging as the P\&L driver}
 
 \section{Short answer}
 
@@ -136,7 +136,7 @@ They test on the S\&P 500.
 
 \begin{quote}``they fail to bridge the gap between forecasting RV and optimizing path-dependent PnL outcomes in options trading'' (\emph{OPHR}, p. 9)\end{quote}
 
-OPHR's answer is RL that learns the long/short vol decision directly, rather than a better forecast.
+OPHR's answer is RL that learns the long/\allowbreak{}short vol decision directly, rather than a better forecast.
 
 \end{itemize}
 
@@ -163,7 +163,7 @@ This is a 5-page paper from a low-profile journal. It conflicts with the rest of
 \begin{center}\small
 \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
 \toprule
-\textbf{Paper} & \textbf{Builds on / agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
+\textbf{Paper} & \textbf{Builds on /\allowbreak{} agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
 \midrule
 Christensen, Siggaard \& Veliyev 2022 & Corsi 2009 (HAR, web) & HAR-only studies & Random forests and neural nets beat HAR, more so at longer horizons; RV lags, IV and momentum matter most \\
 Rahimikia, Zohren \& Poon & HAR family; Liu et al. 2026 & News-only approaches & Text helps only when combined with an RV-history model; data scale beats model size \\
@@ -193,7 +193,7 @@ These are suggestions, not decisions the desk has made:
 
 \item \textbf{What already exists:} \texttt{forecasting/\allowbreak{}GARCH.\allowbreak{}py} (symmetric GARCH(1,1)); pipeline features \texttt{rv\_\allowbreak{}d}, \texttt{rv\_\allowbreak{}w}, \texttt{rv\_\allowbreak{}m} (the HAR inputs, from daily Garman-Klass RV), \texttt{ret}, VIX and \texttt{atm\_\allowbreak{}iv}; and a \texttt{research/\allowbreak{}RV\_\allowbreak{}Forecasting/\allowbreak{}} folder.
 
-\item \textbf{A model ladder}, each step using the \texttt{new-\allowbreak{}forecaster} skill and the same \texttt{fit}/\texttt{predict} interface:
+\item \textbf{A model ladder}, each step using the \texttt{new-\allowbreak{}forecaster} skill and the same \texttt{fit}/\allowbreak{}\texttt{predict} interface:
 
 \begin{enumerate}
 
@@ -201,7 +201,7 @@ These are suggestions, not decisions the desk has made:
 
 \item \textbf{HAR-X}: add VIX or ATM IV, and the past week's return. These are Christensen et al.'s most influential inputs, and the return term is also the leverage effect.
 
-\item \textbf{LHAR / GJR-GARCH}, from the leverage report.
+\item \textbf{LHAR /\allowbreak{} GJR-GARCH}, from the leverage report.
 
 \item \textbf{Random forest or a small neural network} on the same inputs. This is where the evidence says ML helps, especially for longer horizons like the 7--60 day tenors the desk trades. That's an inference: their longest horizon is monthly.
 
@@ -213,7 +213,7 @@ These are suggestions, not decisions the desk has made:
 
 \item \textbf{Forecast error}, out of sample with walk-forward windows, using QLIKE or MSE.
 
-\item \textbf{Signal P\&L:} whether the forecast's VRP signal picks winning long/short gamma trades. OPHR warns these two can disagree.
+\item \textbf{Signal P\&L:} whether the forecast's VRP signal picks winning long/\allowbreak{}short gamma trades. OPHR warns these two can disagree.
 
 \end{enumerate}
 
@@ -259,7 +259,7 @@ These are suggestions, not decisions the desk has made:
 
 \item \texttt{Realised-\allowbreak{}Volatility-\allowbreak{}Forecasting-\allowbreak{}Machine-\allowbreak{}Learning-\allowbreak{}via-\allowbreak{}Financial-\allowbreak{}Word-\allowbreak{}Embedding.\allowbreak{}pdf}: Rahimikia, Zohren \& Poon (pp. 1, 3, 22)
 
-\item \texttt{Realized-\allowbreak{}GARCH,-\allowbreak{}CBOE-\allowbreak{}VIX,-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}: Hansen, Huang, Tong \& Wang (p. 1)
+\item \texttt{Realized-\allowbreak{}GARCH,\allowbreak{}-\allowbreak{}CBOE-\allowbreak{}VIX,\allowbreak{}-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}: Hansen, Huang, Tong \& Wang (p. 1)
 
 \item \texttt{OPHR-\allowbreak{}Mastering-\allowbreak{}Volatility-\allowbreak{}Trading-\allowbreak{}with-\allowbreak{}Multi-\allowbreak{}Agent-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf} (p. 9)
 

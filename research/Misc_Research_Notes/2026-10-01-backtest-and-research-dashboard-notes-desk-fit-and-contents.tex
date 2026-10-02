@@ -1,0 +1,609 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Backtest and research dashboard: contents for a delta-hedged SPY options strategy, and fit with the L/\allowbreak{}S Gamma desk}
+\author{Deep research notes \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-01}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Method:} Deep research: three parallel web research tracks (tooling, research-tracking practice, desk fit) synthesized into a report. Notes for each track are filed alongside.
+
+Labels used throughout:
+
+\begin{itemize}
+
+\item \textbf{[REPO]} = confirmed by reading the LS\_Gamma repo on 2026-10-01 (file path given).
+
+\item \textbf{[TEAM]} = confirmed team fact supplied in the assignment brief.
+
+\item \textbf{[SUGGESTION]} /\allowbreak{} \textbf{[INFERENCE]} = my own recommendation or reasoning, not confirmed. Anything about thresholds, windows or targets must be confirmed by the PM before use (repo rule: ``Ask before inferring anything about the strategy'', the desk's project rules).
+
+\end{itemize}
+
+Repo facts used in several sections (all [REPO]):
+
+\begin{itemize}
+
+\item \texttt{src/\allowbreak{}lsgamma/\allowbreak{}backtest/\allowbreak{}} holds only \texttt{.\allowbreak{}gitkeep}. No backtester exists.
+
+\item The live paper modules are tracked in the main checkout: \texttt{src/\allowbreak{}lsgamma/\allowbreak{}trading/\allowbreak{}\{config,\allowbreak{}selection,\allowbreak{}exits,\allowbreak{}pnl,\allowbreak{}ledger,\allowbreak{}runner,\allowbreak{}smoke\}.\allowbreak{}py}, \texttt{src/\allowbreak{}lsgamma/\allowbreak{}signals/\allowbreak{}vrp\_\allowbreak{}band.\allowbreak{}py} (+ \texttt{SIGNALS} registry), \texttt{src/\allowbreak{}lsgamma/\allowbreak{}forecasting/\allowbreak{}\{GARCH,\allowbreak{}HAR\}.\allowbreak{}py} (+ \texttt{FORECASTERS}). \texttt{configs/\allowbreak{}paper.\allowbreak{}toml} holds every number (long\_band 0.05, short\_band \ensuremath{-}0.02, target\_dte 30 in 21--45, exit\_dte 7, flat\_days 3, short\_stop\_mult 1.0, long\_stop\_frac 0.5, short\_profit\_frac 0.5, slippage 0.05, min\_shares 1). 39 offline tests in \texttt{tests/\allowbreak{}}.
+
+\item \texttt{trading/\allowbreak{}ledger.\allowbreak{}py} writes to a hard-coded \texttt{results/\allowbreak{}paper/\allowbreak{}}: \texttt{signals.\allowbreak{}parquet} (date, expiry, dte, rv\_forecast, iv, spread, signal), \texttt{trades.\allowbreak{}parquet} (open rows: side, right, expiry, strike, qty, entry\_price, entry\_date, date, action, price; close rows add \texttt{reason} and \texttt{pnl}), \texttt{hedges.\allowbreak{}parquet} (date, shares, price only, no position id), \texttt{position.\allowbreak{}json} (open position + its list of hedges).
+
+\item \texttt{trading/\allowbreak{}pnl.\allowbreak{}py} computes only \texttt{option\_\allowbreak{}pnl}, \texttt{hedge\_\allowbreak{}pnl}, \texttt{combined\_\allowbreak{}pnl} and \texttt{premium}. No Greeks, no commissions. \texttt{MULTIPLIER} comes from \texttt{broker.\allowbreak{}py}.
+
+\item \texttt{trading/\allowbreak{}exits.\allowbreak{}py} returns one of five reason codes: \texttt{time}, \texttt{stop}, \texttt{profit}, \texttt{flip}, \texttt{flat} (or None).
+
+\item \texttt{Hedging/\allowbreak{}portfolio.\allowbreak{}py} takes delta from IBKR \texttt{modelGreeks} (live only). There is no Black-Scholes pricer/\allowbreak{}Greeks function anywhere in \texttt{src/\allowbreak{}}.
+
+\item \texttt{pipeline/\allowbreak{}features.\allowbreak{}py} already computes regime-type features: VIX, VIX9D, VIX3M, VVIX, VIX9D/\allowbreak{}VIX and VIX/\allowbreak{}VIX3M term ratios, 1-year VIX percentile, 50/\allowbreak{}200-day MA trend flags, Garman--Klass RV with HAR lags, and the T-bill rate.
+
+\item \texttt{README.\allowbreak{}md} performance targets: Sharpe > 1.2, Sortino > 1.5, Max DD < 15\%, Hit rate > 53\%, ``VRP Capture > 60\% of theoretical VRP''; benchmarks: ``CBOE VIX short-term futures index, SPY buy-and-hold''.
+
+\item \texttt{.\allowbreak{}gitignore} ignores \texttt{results/\allowbreak{}}, \texttt{**/\allowbreak{}data/\allowbreak{}}, \texttt{*.\allowbreak{}parquet}, and \texttt{.\allowbreak{}claude/\allowbreak{}}. \texttt{requirements.\allowbreak{}txt} has arch, ib\_async, numpy 2.4.6, pandas 3.0.3, pyarrow, pytest, yfinance. There is no plotting or tear-sheet library (no matplotlib, quantstats or pyfolio). Python 3.14.
+
+\item PROGRESS caveats: close-trade \texttt{pnl} in the trades log uses the option fill only, because the hedge unwind happens in the same run's later hedge step. Limit orders at mid + \$0.05 may not fill on delayed data.
+
+\item Walk-forward report (\texttt{research/\allowbreak{}strategy\_\allowbreak{}research/\allowbreak{}2026-\allowbreak{}10-\allowbreak{}01-\allowbreak{}walk-\allowbreak{}forward-\allowbreak{}backtest-\allowbreak{}without-\allowbreak{}look-\allowbreak{}ahead.\allowbreak{}tex}) recommends one code path, so the backtest calls \texttt{SIGNALS}, \texttt{FORECASTERS}, \texttt{selection}, \texttt{exits} and \texttt{pnl} with a simulated broker. It also recommends an expanding training window of 3+ years, 1-year test steps, a \textasciitilde{}30-trading-day embargo, a 2025-07..2026-07 single-use hold-out, and logging every configuration with a Deflated Sharpe ratio. It notes ``at most around 130 non-overlapping trades'' over 12 years, that R2 has trades but not quotes, and that yfinance VIX is end-of-day, so it must be lagged a day for a 10:15 decision.
+
+\end{itemize}
+
+\section{Which performance and risk views matter for a delta-hedged option strategy?}
+
+\subsection{Takeaway}
+
+Generic equity-curve metrics are necessary but not enough. The views specific to a delta-hedged option book are, in order of importance:
+
+\begin{enumerate}
+
+\item The P\&L split into gamma, theta, vega, hedge/\allowbreak{}delta and residual, because P\&L \ensuremath{\approx} \ensuremath{\frac12}\ensuremath{\Gamma}S\textsuperscript{2}(\ensuremath{\sigma}\textsuperscript{2}\_realized \ensuremath{-} \ensuremath{\sigma}\textsuperscript{2}\_implied) is the actual bet.
+
+\item A forecast RV vs IV vs subsequent realized RV chart, showing whether the signal (VRP) was right.
+
+\item A per-trade log with exit reasons.
+
+\item Tail and skew-aware risk metrics. Short-vol returns are strongly negatively skewed, so Sharpe alone flatters them.
+
+\item Walk-forward fold and hold-out results, with a selection-aware Sharpe.
+
+\end{enumerate}
+
+\subsection{Cited Findings}
+
+\textbf{P\&L attribution (gamma /\allowbreak{} theta /\allowbreak{} vega /\allowbreak{} hedge)}
+
+\begin{itemize}
+
+\item For a delta-hedged option under Black-Scholes with constant implied vol, cumulative hedged P\&L = \ensuremath{\frac12}\ensuremath{\int}\ensuremath{\Gamma}S\textsuperscript{2}(\ensuremath{\sigma}\_R\textsuperscript{2} \ensuremath{-} \ensuremath{\sigma}\_I\textsuperscript{2})dt. Cash gamma \ensuremath{\Gamma}S\textsuperscript{2} is the loading on realized variance; ``when delta-hedging a long option, you are effectively long realised variance and short implied variance, sized by dollar gamma.'' --- \href{https://moontowermeta.com/sparring-with-ai-theoretical-options-p-l-vs-discrete-hedging/}{Moontower, Sparring with AI: theoretical vs discrete hedging}; \href{https://dev.to/tomasz_dobrowolski_35d32c/gamma-scalping-the-complete-guide-to-delta-hedged-straddle-pl-ogo}{DEV: Gamma scalping guide} (practitioner/\allowbreak{}blog sources; the formula itself is textbook).
+
+\item Practitioner daily decomposition: delta P\&L = delta \ensuremath{\times} \ensuremath{\Delta}S \ensuremath{\times} contracts \ensuremath{\times} multiplier; ``Gamma p/\allowbreak{}l = 1/\allowbreak{}2 gamma * (change in stock)\textsuperscript{2} * contracts * multiplier''; ``Theta p/\allowbreak{}l = theta * days elapsed * contracts * multiplier''; ``Vega p/\allowbreak{}l = vega * vol change * contracts * multiplier''; the residual comes from minor Greeks (vanna, volga, charm) and stays small ``as long as moves and vol changes'' are moderate. ``We care about the p/\allowbreak{}l that we don't attribute to delta. That's our vol p/\allowbreak{}l.'' --- \href{https://moontower.ai/blog/dynamic-hedging-option-p-l-decomposition}{Moontower, Dynamic hedging \& option P/\allowbreak{}L decomposition}
+
+\item Hedging frequency changes which realized vol you capture. In Moontower's example, daily hedging sampled 50.1\% realized vol, while 4 days unhedged sampled 79.2\%. --- \href{https://moontower.ai/blog/dynamic-hedging-option-p-l-decomposition}{Moontower}
+
+\item Ahmad \& Wilmott (Wilmott magazine, Nov 2005) analyse delta hedging in a world of three volatilities: implied, actual and hedging. They derive the expected profit and the variance of profit depending on whether you hedge at implied or actual vol. So the hedge-vol choice shapes P\&L path and variance, not only the mean. --- \href{https://www.wilmott.com/which-free-lunch-would-you-like-today-sir-delta-hedging-volatility-arbitrage-and-optimal-portfolios-riaz-ahmad-and-paul-wilmott/}{Wilmott.com}
+
+\item Bakshi \& Kapadia (RFS 16(2), 2003, pp. 527--566) use delta-hedged gains on S\&P 500 options as the measure of the volatility risk premium. They find hedged gains are negative for long options (a negative market volatility risk premium), and the method is now standard across markets. --- \href{https://www.jstor.org/stable/1262684}{JSTOR}; \href{https://www.researchgate.net/publication/5216956_Delta-Hedged_Gains_and_the_Negative_Market_Volatility_Risk_Premium}{ResearchGate}
+
+\item Sinclair (\emph{Volatility Trading}) stresses that P\&L is path dependent: you can forecast realized vol correctly and still lose. Transaction costs from frequent rebalancing ``can significantly reduce the average realized profit.'' --- secondary summary only, I could not access the book text: \href{https://www.bookey.app/book/volatility-trading}{Bookey summary}. Treat this as a pointer, not a quote.
+
+\end{itemize}
+
+\textbf{Realized vs implied vol, and VRP}
+
+\begin{itemize}
+
+\item Cboe/\allowbreak{}Bondarenko show VIX against subsequent 1-month realized vol as the core ``richly priced options'' exhibit. From 1990 to 2018, average VIX was 19.3\% and realized vol 15.1\%, a 4.2-point gap. The annual gap was negative only in 2008 (32.7 vs 35.2). --- \href{https://cdn.cboe.com/resources/education/research_publications/PutWriteCBOE19_v14_by_Prof_Oleg_Bondarenko_as_of_June_14.pdf}{Bondarenko 2019, Historical Performance of Put-Writing Strategies, Cboe, p. 7}
+
+\end{itemize}
+
+\textbf{Benchmarks and risk statistics for short-vol strategies}
+
+\begin{itemize}
+
+\item Cboe PUT index: sells one-month ATM SPX puts monthly (usually 3rd Friday), fully cash-collateralised, held to maturity. It is the natural public benchmark for the desk's short-put leg. --- \href{https://cdn.cboe.com/api/global/us_indices/governance/Cboe_SP_500_PutWrite_Indices_Methodology.pdf}{Cboe PutWrite methodology}; \href{https://en.wikipedia.org/wiki/CBOE_S\&P_500_PutWrite_Index}{Wikipedia}
+
+\item Bondarenko reports, for each strategy:
+
+\begin{itemize}
+
+\item monthly mean, compound and min return; SD; \textbf{skewness, kurtosis}; alpha and beta to the S\&P 500; Sharpe, \textbf{Sortino, Stutzer index}; M-squared
+
+\item \textbf{max drawdown, its month, and longest drawdown in months}, plus a monthly drawdown chart
+
+\end{itemize}
+
+\item PUT 1986--2018 figures: skew \ensuremath{-}2.09, kurtosis 12.58 (monthly), annualised Sharpe 0.65, Sortino 0.85, Stutzer 0.61, max DD \ensuremath{-}32.7\%, longest drawdown 40 months, beta 0.56. The Stutzer index is shown because it ``does not assume'' normality and penalises negative skew/\allowbreak{}high kurtosis. --- \href{https://cdn.cboe.com/resources/education/research_publications/PutWriteCBOE19_v14_by_Prof_Oleg_Bondarenko_as_of_June_14.pdf}{Bondarenko 2019, pp. 4--6}
+
+\item QuantStats definitions (default annualisation 252):
+
+\begin{itemize}
+
+\item Sharpe = mean excess /\allowbreak{} std \ensuremath{\times} \ensuremath{\surd}periods
+
+\item Sortino downside = \ensuremath{\surd}(\ensuremath{\Sigma} r\textsuperscript{2}<0 /\allowbreak{} N), i.e. over all observations
+
+\item VaR is parametric-normal by default; CVaR has ``parametric'' and ``historical'' modes
+
+\item \texttt{tail\_\allowbreak{}ratio} uses a 95th/\allowbreak{}5th percentile cutoff
+
+\item Calmar = CAGR /\allowbreak{} |max DD|
+
+\item also: \texttt{ulcer\_\allowbreak{}index}, \texttt{to\_\allowbreak{}drawdown\_\allowbreak{}series}, \texttt{probabilistic\_\allowbreak{}sharpe\_\allowbreak{}ratio}, \texttt{gain\_\allowbreak{}to\_\allowbreak{}pain\_\allowbreak{}ratio}, \texttt{kelly\_\allowbreak{}criterion}
+
+\end{itemize}
+
+--- \href{https://raw.githubusercontent.com/ranaroussi/quantstats/main/quantstats/stats.py}{quantstats/\allowbreak{}stats.py}
+
+\item Per-trade (round-trip) stats in pyfolio:
+
+\begin{itemize}
+
+\item total, gross profit and gross loss; profit factor; average trade, average win and average loss; win:loss ratio; largest win and largest loss
+
+\item percent profitable
+
+\item average, median, longest and shortest duration
+
+\item mean and median returns by win/\allowbreak{}loss
+
+\end{itemize}
+
+--- \href{https://raw.githubusercontent.com/quantopian/pyfolio/master/pyfolio/round_trips.py}{pyfolio round\_trips.py}
+
+\item ORATS (commercial options backtester) reports returns overall, by 1 and 5 years, and in \textbf{bearish vs bullish markets}, plus best/\allowbreak{}worst month and year, Sharpe, Sortino, annual volatility, max DD \%, drawdown days and reward-to-risk. It runs 37 metrics per backtest. --- \href{https://orats.com/blog/behind-the-scenes-of-over-50-million-options-backtests}{ORATS search snippet /\allowbreak{} blog}; \href{https://orats.com/university/measuring-performance}{ORATS University: measuring performance}
+
+\end{itemize}
+
+\textbf{Transaction costs}
+
+\begin{itemize}
+
+\item ORATS slippage assumption: fills at ``75\% of bid ask width for single legs'', down to 56\% for four-leg spreads, applied to actual bid/\allowbreak{}ask. --- \href{https://orats.com/blog/avoiding-common-problems-with-backtesting}{ORATS backtest search result} (via search snippet; consistent with the ORATS FAQ cited in the repo's walk-forward report)
+
+\end{itemize}
+
+\textbf{Walk-forward /\allowbreak{} hold-out /\allowbreak{} selection-aware Sharpe}
+
+\begin{itemize}
+
+\item The Deflated Sharpe Ratio (Bailey \& López de Prado 2014) ``corrects for two leading sources of performance inflation: Selection bias under multiple testing and non-Normally distributed returns.'' It needs the number of trials N and the variance of the trials' Sharpe estimates. The Probabilistic Sharpe Ratio ``takes into account the sample length and the first four moments of the returns' distribution.'' --- \href{https://www.davidhbailey.com/dhbpapers/deflated-sharpe.pdf}{Bailey \& López de Prado, The Deflated Sharpe Ratio, pp. 2, 7--8}
+
+\item Across 888 Quantopian algorithms, backtest Sharpe had almost no predictive value for out-of-sample Sharpe (R\textsuperscript{2} < 0.025). Higher moments, volatility and max drawdown carried more signal. --- \href{https://www.pm-research.com/content/iijinvest/25/3/69}{Wiecki et al. 2016, J. Investing}; \href{https://www.cxoadvisory.com/big-ideas/in-sample-vs-out-of-sample-performance-of-888-trading-strategies/}{CXO summary}
+
+\end{itemize}
+
+\subsection{Inferences}
+
+[SUGGESTION] Views for this desk, in priority order:
+
+\begin{enumerate}
+
+\item \textbf{Per-trade log} (the ``trade card''). One row per round trip with:
+
+\begin{itemize}
+
+\item side, right, strike, expiry, entry/\allowbreak{}exit date, DTE at entry/\allowbreak{}exit, days held
+
+\item entry IV, rv\_forecast and spread at entry; realized vol over the hold
+
+\item option P\&L, hedge P\&L, costs, net P\&L, P\&L /\allowbreak{} premium
+
+\item exit reason (\texttt{time}/\allowbreak{}\texttt{stop}/\allowbreak{}\texttt{profit}/\allowbreak{}\texttt{flip}/\allowbreak{}\texttt{flat})
+
+\item number of hedge trades and shares traded
+
+\end{itemize}
+
+Summaries: exit-reason histogram, P\&L by exit reason, win rate split by long vs short gamma.
+
+\item \textbf{Daily P\&L attribution} stacked over time and summed per trade: gamma (\ensuremath{\frac12}\ensuremath{\Gamma} \ensuremath{\Delta}S\textsuperscript{2}), theta (\ensuremath{\Theta}\textperiodcentered{}dt), vega (\ensuremath{\nu}\textperiodcentered{}\ensuremath{\Delta}IV), delta residual (option delta + hedge shares) \ensuremath{\times} \ensuremath{\Delta}S, costs, and an unexplained residual. A large residual means a data or Greeks bug, which makes this view the main debugging tool as well.
+
+\item \textbf{Vol panel.} ATM IV at entry, GARCH/\allowbreak{}HAR forecast, and realized vol over the subsequent holding window on one time axis. Shade the signal state (long/\allowbreak{}flat/\allowbreak{}short) and mark the band thresholds.
+
+\begin{itemize}
+
+\item Scatter of spread-at-entry vs trade P\&L. This is the cleanest test of whether the signal works.
+
+\item Forecast accuracy (QLIKE /\allowbreak{} MSE) per fold, already proposed in the RV-forecasting report per PROGRESS.
+
+\end{itemize}
+
+\item \textbf{Equity and drawdown.} Equity curve vs benchmarks:
+
+\begin{itemize}
+
+\item SPY buy-and-hold and Cboe VIX short-term futures index (both [REPO] README)
+
+\item Cboe PUT index for the short leg [SUGGESTION]
+
+\item underwater curve; max DD and longest drawdown in days
+
+\end{itemize}
+
+\item \textbf{Risk table:}
+
+\begin{itemize}
+
+\item Sharpe, Sortino, Calmar
+
+\item PSR, and DSR across all logged trials
+
+\item skew, kurtosis, worst day/\allowbreak{}week/\allowbreak{}month
+
+\item historical CVaR(95/\allowbreak{}99), tail ratio
+
+\item beta to SPY and correlation to \ensuremath{\Delta}VIX
+
+\item Stutzer index (optional; Bondarenko uses it for exactly this kind of negatively skewed payoff)
+
+\end{itemize}
+
+\item \textbf{Regime breakdown.} P\&L, hit rate and Sharpe by bucket, all from features already in \texttt{pipeline/\allowbreak{}features.\allowbreak{}py}:
+
+\begin{itemize}
+
+\item VIX tercile or 1-year VIX percentile
+
+\item term structure (VIX/\allowbreak{}VIX3M above or below 1)
+
+\item trend (above/\allowbreak{}below 200-day MA)
+
+\item long vs short gamma
+
+\item calendar year
+
+\end{itemize}
+
+\item \textbf{Cost drag.} Gross vs net P\&L; costs split into option entry/\allowbreak{}exit slippage, hedge share slippage and commissions; cost as \% of gross P\&L; sensitivity curve of net Sharpe vs slippage assumption (e.g. 0, 0.05, 0.10, 0.20 per contract).
+
+\item \textbf{Walk-forward /\allowbreak{} hold-out.}
+
+\begin{itemize}
+
+\item one row per fold: train and test dates, chosen params, test Sharpe, trades and DD
+
+\item stitched OOS equity curve
+
+\item hold-out shown once, with a stamp of when it was first viewed
+
+\item the trial count N feeding the DSR
+
+\end{itemize}
+
+\end{enumerate}
+
+\begin{itemize}
+
+\item [INFERENCE] With \textasciitilde{}130 non-overlapping trades ([REPO] walk-forward report), per-trade and per-regime stats will have wide confidence intervals. Every regime cell should show its trade count, and cells under \textasciitilde{}10--15 trades should be greyed out. Bootstrap CIs on Sharpe and hit rate are cheap and honest.
+
+\item [INFERENCE] The README target ``VRP Capture > 60\% of theoretical VRP'' has no definition in the repo. One candidate is realized net P\&L /\allowbreak{} \ensuremath{\Sigma} \ensuremath{\frac12}\ensuremath{\Gamma}S\textsuperscript{2}(\ensuremath{\sigma}\_I\textsuperscript{2} \ensuremath{-} \ensuremath{\sigma}\_R\textsuperscript{2})dt over the hold (the gamma+theta term with zero frictions). This must be confirmed by the PM.
+
+\end{itemize}
+
+\subsection{Gaps}
+
+\begin{itemize}
+
+\item Could not access the text of Sinclair \emph{Volatility Trading} or Bennett \emph{Trading Volatility}, so there are no verbatim quotes. The Bennett P\&L-attribution chapter remains unverified.
+
+\item No OptionMetrics doc was found describing standard delta-hedged-gain construction beyond Bakshi \& Kapadia; I did not fetch the paper's full text.
+
+\item I did not fetch the ORATS results-definitions page (the redirect target \texttt{orats.\allowbreak{}com/\allowbreak{}docs/\allowbreak{}intraday-\allowbreak{}backtester-\allowbreak{}api} was not fetched). The ORATS metric list comes from search snippets.
+
+\item I did not verify the Cboe VIX short-term futures index methodology (the README benchmark).
+
+\end{itemize}
+
+\section{Which views are computable from the planned modules, and which need new code?}
+
+\subsection{Takeaway}
+
+The live modules give the decision layer and the reason-coded exits almost for free. That covers per-trade logs with exit reasons, a signal-state timeline, combined option + hedge P\&L, and generic returns metrics once a daily equity series exists. Everything vol-specific needs new code: Greeks/\allowbreak{}IV (no Black-Scholes code exists), a daily mark-to-market series, P\&L attribution, realized-vol-over-hold, costs, the regime join, fold/\allowbreak{}trial bookkeeping and DSR. The R2 data gap (no quotes, no intraday SPY) is the binding dependency.
+
+\subsection{Cited Findings}
+
+\begin{itemize}
+
+\item [REPO] \texttt{exits.\allowbreak{}exit\_\allowbreak{}reason} already returns the five reason codes, and \texttt{runner.\allowbreak{}close} writes \texttt{reason} and combined \texttt{pnl} to \texttt{trades.\allowbreak{}parquet}. So exit-reason views need only the ledger.
+
+\item [REPO] \texttt{pnl.\allowbreak{}combined\_\allowbreak{}pnl} = option P\&L + hedge P\&L, with hedges marked at spot. There are no Greeks and no costs. The PROGRESS caveat says close-row \texttt{pnl} excludes the hedge unwind in the live log.
+
+\item [REPO] \texttt{signals.\allowbreak{}parquet} holds \texttt{rv\_\allowbreak{}forecast}, \texttt{iv} and \texttt{spread} per day, which is enough for the forecast-vs-IV half of the vol panel. Realized vol over the subsequent window must be computed after the fact from SPY closes (CRSP daily for backtest, yfinance live).
+
+\item [REPO] \texttt{ledger.\allowbreak{}ROOT} is hard-coded to \texttt{results/\allowbreak{}paper}, and \texttt{runner.\allowbreak{}decide} reads the live snapshot via \texttt{store.\allowbreak{}load} and fits the forecaster on the full \texttt{feats[``ret'']}. A backtest must slice data to t\ensuremath{-}1 and write to a different root.
+
+\item [REPO] \texttt{portfolio.\allowbreak{}option\_\allowbreak{}delta} uses IBKR \texttt{modelGreeks}. Offline there is no delta source, so the backtest needs its own Black-Scholes IV inversion + delta/\allowbreak{}gamma/\allowbreak{}theta/\allowbreak{}vega, which also provides attribution.
+
+\item [TEAM] R2 has intraday SPY option \textbf{trades} 2014-06..2026-07 but no quotes and no intraday SPY price; CRSP has daily SPY. The CLAUDE.md note says intraday spot ``could be implied via put-call parity''.
+
+\item [REPO] Features for regime buckets already exist in \texttt{pipeline/\allowbreak{}features.\allowbreak{}py}. The walk-forward report warns that yfinance VIX is end-of-day and must be lagged a day for a \textasciitilde{}10:15 decision.
+
+\item The DSR needs N trials and the variance of their Sharpes --- \href{https://www.davidhbailey.com/dhbpapers/deflated-sharpe.pdf}{Bailey \& López de Prado}. So every configuration run must be recorded, which no repo module does today.
+
+\end{itemize}
+
+\subsection{Inferences}
+
+[SUGGESTION] Fit matrix:
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{View} & \textbf{Available from existing modules} & \textbf{New code needed} & \textbf{Data dependency} \\
+\midrule
+Per-trade log + exit reasons & \texttt{exits}, \texttt{runner.\allowbreak{}close} row schema, \texttt{pnl} & Backtest loop that writes the same rows; add a position id and entry IV/\allowbreak{}forecast to trade rows; include hedge-unwind P\&L at close & Daily option marks \\
+Signal timeline (rv\_fc vs IV, state) & \texttt{signals}, \texttt{FORECASTERS}, \texttt{signals.\allowbreak{}parquet} schema & Point-in-time slicing (t\ensuremath{-}1) in the backtest & Historical ATM IV per day (from R2 trades \ensuremath{\rightarrow} needs IV inversion) \\
+Realized vol over hold, VRP realized & --- & Small function on SPY closes & CRSP daily SPY \\
+Equity curve, DD, Sharpe/\allowbreak{}Sortino/\allowbreak{}Calmar/\allowbreak{}CVaR/\allowbreak{}skew & Nothing (no daily NAV exists; \texttt{pnl} is per position) & Daily mark-to-market NAV series (option mark + hedge shares + cash); then quantstats or \textasciitilde{}50 lines of pandas & Daily option marks + daily SPY \\
+Greeks attribution (gamma/\allowbreak{}theta/\allowbreak{}vega/\allowbreak{}delta/\allowbreak{}residual) & --- & BS pricer + IV solver + daily attribution & Option mark, spot and rate at the \textbf{same timestamp}. Without intraday SPY, spot must come from put-call parity on near-simultaneous trades, or attribution must be close-to-close using CRSP close plus option trades near the close \\
+Cost drag & \texttt{paper.\allowbreak{}toml} slippage & Cost model (option slippage, hedge slippage, commissions) recorded separately from gross & No quotes \ensuremath{\rightarrow} spread must be modelled (e.g. from trade-price dispersion or a fixed assumption) \\
+Regime breakdown & \texttt{pipeline/\allowbreak{}features.\allowbreak{}py} & Historical feature build + join on entry date (lagged) & yfinance index history (free) \\
+Walk-forward folds, hold-out, DSR/\allowbreak{}PBO & --- (only the report's recipe) & Fold splitter with embargo; run registry; DSR function & None beyond the above \\
+Benchmarks & README names them & Loader & SPY (CRSP), Cboe PUT/\allowbreak{}VIX futures index history (source/\allowbreak{}licensing unverified) \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item [INFERENCE] The cheapest high-value design is for the backtest to emit \textbf{exactly the ledger schema} (\texttt{signals}, \texttt{trades}, \texttt{hedges}, plus a new daily \texttt{marks}/\allowbreak{}\texttt{nav} table). Then one report function reads either \texttt{results/\allowbreak{}paper/\allowbreak{}} or \texttt{results/\allowbreak{}backtest/\allowbreak{}<run\_\allowbreak{}id>/\allowbreak{}}. Making \texttt{ledger.\allowbreak{}ROOT} a parameter is a small change.
+
+\item [INFERENCE] Greeks attribution is the most data-sensitive view. Trade-based marks at a fixed snapshot time, with spot implied from parity, introduce noise that will show up in the residual term. A rising residual is a useful data-quality alarm, not just noise.
+
+\end{itemize}
+
+\subsection{Gaps}
+
+\begin{itemize}
+
+\item No repo or web source checked how dense SPY ATM option trades are around 10:15 or the close in the R2 data. Whether a clean daily mark per strike is feasible is unverified.
+
+\item Whether historical Cboe PUT /\allowbreak{} VIX short-term futures index series are freely and legally available for a club backtest was not checked.
+
+\end{itemize}
+
+\section{Sequencing: should a dashboard come before or after the backtester? What is the minimum viable version?}
+
+\subsection{Takeaway}
+
+After, or rather alongside. The first ``dashboard'' should be a per-run static report generated by the backtester itself, plus an append-only run registry (one row per configuration tried). An interactive dashboard is premature until there are many runs to compare and the schemas have stopped changing. The one thing to build before the backtester is the output schema/\allowbreak{}contract, because it decides what the report can show.
+
+\subsection{Cited Findings}
+
+\begin{itemize}
+
+\item The DSR requires the count and dispersion of all trials, and selection bias arises from ``not controlling for the number of trials''. So trial logging must exist from the first run, or the DSR cannot be computed honestly later. --- \href{https://www.davidhbailey.com/dhbpapers/deflated-sharpe.pdf}{Bailey \& López de Prado, p. 2}
+
+\item [REPO] The walk-forward report already prescribes ``Log every configuration tried'' and ``Report the walk-forward test P\&L stitched together, the hold-out result once, and a Deflated Sharpe ratio across all trials.''
+
+\item QuantStats \texttt{reports.\allowbreak{}html} ``generates a complete report as html'': a tear sheet with metrics, charts and a benchmark comparison. Latest version 0.0.86 (released 2026-09-27), Python \ensuremath{\geq} 3.10, pandas \ensuremath{\geq} 1.5.0. --- \href{https://pypi.org/project/quantstats/}{PyPI quantstats}
+
+\item pyfolio-reloaded (Stefan Jansen's maintained fork) last released 0.9.9 on 2025-06-02; quantstats-reloaded is a fork released 2025-06-16. --- \href{https://pypi.org/project/quantstats-reloaded/}{search summary of PyPI/\allowbreak{}piwheels}; \href{https://www.piwheels.org/project/pyfolio-reloaded/}{piwheels pyfolio-reloaded}
+
+\item [REPO] The team already has a LaTeX\ensuremath{\rightarrow}PDF toolchain (a Markdown-to-LaTeX converter script, tectonic) and files research as PDFs in \texttt{research/\allowbreak{}strategy\_\allowbreak{}research/\allowbreak{}}.
+
+\end{itemize}
+
+\subsection{Inferences}
+
+[SUGGESTION] Sequence:
+
+\begin{enumerate}
+
+\item \textbf{Before writing the backtester:} fix the output contract, i.e. the \texttt{signals}/\allowbreak{}\texttt{trades}/\allowbreak{}\texttt{hedges} schemas (already live) plus a new \texttt{daily} table (date, spot, option mark, IV, Greeks, hedge shares, NAV, costs) and a \texttt{run.\allowbreak{}json} (config hash, full config, git commit, data range, fold, seed, timestamp).
+
+\item \textbf{MVP backtester} (single config, single fold) that writes that contract into \texttt{results/\allowbreak{}backtest/\allowbreak{}<run\_\allowbreak{}id>/\allowbreak{}}.
+
+\item \textbf{MVP report}, a static \texttt{report.\allowbreak{}html} or PDF per run containing:
+
+\begin{itemize}
+
+\item a headline table vs README targets
+
+\item equity + underwater curve
+
+\item per-trade table with exit-reason summary
+
+\item vol panel
+
+\item gross vs net (cost drag)
+
+\item regime table with trade counts
+
+\end{itemize}
+
+\item \textbf{Run registry}, \texttt{results/\allowbreak{}backtest/\allowbreak{}registry.\allowbreak{}parquet} (or CSV). One append-only row per run: run\_id, git sha, config hash, params, fold, IS/\allowbreak{}OOS flag, trades, Sharpe, Sortino, max DD, net P\&L, hit rate, \texttt{holdout\_\allowbreak{}viewed} flag. The DSR reads N and the Sharpe variance from here.
+
+\item \textbf{Then} walk-forward fold pages and the hold-out page, with the hold-out guarded: written once, and the registry row flagged.
+
+\item \textbf{Only later} an interactive dashboard (e.g. Streamlit/\allowbreak{}notebook) over the registry, once there are dozens of runs and live paper data to overlay.
+
+\end{enumerate}
+
+\begin{itemize}
+
+\item [INFERENCE] Building an interactive dashboard first risks designing views around imagined data, and makes it tempting to eyeball many runs, which is exactly the uncounted-trial selection bias the DSR guards against. A registry plus static reports makes every look auditable.
+
+\item [INFERENCE] Because \texttt{results/\allowbreak{}} is gitignored and R2/\allowbreak{}WRDS data is licensed ([REPO] .gitignore, CLAUDE.md), reports stay local by default. The PM should decide whether aggregate-only reports (no raw prices) may be shared with analysts or committed. I make no assumption here.
+
+\end{itemize}
+
+\subsection{Gaps}
+
+\begin{itemize}
+
+\item Not checked: whether quantstats 0.0.86 works with pandas 3.0.3 /\allowbreak{} Python 3.14 (the repo's stack). PyPI states only lower bounds. Test before adopting, or compute the \textasciitilde{}10 needed metrics in pandas directly.
+
+\item No source compared static vs interactive research dashboards for small teams. The sequencing above is my judgment.
+
+\end{itemize}
+
+\section{Effort estimate for a student team, and maintenance risks}
+
+\subsection{Takeaway}
+
+[INFERENCE, not sourced] The report layer is small (days). The backtester and the option-data layer it depends on are large (weeks). The main maintenance risks are schema drift between live and backtest, silently changing metric definitions, a stale or broken third-party tear-sheet library, and hold-out contamination.
+
+\subsection{Cited Findings}
+
+\begin{itemize}
+
+\item [REPO] Existing code style is short functions; the whole live \texttt{trading/\allowbreak{}} package is \textasciitilde{}8 small files. Repo rule: ``Keep code simple... short functions, few comments.''
+
+\item [REPO] PROGRESS lists the backtest, signals routing, HAR, deep hedger and pyproject among items not yet built, so the team's build queue is already long.
+
+\item pyfolio's original Quantopian repo is unmaintained, with only the community fork pyfolio-reloaded (last release 2025-06). quantstats is maintained (release 2026-09-27) but has a parallel ``reloaded'' fork created to fix bugs and compatibility ``more promptly''. This signals periodic compatibility breakage. --- \href{https://pypi.org/project/quantstats/}{PyPI quantstats}; \href{https://pypi.org/project/quantstats-reloaded/}{PyPI quantstats-reloaded}
+
+\item QuantStats' default VaR is parametric-normal, and its Sortino divides downside squared returns by all observations. Library defaults like these can silently differ from the team's definitions. --- \href{https://raw.githubusercontent.com/ranaroussi/quantstats/main/quantstats/stats.py}{quantstats/\allowbreak{}stats.py}
+
+\end{itemize}
+
+\subsection{Inferences}
+
+[INFERENCE] Rough effort, assuming 1--2 analysts part-time (\textasciitilde{}5--8 h/\allowbreak{}week each). These are guesses, not sourced:
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Piece} & \textbf{Effort} \\
+\midrule
+Output contract + ledger root parameter & \textasciitilde{}1 week \\
+BS pricer /\allowbreak{} IV solver /\allowbreak{} Greeks + tests & 1--2 weeks \\
+R2 trades \ensuremath{\rightarrow} daily option marks + parity-implied spot + ATM IV per day & 3--6 weeks (largest unknown) \\
+Backtest loop reusing \texttt{signals}/\allowbreak{}\texttt{selection}/\allowbreak{}\texttt{exits}/\allowbreak{}\texttt{pnl} with simulated broker + costs & 2--3 weeks \\
+Static report (metrics, equity/\allowbreak{}DD, trades, vol panel, regime, cost drag) & 1--2 weeks \\
+Run registry + DSR + walk-forward splitter with embargo + hold-out guard & 1--2 weeks \\
+Interactive dashboard & 1--3 weeks; defer \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+[INFERENCE] Maintenance risks and mitigations:
+
+\begin{itemize}
+
+\item \textbf{Schema drift} between live ledger and backtest output. Mitigate with one shared schema module and a pytest checking both writers.
+
+\item \textbf{Metric definition drift}: one \texttt{metrics.\allowbreak{}py} with pinned definitions (annualisation 252, historical CVaR, Sortino formula) and tests against hand-computed values. If a library is used, pin its version.
+
+\item \textbf{Dependency rot} on Python 3.14 /\allowbreak{} pandas 3. Prefer pandas-only metrics, with matplotlib as the only plotting dependency.
+
+\item \textbf{Hold-out contamination}: the registry flag plus a single explicit CLI switch.
+
+\item \textbf{Analyst turnover} in a university club (people graduate each year). Keep the report generator one script with one command, documented in \texttt{docs/\allowbreak{}scripts.\allowbreak{}md}.
+
+\item \textbf{Licensed data leaking} into committed reports or shared HTML.
+
+\end{itemize}
+
+\subsection{Gaps}
+
+\begin{itemize}
+
+\item No published benchmark exists for student-team build times. All estimates above are judgment.
+
+\item R2 trade density per strike/\allowbreak{}time is unknown, so the data-layer estimate has the widest error bar.
+
+\end{itemize}
+
+\section{How should backtest results be compared with live paper results later?}
+
+\subsection{Takeaway}
+
+Use the same metric code and the same ledger schema on both. Then compare with an \textbf{overlay backtest over the paper-trading window} (same start date, same position), rather than comparing the paper Sharpe to the 12-year backtest Sharpe. Decompose the gap into data, fill/\allowbreak{}slippage, timing and logic differences. Never pool paper days into backtest statistics or into the walk-forward/\allowbreak{}hold-out sample.
+
+\subsection{Cited Findings}
+
+\begin{itemize}
+
+\item QuantConnect runs ``an out-of-sample (OSS) backtest in parallel to all of your live trading deployments''. Perfect reconciliation is ``an exact overlap between its live and OOS backtest equity curves''. Listed deviation sources: different data providers, discrete backtest steps vs continuous live data, brokerage fee/\allowbreak{}slippage models, \textasciitilde{}0.5 s live fill latency vs instant backtest fills, no market impact, pre-existing positions in the live account, and differing order types/\allowbreak{}buying power. --- \href{https://www.quantconnect.com/docs/v2/cloud-platform/live-trading/reconciliation}{QuantConnect docs, Reconciliation}
+
+\item Implementation shortfall (Perold 1988) is the difference between the decision price and the final execution price including costs. It is the standard frame for paper-vs-real comparison. --- \href{https://en.wikipedia.org/wiki/Implementation_shortfall}{Wikipedia, Implementation shortfall}
+
+\item Backtest Sharpe barely predicts live/\allowbreak{}OOS Sharpe (R\textsuperscript{2} < 0.025 over 888 algorithms), so short live samples should be judged against distributions, not point estimates. --- \href{https://www.pm-research.com/content/iijinvest/25/3/69}{Wiecki et al. 2016}
+
+\item [REPO] Live-specific differences already known:
+
+\begin{itemize}
+
+\item delayed IBKR data
+
+\item limit orders at mid + \$0.05 that may not fill (cancelled after 60 s, ledger unchanged)
+
+\item delta from IBKR \texttt{modelGreeks} (backtest will use its own BS Greeks)
+
+\item ATM IV from the IBKR chain (backtest: from R2 trades)
+
+\item live close-row P\&L excludes the hedge unwind
+
+\item a pre-existing paper position triggers the reconcile warning
+
+\end{itemize}
+
+\end{itemize}
+
+\subsection{Inferences}
+
+\begin{itemize}
+
+\item [SUGGESTION] Value of identical metrics:
+
+\begin{itemize}
+
+\item one report function can render paper and backtest side by side
+
+\item exit-reason mix, average days held, hedge trades per position and cost per trade can be compared directly. These operational stats converge faster than Sharpe on a few months of paper data.
+
+\end{itemize}
+
+\item [SUGGESTION] Comparison protocol:
+
+\begin{enumerate}
+
+\item Replay the backtest over exactly the paper dates, starting from the same position.
+
+\item Compare day by day: signal (same/\allowbreak{}different?), selected strike/\allowbreak{}expiry, entry/\allowbreak{}exit dates and reasons, fill vs model price (per-trade implementation shortfall), hedge shares, daily P\&L.
+
+\item Attribute each difference to data (IV source), execution (fills, misses), timing (10:15 vs snapshot time) or logic (bug).
+
+\end{enumerate}
+
+\item [INFERENCE] Risks of mixing:
+
+\begin{enumerate}
+
+\item Paper results are a few dozen trades at most for months, so the Sharpe is statistically meaningless next to a 12-year backtest.
+
+\item Paper fills on delayed data under IBKR's paper simulator are neither backtest fills nor real fills, so treating paper as ``truth'' for slippage can mislead either way.
+
+\item Appending paper days to the backtest sample, or tuning parameters on paper results, turns the paper period in-sample and burns it as an out-of-sample check.
+
+\item Different IV and Greek sources (IBKR model vs own BS on trade prices) create signal differences that look like strategy decay but are measurement differences.
+
+\item Live data must never be stored in the licensed-data backtest outputs, or the other way round, without the PM checking licensing.
+
+\end{enumerate}
+
+\item [SUGGESTION] Tag every row with \texttt{source \ensuremath{\in} \{backtest,\allowbreak{} paper\}} and \texttt{run\_\allowbreak{}id}, keep them in separate directories (\texttt{results/\allowbreak{}paper/\allowbreak{}} vs \texttt{results/\allowbreak{}backtest/\allowbreak{}<run\_\allowbreak{}id>/\allowbreak{}}), and join only in the report layer.
+
+\end{itemize}
+
+\subsection{Gaps}
+
+\begin{itemize}
+
+\item No source found on how IBKR's paper-trading fill simulator models option fills on delayed data. Its realism relative to live is unverified.
+
+\item No literature found that specifically compares delta-hedged option backtests to live/\allowbreak{}paper results. The QuantConnect and implementation-shortfall sources are general.
+
+\end{itemize}
+
+\end{document}

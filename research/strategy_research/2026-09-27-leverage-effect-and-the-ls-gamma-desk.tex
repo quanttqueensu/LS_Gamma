@@ -46,7 +46,7 @@ The two most practical fixes are cheap: a delta that accounts for the spot-vol r
 
 \item \textbf{Definition:}
 
-\begin{quote}``Following Black (1976), this negative covariance/correlation between asset return and asset volatility is referred to as leverage effect.'' (Chong \& Todorov 2024, \emph{Volatility of Volatility and Leverage Effect from Options}, p. 1)\end{quote}
+\begin{quote}``Following Black (1976), this negative covariance/\allowbreak{}correlation between asset return and asset volatility is referred to as leverage effect.'' (Chong \& Todorov 2024, \emph{Volatility of Volatility and Leverage Effect from Options}, p. 1)\end{quote}
 
 \item \textbf{It spikes in crises.} Estimated from intraday SPX option prices (2016--2020):
 
@@ -153,7 +153,7 @@ They also warn that the VRP mixes two different risks together:
 \begin{center}\small
 \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
 \toprule
-\textbf{Paper} & \textbf{Builds on / agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
+\textbf{Paper} & \textbf{Builds on /\allowbreak{} agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
 \midrule
 Chong \& Todorov 2024 & Black 1976; Aït-Sahalia, Fan \& Li & Uses options, not returns, to measure it & Leverage effect spikes in stress; vol-of-vol fairly stable; Heston doesn't fit \\
 Cheng, Renault \& Sangrey 2024 & Bandi \& Renò 2016 & Hansen et al. on what drives the VRP & Leverage effect is hard to measure; VRP mixes two risks \\
@@ -171,7 +171,7 @@ Sepp 2013 & --- & --- & Short options lose in bad times \\
 
 \item \textbf{Agreement on forecasting.} Hansen et al. favor leverage-aware models for equity volatility. Corsi \& Renò (web) extend HAR in the same direction.
 
-\item \textbf{Disagreement on the VRP.} Hansen et al. put only 2.2\% of the log-VRP on the leverage/equity term in their model. Cheng et al. find most of the risk-premium signal comes from the return-variance covariance. Both caution that their answer depends on how the model is set up.
+\item \textbf{Disagreement on the VRP.} Hansen et al. put only 2.2\% of the log-VRP on the leverage/\allowbreak{}equity term in their model. Cheng et al. find most of the risk-premium signal comes from the return-variance covariance. Both caution that their answer depends on how the model is set up.
 
 \end{itemize}
 
@@ -223,7 +223,7 @@ The pipeline already collects SPY, VIX and VVIX.
 
 \item \textbf{Time variation.} The effect is strongest exactly when vol spikes (Chong \& Todorov), so fixed-coefficient hedges and forecasts may be too weak in a crisis.
 
-\item \textbf{The VRP split is unresolved.} How much of the VRP pays for leverage/crash risk versus pure vol risk depends on the model (Hansen et al. vs Cheng et al.).
+\item \textbf{The VRP split is unresolved.} How much of the VRP pays for leverage/\allowbreak{}crash risk versus pure vol risk depends on the model (Hansen et al. vs Cheng et al.).
 
 \end{itemize}
 
@@ -239,7 +239,7 @@ The pipeline already collects SPY, VIX and VVIX.
 
 \item \texttt{Hedging-\allowbreak{}with-\allowbreak{}Linear-\allowbreak{}Regressions-\allowbreak{}and-\allowbreak{}Neural-\allowbreak{}Networks.\allowbreak{}pdf}: Ruf \& Wang (pp. 2, 10, 11)
 
-\item \texttt{Realized-\allowbreak{}GARCH,-\allowbreak{}CBOE-\allowbreak{}VIX,-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}: Hansen, Huang, Tong \& Wang (pp. 3, 12, 18)
+\item \texttt{Realized-\allowbreak{}GARCH,\allowbreak{}-\allowbreak{}CBOE-\allowbreak{}VIX,\allowbreak{}-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}: Hansen, Huang, Tong \& Wang (pp. 3, 12, 18)
 
 \item \texttt{Enhancing-\allowbreak{}Deep-\allowbreak{}Hedging-\allowbreak{}of-\allowbreak{}Options-\allowbreak{}with-\allowbreak{}Implied-\allowbreak{}Volatility-\allowbreak{}Surface-\allowbreak{}Feedback-\allowbreak{}Information.\allowbreak{}pdf}: François et al. (p. 29)
 

@@ -28,7 +28,7 @@ For the desk this maps directly:
 
 \begin{itemize}
 
-\item \textbf{The agent's job:} the once-a-day choice of which \texttt{LG\_\allowbreak{}}/\texttt{SG\_\allowbreak{}} algo to run, or to stay flat.
+\item \textbf{The agent's job:} the once-a-day choice of which \texttt{LG\_\allowbreak{}}/\allowbreak{}\texttt{SG\_\allowbreak{}} algo to run, or to stay flat.
 
 \item \textbf{Its inputs:} the pipeline's features (RV forecast, VRP, VIX term structure, VVIX, trend, ATM IV), calculated beforehand.
 
@@ -120,7 +120,7 @@ NLV is net liquidation value, i.e. the account's ending value.
 
 \item \textbf{Two agents: one picks the position, one picks the hedger:}
 
-\begin{quote}``Option Position Agent (OP-Agent) controlling the long/short of volatility, and ii) Hedger Routing Agent (HR-Agent) selecting the optimal Hedgers with different risk preferences to perform dynamic Delta hedging based on positions and market conditions.'' (Chen, Cai, Qin \& An, \emph{OPHR}, p. 2)\end{quote}
+\begin{quote}``Option Position Agent (OP-Agent) controlling the long/\allowbreak{}short of volatility, and ii) Hedger Routing Agent (HR-Agent) selecting the optimal Hedgers with different risk preferences to perform dynamic Delta hedging based on positions and market conditions.'' (Chen, Cai, Qin \& An, \emph{OPHR}, p. 2)\end{quote}
 
 \item \textbf{The router picks, and the chosen hedger executes:}
 
@@ -159,7 +159,7 @@ PRISM is a non-peer-reviewed whitepaper and its results are simulated.
 \begin{center}\small
 \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
 \toprule
-\textbf{Paper} & \textbf{Builds on / agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
+\textbf{Paper} & \textbf{Builds on /\allowbreak{} agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
 \midrule
 Cheng et al. 2026, \emph{Agents Are Not Algorithms} & Agrawal, Gans \& Goldfarb (prediction vs judgment); Lopez-Lira 2025 & Treats RL policies as compiled algorithms & Place the agent only on the judgment decision; pre-compute its inputs; compile execution \\
 OPHR & Murray et al. 2022; Buehler et al. & An RL router, trained before deployment, i.e. ``compiled'' in Cheng's terms & Separate agents for vol position and hedger choice \\
@@ -193,8 +193,8 @@ These are suggestions, not decisions the desk has made:
 \toprule
 \textbf{Cheng et al.} & \textbf{LS Gamma desk} \\
 \midrule
-Tender judgment (agent) & Daily choice of which \texttt{LG\_\allowbreak{}}/\texttt{SG\_\allowbreak{}} algo to run, or none (the future signals/agent layer) \\
-Decision support (pre-computed, no recommendation) & \texttt{pipeline/\allowbreak{}} output: \texttt{features} (RV/HAR, trend, VIX term structure, VIX percentile, VVIX, rf), \texttt{atm\_\allowbreak{}iv}, plus the RV forecast and VRP \\
+Tender judgment (agent) & Daily choice of which \texttt{LG\_\allowbreak{}}/\allowbreak{}\texttt{SG\_\allowbreak{}} algo to run, or none (the future signals/\allowbreak{}agent layer) \\
+Decision support (pre-computed, no recommendation) & \texttt{pipeline/\allowbreak{}} output: \texttt{features} (RV/\allowbreak{}HAR, trend, VIX term structure, VIX percentile, VVIX, rf), \texttt{atm\_\allowbreak{}iv}, plus the RV forecast and VRP \\
 Compiled unwind execution & \texttt{broker.\allowbreak{}submit()}, and the algo files' fixed legs \\
 Continuous trading loop kept away from the agent & \texttt{Hedging/\allowbreak{}} hedgers running on a schedule, with no LLM in that loop \\
 \bottomrule
@@ -203,7 +203,7 @@ Continuous trading loop kept away from the agent & \texttt{Hedging/\allowbreak{}
 
 \item \textbf{A daily decision is the ``slow market'' case,} where Cheng et al. found reasoning pays off most (p. 4). That's an inference: their fastest decisions were seconds, the desk's is daily.
 
-\item \textbf{Constrain the agent's output.} Suggestion: it returns only an algo name from a fixed menu (the registry of \texttt{LG\_\allowbreak{}}/\texttt{SG\_\allowbreak{}} algos plus ``stay flat'') and a short reason. Code checks that choice before anything runs. The agent never calls \texttt{broker} directly, and never picks strikes unless that's added deliberately later.
+\item \textbf{Constrain the agent's output.} Suggestion: it returns only an algo name from a fixed menu (the registry of \texttt{LG\_\allowbreak{}}/\allowbreak{}\texttt{SG\_\allowbreak{}} algos plus ``stay flat'') and a short reason. Code checks that choice before anything runs. The agent never calls \texttt{broker} directly, and never picks strikes unless that's added deliberately later.
 
 \item \textbf{Test against three routers:}
 
@@ -211,7 +211,7 @@ Continuous trading loop kept away from the agent & \texttt{Hedging/\allowbreak{}
 
 \item \textbf{A compiled rule router}, PRISM-style gates. For example, ``VRP above threshold \ensuremath{\rightarrow} short gamma structure X; term structure inverted \ensuremath{\rightarrow} iron condor'', with thresholds you set. This is the baseline that must be beaten.
 
-\item \textbf{An LLM agent} with the pipeline features as input, choosing from the menu. Test its reasoning setting (off / low / higher), because the best level depends on the model (p. 6, p. 25).
+\item \textbf{An LLM agent} with the pipeline features as input, choosing from the menu. Test its reasoning setting (off /\allowbreak{} low /\allowbreak{} higher), because the best level depends on the model (p. 6, p. 25).
 
 \item \textbf{Optionally, an RL router} like OPHR's, which is compiled in Cheng's terms. It needs historical training data, e.g. the club's R2 dataset.
 
@@ -227,7 +227,7 @@ Continuous trading loop kept away from the agent & \texttt{Hedging/\allowbreak{}
 
 \item \textbf{Different task.} Cheng et al. study block-trade acceptance and inventory unwinding in a simulator (Rotman Interactive Trader), over seconds and minutes. They don't test picking between options strategies, or daily decisions.
 
-\item \textbf{Agent \ensuremath{\approx} rule, not agent > rule.} In their best setup the agent was only \emph{competitive} with a 5-cent threshold rule. Whether an agent adds value over a simple VRP/regime rule for the desk is untested.
+\item \textbf{Agent \ensuremath{\approx} rule, not agent > rule.} In their best setup the agent was only \emph{competitive} with a 5-cent threshold rule. Whether an agent adds value over a simple VRP/\allowbreak{}regime rule for the desk is untested.
 
 \item \textbf{Backtesting an LLM is contaminated.} An LLM may have seen historical market outcomes in its training data (\emph{Alpha Illusion}, web). Running it over 2014--2025 history isn't a fair test, so forward paper trading is the credible evidence. An RL or rule router doesn't have this problem.
 

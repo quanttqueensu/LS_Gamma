@@ -157,7 +157,7 @@ The result, in the authors' words:
 \begin{center}\small
 \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
 \toprule
-\textbf{Paper} & \textbf{Builds on / agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
+\textbf{Paper} & \textbf{Builds on /\allowbreak{} agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
 \midrule
 Buehler et al., \emph{Deep Hedging} & The foundation & --- & Hedging with RL under costs, trained against a risk measure \\
 Cao, Chen, Hull \& Poulos & Buehler; Kolm \& Ritter & Uses a mean + standard-deviation objective & Cost-aware under- and over-hedging; P\&L measured at each step works better than tracking cash flows \\
@@ -166,7 +166,7 @@ François et al. 2025 (IV surface) & Buehler; their own 2024 paper & Hedges with
 François et al. 2024 (statistical arbitrage) & Horikawa \& Nakagawa & GARCH market rather than a complete market & Loosely penalized objectives create a speculative overlay \\
 Sepp 2013 & Whalley \& Wilmott; Leland & Formulas, not RL & Optimal hedge frequency and thresholds; the benchmark to beat \\
 PRISM (whitepaper) & Whalley \& Wilmott; Sepp & Not peer-reviewed; results are simulated & A drift threshold that adapts to the regime; RL proposed as the next version \\
-OPHR & Buehler; Murray et al. 2022; Hull \& White & Optimizes profit, not risk; crypto & One agent picks long/short vol, another picks the hedger \\
+OPHR & Buehler; Murray et al. 2022; Hull \& White & Optimizes profit, not risk; crypto & One agent picks long/\allowbreak{}short vol, another picks the hedger \\
 Ruf \& Wang & --- & Skeptical of neural networks & Linear regressions match them on S\&P options \\
 Cao et al. 2023 (gamma and vega) & Cao 2021 & Neutralizes gamma, the opposite of scalping it & Hedging choices depend on costs and the objective \\
 \bottomrule
@@ -213,7 +213,7 @@ These are suggestions, not decisions the desk has made:
 
 \item \textbf{Costs.} Most results assume proportional costs. SPY share hedges on IBKR are cheap, so the cost-driven advantage RL shows may be smaller for the desk.
 
-\item \textbf{Overnight gaps.} Hedging can't respond to them. OPHR's hedge-frequency results are for crypto, which trades 24/7.
+\item \textbf{Overnight gaps.} Hedging can't respond to them. OPHR's hedge-frequency results are for crypto, which trades 24/\allowbreak{}7.
 
 \end{itemize}
 
@@ -273,7 +273,7 @@ These are suggestions, not decisions the desk has made:
 
 \item \texttt{Realised-\allowbreak{}Volatility-\allowbreak{}Forecasting-\allowbreak{}Machine-\allowbreak{}Learning-\allowbreak{}via-\allowbreak{}Financial-\allowbreak{}Word-\allowbreak{}Embedding.\allowbreak{}pdf}
 
-\item \texttt{Realized-\allowbreak{}GARCH,-\allowbreak{}CBOE-\allowbreak{}VIX,-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}
+\item \texttt{Realized-\allowbreak{}GARCH,\allowbreak{}-\allowbreak{}CBOE-\allowbreak{}VIX,\allowbreak{}-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}
 
 \item \texttt{Volatility-\allowbreak{}Forecasting-\allowbreak{}and-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}
 

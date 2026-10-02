@@ -1,0 +1,301 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{How quant teams track and govern backtests and research experiments (and whether a research dashboard is worth building)}
+\author{Deep research notes \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-01}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Method:} Deep research: three parallel web research tracks (tooling, research-tracking practice, desk fit) synthesized into a report. Notes for each track are filed alongside.
+
+Scope: research and backtesting only, not live or paper execution monitoring. Researched 2026-10-01. Source dates are in brackets.
+
+\section{How do professional quant firms and researchers record backtests (experiment logs, registries, logging every trial, reproducibility)?}
+
+\subsection{Takeaway}
+
+The literature's central demand is a complete record of \emph{what was tried}: every strategy or variant, the variable combinations, the data-transformation choices, and the sample choices, all decided in advance where possible. Code, data and seed versioning are the MLOps layer underneath that record. Public detail on how specific firms build these logs internally is thin. What practitioners do describe is process metrics (counts of proposed versus killed strategies, counts of data accesses) and written pre-specification, more than any particular tool.
+
+\subsection{Cited Findings}
+
+\begin{itemize}
+
+\item Arnott, Harvey \& Markowitz's protocol [JFDS, Winter 2019; SSRN Nov 2018] has a ``Multiple Testing'' category whose first rule is ``Keep Track of What Is Tried'': ``Keeping track of the number of strategies tried is crucial, as is measuring their correlations.'' If 20 strategies tested had near 1.0 correlation, ``the process is equivalent to trying only one strategy.'' --- \href{https://people.duke.edu/~charvey/Research/Published_Papers/P138_A_backtesting_protocol.pdf}{Arnott, Harvey \& Markowitz PDF}; \href{https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3275654}{SSRN}
+
+\item Same protocol, ``Keep Track of Combinations of Variables'': starting with 20 variables and trying a couple of interactions is not 22 tests but implies 190 possible interactions, and ``any declared significance should take the full range of interactions into account.'' --- \href{https://people.duke.edu/~charvey/Research/Published_Papers/P138_A_backtesting_protocol.pdf}{Arnott et al. 2019}
+
+\item Same protocol, ``Document Choices in Data Transformations'': volatility scaling or standardization ``is analogous to trying extra variables. The choices need to be documented and ideally decided in advance.'' Example red flag: picking the best of 10 vol-scaling choices. Winsorization level and outlier exclusion should also be fixed before the model is built. --- \href{https://people.duke.edu/~charvey/Research/Published_Papers/P138_A_backtesting_protocol.pdf}{Arnott et al. 2019}
+
+\item Same protocol, ``Define the Test Sample Ex Ante'': ``The sample should never change after the research begins.'' If a model works from 1970 but not from 1960, ``the model does not work.'' --- \href{https://people.duke.edu/~charvey/Research/Published_Papers/P138_A_backtesting_protocol.pdf}{Arnott et al. 2019}
+
+\item Man AHL practices, as described in Man Group's ``Overfitting and Its Impact on the Investor'' [May 2015, Campbell Harvey with panel]: ``monitoring how many strategies are proposed originally, and how far they make it through the process''; ``the company tracks the number of times that researchers access the data or run different models''; and after the PBO research AHL required that ``You now have to write down the data partitioning and the methodology and expectations.'' The piece notes that motivated researchers can get around such safeguards. --- \href{https://www.man.com/insights/overfitting-and-its-impact-on-the-investor}{Man Group}
+
+\item Same Man piece: strategies are ``first traded with the firm's capital'' before clients. Test-trading windows are typically 2-3 months, which is too short to be statistically conclusive. --- \href{https://www.man.com/insights/overfitting-and-its-impact-on-the-investor}{Man Group}
+
+\item López de Prado, ``The 10 Reasons Most Machine Learning Funds Fail'' [JPM 44(6), 2018; SSRN first version Dec 2017]: ``Every successful quantitative firm I am aware of applies the meta-strategy paradigm... Tasks of the assembly line are clearly divided into subtasks. Quality is independently measured and monitored for each subtask.'' This contrasts with the ``Sisyphus paradigm'' of each quant producing a strategy alone. --- \href{https://www.smallake.kr/wp-content/uploads/2018/07/SSRN-id3104816.pdf}{10 Reasons PDF}; \href{https://jpm.pm-research.com/content/44/6/120.abstract}{JPM abstract}
+
+\item QuantConnect, a retail/\allowbreak{}prosumer platform, keeps every backtest of a project in a ``Backtest Results'' table in the IDE, and lists them through the API (\texttt{ListBacktests}), so the trial history is captured automatically. --- \href{https://www.quantconnect.com/docs/v2/cloud-platform/backtesting/research-guide}{QuantConnect Research Guide docs}; \href{https://www.quantconnect.com/docs/v2/research-environment/tutorials/quantconnect-api/backtests/managing-backtests}{Managing Backtests}
+
+\item Microsoft Qlib, an open-source quant research platform, wraps MLflow as its experiment manager (\texttt{R}, the QlibRecorder). Users write \texttt{with R.\allowbreak{}start(experiment\_\allowbreak{}name=.\allowbreak{}.\allowbreak{}.\allowbreak{},\allowbreak{} recorder\_\allowbreak{}name=.\allowbreak{}.\allowbreak{}.\allowbreak{})} and \texttt{R.\allowbreak{}log\_\allowbreak{}metrics()} /\allowbreak{} \texttt{R.\allowbreak{}save\_\allowbreak{}objects()}. \texttt{SignalRecord} and \texttt{PortAnaRecord} store signals and backtest results tied to a run. --- \href{https://qlib.readthedocs.io/en/latest/component/recorder.html}{Qlib Recorder docs}; \href{https://qlib.readthedocs.io/en/stable/component/workflow.html}{Qlib Workflow docs}
+
+\item MLflow automatically records the git commit of the source when a run starts inside a repo, plus source, author and time. Full data versioning needs an external tool such as DVC. --- \href{https://www.prophecylabs.com/blog/a-swift-guide-to-experiment-tracking-with-mlflow}{Prophecy Labs MLflow guide}; \href{https://mlflow.org/docs/latest/genai/version-tracking/track-application-versions-with-mlflow/}{MLflow git version tracking docs}. These are secondary or vendor sources.
+
+\item A 2026 preprint on LLM-driven strategy discovery [Gençay, arXiv Aug 27 2026] ``tracks every strategy evaluation performed and deflates all reported performance by that trial count.'' It pairs this with ``registry-validated tools whose feature space excludes look-ahead by construction,'' and argues that statistical deflation alone (DSR) can miss deliberately biased strategies. Across 453 US stocks and 39 ETFs, every LLM-discovered strategy was rejected, while passive benchmarks were certified. --- \href{https://arxiv.org/abs/2608.27734}{arXiv 2608.27734}
+
+\item An SSRN paper titled ``Who Counts the Trials? A Committed Trial Ledger for Enforcing the Deflated Sharpe Ratio in Zero-Knowledge'' (Mohammad Muavia) proposes a tamper-evident trial ledger. Only the title and abstract listing were reachable; the page returned 403. --- \href{https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7187319}{SSRN 7187319}
+
+\end{itemize}
+
+\subsection{Inferences}
+
+\begin{itemize}
+
+\item The minimum record per trial that the academic sources need is: strategy/\allowbreak{}variant ID, the parameter set, the data sample and transformation choices, the in-sample performance series (needed for the variance of SRs and correlations across trials), the timestamp, and the code version. Seeds and data hashes are standard MLOps practice that make a trial reproducible; the overfitting literature does not demand them explicitly.
+
+\item Logging should be automatic, as in QuantConnect and Qlib/\allowbreak{}MLflow. Manual logs undercount trials, and the trial count is exactly the quantity that must not be undercounted.
+
+\item The Man example shows that governance metrics (proposal \ensuremath{\rightarrow} kill funnel, data-access counts, written pre-specification) are as central as the backtest numbers themselves.
+
+\end{itemize}
+
+\subsection{Gaps}
+
+\begin{itemize}
+
+\item I found no primary, detailed public description of the internal experiment-tracking tooling at Two Sigma, Robeco, Citadel or similar firms. Their public material is about philosophy, not systems.
+
+\item A search summary claimed that Man AHL found volatility-adjusted returns decline 2.1-3.1 pp from backtest to live. I could not verify this in the Man article I fetched, so treat it as unverified.
+
+\end{itemize}
+
+\section{How does tracking every configuration relate to backtest-overfitting controls (DSR, PBO, López de Prado, Harvey \& Liu)?}
+
+\subsection{Takeaway}
+
+Every major overfitting correction takes the trial record as an input. DSR needs N (the number of \emph{independent} trials) and the variance of Sharpe ratios across trials. PBO/\allowbreak{}CSCV needs the full matrix of performance series for all configurations tried. Harvey-Liu-Zhu style haircuts need the number of tests. Without a complete trial log, none of these can be computed honestly. This is the strongest argument for automatic, append-only trial logging.
+
+\subsection{Cited Findings}
+
+\begin{itemize}
+
+\item Bailey \& López de Prado, ``The Deflated Sharpe Ratio'' [JPM 40(5), 2014]: DSR deflates the SR using non-normality (skew, kurtosis), track-record length T, ``the variance of the SRs tested,'' and ``the number of independent trials involved in the selection of the investment strategy (N).'' --- \href{https://pdfs.semanticscholar.org/c215/d0a2064ce1a3565d276475abc84305418f0f.pdf}{DSR slides, SSRN 2465675}; \href{https://en.wikipedia.org/wiki/Deflated_Sharpe_ratio}{Wikipedia summary}
+
+\item DSR worked example from the same deck: a daily strategy with annualized SR 2.5 after N=100 independent trials (V[SR]=1/\allowbreak{}2, T=1250, skew -3, kurt 10) is \emph{not} a discovery at 95\%. There is ``only a 90\% probability that the true Sharpe ratio is above zero.'' --- \href{https://pdfs.semanticscholar.org/c215/d0a2064ce1a3565d276475abc84305418f0f.pdf}{DSR slides}
+
+\item The deck quotes the ASA Ethical Guidelines: ``Failure to disclose the full extent of tests and their results in such a case would be highly misleading.'' Its conclusions: ``Multiple testing exercises should be carefully planned in advance, so as to avoid running an unnecessarily large number of trials''; ``Investment theory should motivate what experiments are worth conducting''; ``The 1/\allowbreak{}e law provides a good trial-stopping rule.'' It also shows how to turn M raw trials into an implied number of independent trials N from their average correlation. --- \href{https://pdfs.semanticscholar.org/c215/d0a2064ce1a3565d276475abc84305418f0f.pdf}{DSR slides}
+
+\item López de Prado [2018], Pitfall \#10: with I trials on a martingale, the expected maximum SR is positive even though the true SR is zero, and walk-forward backtests have high variance. ``That is the reason why it is imperative to control for the number of trials (I) in the context of WF backtesting. Without this information, it is not possible to determine the Family-Wise Error Rate (FWER), False Discovery Rate (FDR), Probability of Backtest Overfitting (PBO) or similar.'' --- \href{https://www.smallake.kr/wp-content/uploads/2018/07/SSRN-id3104816.pdf}{10 Reasons PDF}
+
+\item López de Prado [2018], Pitfall \#2, ``Research through backtesting'': running data through a model, backtesting and repeating ``until a nice-looking backtest shows up'' leads to false discovery ``if the backtest is a walk-forward out-of-sample'' too. ``It typically takes about 20 such iterations to discover a (false) investment strategy'' at 5\% significance, and ``feature importance is a research tool, and backtesting is not.'' --- \href{https://www.smallake.kr/wp-content/uploads/2018/07/SSRN-id3104816.pdf}{10 Reasons PDF}
+
+\item López de Prado's lecture summary: ``conducting a thousand trials on a completely unpredictable series yields an expected maximum Sharpe ratio around 3, whereas it should be 0.'' --- \href{https://fluentnumbers.medium.com/the-reasons-most-ml-quant-funds-fail-human-generated-summary-of-marcos-lopez-de-prado-lecture-e7d6bd95ef50}{lecture summary (secondary)}
+
+\item Bailey, Borwein, López de Prado \& Zhu, ``The Probability of Backtest Overfitting'' [J. Computational Finance, 2017; working paper 2013]: CSCV is a model-free, non-parametric way to estimate PBO from the set of configurations tried. --- \href{https://scholarworks.wmich.edu/math_pubs/42/}{WMU ScholarWorks}; \href{https://cran.r-project.org/web/packages/pbo/vignettes/pbo.html}{pbo R package vignette}
+
+\item Bailey et al. (minimum backtest length result): with only 5 years of daily data, trying 45 or more independent variations makes it ``more than likely'' that the best one shows SR \ensuremath{\geq} 1.0 by chance. Also: ``Academic articles and investment proposals almost never disclose the number of trials involved in a particular discovery.'' --- \href{https://sdm.lbl.gov/oapapers/ssrn-id2507040-bailey.pdf}{Bailey et al., ``Statistical Overfitting and Backtest Performance''}; \href{https://www.davidhbailey.com/dhbpapers/backtest-prob.pdf}{Bailey et al., PBO paper}
+
+\item López de Prado \& Lewis, ``Detection of False Investment Strategies Using Unsupervised Learning Methods'' [Quantitative Finance 19(9), 2019; SSRN Aug 2018]: an unsupervised algorithm (ONC clustering) estimates ``the number of effectively uncorrelated trials.'' That number is needed for the familywise false-positive probability. This method only works if the return series of all trials were kept. --- \href{https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3167017}{SSRN}; \href{https://econpapers.repec.org/article/tafquantf/v_3a19_3ay_3a2019_3ai_3a9_3ap_3a1555-1565.htm}{EconPapers}
+
+\item Harvey, Liu \& Zhu, ``...and the Cross-Section of Expected Returns'' [RFS 29(1), Jan 2016]: catalogues at least 316 tested factors and argues that a new factor needs t > 3.0 rather than 2.0. A t-ratio of 3.0 controls FDR at 1\%, and 3.9 controls FWER at 5\%. They conclude most claimed findings are likely false. --- \href{https://academic.oup.com/rfs/article/29/1/5/1843824}{OUP/\allowbreak{}RFS}; \href{https://www.nber.org/system/files/working_papers/w20592/w20592.pdf}{NBER WP}
+
+\item Quantopian, ``All That Glitters Is Not Gold'' (Wiecki, Campbell, Lent, Stauth) [SSRN 2745220, 2016]: across 888 algorithms with 6+ months of out-of-sample results, backtest Sharpe had R\textsuperscript{2} < 0.025 for out-of-sample Sharpe. ``The more backtesting a quant has done for a strategy, the larger the discrepancy between backtest and out-of-sample performance.'' Vol and max drawdown were more predictive. An ML classifier on backtest features reached out-of-sample R\textsuperscript{2} = 0.17. This is the empirical evidence that the \emph{count of backtests run} (only knowable if logged) predicts overfitting. --- \href{https://www.researchgate.net/publication/307553701_All_That_Glitters_Is_Not_Gold_Comparing_Backtest_and_Out-of-Sample_Performance_on_a_Large_Cohort_of_Trading_Algorithms}{ResearchGate}; \href{https://quantpedia.com/quantopians-academic-paper-about-in-vs-out-of-sample-performance-of-trading-alg/}{Quantpedia summary}; \href{https://www.cxoadvisory.com/big-ideas/in-sample-vs-out-of-sample-performance-of-888-trading-strategies/}{CXO summary}
+
+\item QuantConnect's ``Research Guide'' puts these ideas into a UI as a power gauge. Backtest count: 0-30 ``Likely Not Overfit'', 30-70 ``Possibly Overfitting'', 70+ ``Probably Overfitting''. Parameter count: 0-10, 10-20, 20+. Research time: 0-8h, 8-16h, 16h+. It cites the PBO paper and asks for a thesis of the form ``A change in \{cause\} leads to an \{effect\}.'' These are heuristic thresholds, not derived from DSR. --- \href{https://www.quantconnect.com/docs/v2/cloud-platform/backtesting/research-guide}{QuantConnect Research Guide}
+
+\end{itemize}
+
+\subsection{Inferences}
+
+\begin{itemize}
+
+\item To feed DSR and PBO, a trial log needs each trial's \emph{return series}, not just summary stats. You need the series for V[SR], for the correlations used to get effective N, and for the CSCV matrix.
+
+\item The dashboard element with the best evidence behind it is the \emph{trial counter /\allowbreak{} effective-N /\allowbreak{} DSR display} that QuantConnect pioneered. It turns logging into a visible penalty instead of a vanity chart.
+
+\item For the LS Gamma desk specifically, each VRP threshold, regime-classifier choice, hedge-frequency setting and structure (LG/\allowbreak{}SG algo) tried would count as a trial in N.
+
+\end{itemize}
+
+\subsection{Gaps}
+
+\begin{itemize}
+
+\item No source gives a validated rule for \emph{how} to count trials when the configurations are discrete regime/\allowbreak{}algo choices mixed with continuous thresholds. The ONC clustering approach is the closest.
+
+\item Harvey \& Liu's ``Backtesting'' haircut paper [JPM 2015] is relevant but was not fetched here: \href{https://www.cmegroup.com/content/dam/cmegroup/education/files/backtesting.pdf}{CME-hosted copy}.
+
+\end{itemize}
+
+\section{Arguments for keeping research/\allowbreak{}backtest monitoring separate from live or paper-trading monitoring}
+
+\subsection{Takeaway}
+
+The sources support a separation by \emph{data role} and \emph{audience}. The hold-out and the live record are the only genuinely out-of-sample evidence. Iterating against them, which a shared or always-on display invites, converts them into in-sample data. Research monitoring serves researchers comparing many failed trials. Live monitoring serves the PM and risk, who watch one deployed strategy against its pre-registered expectation.
+
+\subsection{Cited Findings}
+
+\begin{itemize}
+
+\item Arnott et al. [2019]: ``no true out-of-sample data exist; the only true out of sample is the live trading experience.'' Also: ``Recognize That Iterated Out of Sample Is Not Out of Sample'': modifying a model after it fails out of sample so it then works in both periods ``is no longer an out-of-sample test. It is overfitting.'' --- \href{https://people.duke.edu/~charvey/Research/Published_Papers/P138_A_backtesting_protocol.pdf}{Arnott et al. 2019}
+
+\item Dwork, Feldman, Hardt, Pitassi, Reingold \& Roth, ``The reusable holdout'' [Science 349(6248), Aug 2015]: reusing a hold-out adaptively ``can easily lead to overfitting to the holdout set itself,'' even when exploration and testing use distinct subsets. They give a differential-privacy mechanism (Thresholdout) to allow limited, noisy reuse. --- \href{https://www.science.org/doi/10.1126/science.aaa9375}{Science}; \href{https://www.cs.toronto.edu/~toni/Papers/holdout-cacm.pdf}{Guilt Free Data Reuse (CACM)}
+
+\item Blum \& Hardt, ``The Ladder'' [ICML 2015]: Kaggle participants ``repeatedly evaluate their submissions on the leaderboard and may begin to overfit to the holdout data that supports the leaderboard.'' Public leaderboard scores were inflated relative to final scores. A leaderboard is a dashboard over a hold-out, and this is the canonical evidence of how it gets contaminated. --- \href{https://arxiv.org/pdf/1502.04585}{arXiv 1502.04585}; \href{https://proceedings.mlr.press/v37/blum15.pdf}{PMLR}
+
+\item Man AHL: strategies pass through research, then review, then test trading with firm capital, then clients. The stages are separate, and the firm tracks how many proposals die at each stage. --- \href{https://www.man.com/insights/overfitting-and-its-impact-on-the-investor}{Man Group 2015}
+
+\item López de Prado's meta-strategy paradigm: an assembly line in which ``quality is independently measured and monitored for each subtask.'' This implies different monitoring for different stages. --- \href{https://www.smallake.kr/wp-content/uploads/2018/07/SSRN-id3104816.pdf}{10 Reasons PDF}
+
+\item Arnott et al., ``Be Careful with Delegated Research'': ``Research assistants have an incentive to please their supervisor by presenting results that support the supervisor's hypothesis.'' --- \href{https://people.duke.edu/~charvey/Research/Published_Papers/P138_A_backtesting_protocol.pdf}{Arnott et al. 2019}. This is relevant to a PM-plus-4-analysts structure.
+
+\end{itemize}
+
+\subsection{Inferences}
+
+\begin{itemize}
+
+\item Different data: research views show many trials over historical, licensed data (here R2/\allowbreak{}WRDS). Live views show one strategy over daily pipeline data. Mixing them risks feeding live/\allowbreak{}paper outcomes back into parameter tuning, which is iterated out-of-sample.
+
+\item Different audiences: analysts need trial-level comparison and failure records. The PM needs the funnel (proposed \ensuremath{\rightarrow} killed \ensuremath{\rightarrow} promoted) plus DSR/\allowbreak{}PBO on candidates.
+
+\item Paper-trading results should be treated as a one-shot hold-out per pre-registered strategy version. Any change to the strategy should restart the clock and count as a new trial.
+
+\end{itemize}
+
+\subsection{Gaps}
+
+\begin{itemize}
+
+\item I found no published practitioner source that argues explicitly for \emph{separate dashboards}. The case is inferred from hold-out-contamination research and stage-gated processes.
+
+\end{itemize}
+
+\section{Risks of dashboards in research (p-hacking, peeking, false rigor, maintenance) and mitigations}
+
+\subsection{Takeaway}
+
+A dashboard that makes it cheap to rerun and compare backtests lowers the cost of each extra trial and makes the best-looking one salient. That is the ``research through backtesting'' loop the literature warns against. Mitigations exist: display trial counts and deflated metrics by default, lock hold-out panels, pre-register specifications, and reward documented failures. Without them, a polished dashboard can give false rigor.
+
+\subsection{Cited Findings}
+
+\begin{itemize}
+
+\item López de Prado: backtest-iterate-repeat is the ``foolish backtest cycle.'' Statisticians ``consider it scientific fraud,'' and about 20 iterations yields a false 5\% discovery. --- \href{https://www.smallake.kr/wp-content/uploads/2018/07/SSRN-id3104816.pdf}{10 Reasons PDF}
+
+\item Quantopian 888-algo study: more backtesting led to a bigger in-sample/\allowbreak{}out-of-sample gap. A platform that made backtests easy produced measurable overfitting. --- \href{https://www.cxoadvisory.com/big-ideas/in-sample-vs-out-of-sample-performance-of-888-trading-strategies/}{CXO summary}
+
+\item Leaderboard and hold-out reuse overfitting: \href{https://arxiv.org/pdf/1502.04585}{Blum \& Hardt 2015}; \href{https://www.science.org/doi/10.1126/science.aaa9375}{Dwork et al. 2015}
+
+\item Harvey's Presidential Address, ``The Scientific Outlook in Financial Economics'' [JF 72, 2017]: unreported tests, no multiple-testing adjustment, and direct or indirect p-hacking mean many results will not hold up. He proposes ``registered reports'' (economic rationale and method fixed before data analysis) and reporting a Bayesianized p-value (minimum Bayes factor). --- \href{https://onlinelibrary.wiley.com/doi/abs/10.1111/jofi.12530}{Wiley JF}; \href{https://people.duke.edu/~charvey/Research/Published_Papers/P131_The_scientific_outlook.pdf}{Duke PDF}
+
+\item Arnott et al.: ``Beware an Ex Post Economic Foundation.'' A story created after data mining is ``a red flag''. ``Establish a Research Culture That Rewards Quality'': ``Researchers should be rewarded for good science, not good results... most experiments will fail.'' --- \href{https://people.duke.edu/~charvey/Research/Published_Papers/P138_A_backtesting_protocol.pdf}{Arnott et al. 2019}
+
+\item Man AHL: the culture should not punish quality null results. Written partitioning and methodology come before testing. Data-access counts are tracked, but ``researchers can circumvent such safeguards if motivated'' (paraphrase by the fetch tool). --- \href{https://www.man.com/insights/overfitting-and-its-impact-on-the-investor}{Man Group 2015}
+
+\item QuantConnect's gauge is a working example of a dashboard \emph{as a mitigation}. It shows backtest count, parameter count and time spent, labeled with overfitting risk, next to results. --- \href{https://www.quantconnect.com/docs/v2/cloud-platform/backtesting/research-guide}{QuantConnect Research Guide}
+
+\item Gençay [2026]: DSR-style deflation can fail to catch deliberately biased strategies, so structural controls (validated feature registries, leakage-safe tooling) are needed on top of statistics. This is a direct warning against false rigor from showing a DSR number alone. --- \href{https://arxiv.org/abs/2608.27734}{arXiv 2608.27734}
+
+\item Thresholdout and the Ladder are formal mechanisms for \emph{limited} hold-out access through a noisy or thresholded interface. They are the academic analogue of a ``locked hold-out panel.'' --- \href{https://www.science.org/doi/10.1126/science.aaa9375}{Dwork et al.}; \href{https://proceedings.mlr.press/v37/blum15.pdf}{Blum \& Hardt}
+
+\end{itemize}
+
+\subsection{Inferences}
+
+\begin{itemize}
+
+\item Design rules implied by the evidence:
+
+\begin{enumerate}
+
+\item Show the trial count and the deflated SR/\allowbreak{}PBO beside every raw Sharpe.
+
+\item Hide hold-out metrics until a strategy spec is frozen (committed) and logged. Reveal them once per spec version, and record the reveal.
+
+\item List failed and killed trials, not just the best.
+
+\item Link each run to a pre-written hypothesis and spec (registered-report style).
+
+\end{enumerate}
+
+\item False-rigor risk: a slick equity-curve page with no N, no cost model and no hold-out discipline is worse than a CSV, because it signals validation that has not happened.
+
+\item Maintenance burden: no source quantified it, but every displayed metric is code that must be kept correct, and a wrong DSR is worse than none.
+
+\end{itemize}
+
+\subsection{Gaps}
+
+\begin{itemize}
+
+\item I found no empirical study that measures whether research dashboards increase or decrease overfitting in trading teams. The evidence is indirect: the Quantopian backtest-count result, Kaggle leaderboard overfitting, and theory.
+
+\item No quantified data on dashboard maintenance costs in small quant teams.
+
+\end{itemize}
+
+\section{What do student, university or small teams do in practice? Lightweight setups}
+
+\subsection{Takeaway}
+
+I found almost no documented, citable practice from student trading clubs. Lightweight setups in the open-source and prosumer world are (a) a platform that logs every backtest automatically (QuantConnect), (b) MLflow-backed experiment recording (Qlib's \texttt{R} recorder, or plain MLflow with git-commit capture), and (c) repo-based Markdown/\allowbreak{}JSON reports. For a 5-person team, the evidence favors an automatic append-only trial log plus a small read-only summary (trial counts, DSR/\allowbreak{}PBO, kill funnel) over a large custom dashboard.
+
+\subsection{Cited Findings}
+
+\begin{itemize}
+
+\item QuantConnect: per-project backtest history table, API listing, and the Research Guide overfitting gauge, available to individual users at no extra build cost. --- \href{https://www.quantconnect.com/docs/v2/cloud-platform/backtesting/research-guide}{QuantConnect docs}
+
+\item Qlib: \texttt{qrun} runs a whole workflow (dataset \ensuremath{\rightarrow} model \ensuremath{\rightarrow} backtest \ensuremath{\rightarrow} evaluation) from a config file, and the MLflow-backed Recorder stores parameters, metrics and backtest artifacts per run. A config-file-driven run is a natural pre-registration artifact. --- \href{https://github.com/microsoft/qlib}{Qlib GitHub}; \href{https://qlib.readthedocs.io/en/latest/component/recorder.html}{Qlib Recorder docs}
+
+\item MLflow captures the git commit automatically; data versioning needs an add-on. --- \href{https://www.prophecylabs.com/blog/a-swift-guide-to-experiment-tracking-with-mlflow}{Prophecy Labs}
+
+\item Open-source research stacks such as \texttt{ml-\allowbreak{}quant-\allowbreak{}trading} produce ``shareable Markdown and JSON reports'' per run, a file-based alternative to a tracking server. --- \href{https://github.com/initial-d/ml-quant-trading}{initial-d/\allowbreak{}ml-quant-trading}
+
+\item The \texttt{pbo} R package and the quantstrat \texttt{deflated.\allowbreak{}Sharpe} function give off-the-shelf PBO and DSR calculations from a matrix of trial returns. --- \href{https://cran.r-project.org/web/packages/pbo/vignettes/pbo.html}{pbo vignette}; \href{https://github.com/braverock/quantstrat/blob/master/R/deflated.Sharpe.R}{quantstrat deflated.Sharpe.R}
+
+\item A 2023 paper on teaching MLOps in higher education through project-based learning exists. It was not fetched; it may cover student experiment-tracking practice. --- \href{https://arxiv.org/pdf/2302.01048}{arXiv 2302.01048}
+
+\end{itemize}
+
+\subsection{Inferences}
+
+\begin{itemize}
+
+\item A lightweight fit for this desk:
+
+\begin{itemize}
+
+\item An append-only \texttt{trials} table (CSV or Parquet, or MLflow local file store) written automatically by the backtest runner. Columns: commit hash, config hash, data snapshot ID, seed, params, the hypothesis ID, and the returns series path.
+
+\item A frozen-spec convention: a committed YAML file before any hold-out run.
+
+\item A one-page summary computed from the log: N, effective N, DSR, PBO, and the proposed/\allowbreak{}killed/\allowbreak{}promoted funnel.
+
+\end{itemize}
+
+\item This gives the overfitting controls their inputs, which is the main benefit, without dashboard maintenance. A richer UI is justified only once trial volume makes the CSV unreadable.
+
+\item Results and data must stay out of git per desk rules. The log therefore belongs in the gitignored \texttt{results/\allowbreak{}}, with only configs and code committed. Any summary page must not expose licensed R2/\allowbreak{}WRDS data.
+
+\end{itemize}
+
+\subsection{Gaps}
+
+\begin{itemize}
+
+\item No reliable sources found on how specific university trading teams (Queen's, Waterloo, Cornell, Michigan, etc.) track research. A search returned only generic GitHub repos.
+
+\item No sources on Robeco's or Two Sigma's internal research-tracking practice were retrieved in this pass.
+
+\end{itemize}
+
+\end{document}

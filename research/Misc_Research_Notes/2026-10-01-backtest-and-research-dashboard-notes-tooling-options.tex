@@ -1,0 +1,381 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Tooling options for a backtest /\allowbreak{} research tracking dashboard (5-person Python options desk, 2026)}
+\author{Deep research notes \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-01}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Method:} Deep research: three parallel web research tracks (tooling, research-tracking practice, desk fit) synthesized into a report. Notes for each track are filed alongside.
+
+Context: QUANTT L/\allowbreak{}S Gamma desk (1 PM + 4 analysts), shared GitHub repo, Python 3.14, pandas + parquet, backtest data from a Queen's-licensed R2 bucket (WRDS/\allowbreak{}CRSP-derived and option ticks). Live IBKR paper trading is a separate system and out of scope. Research date: 2026-10-01.
+
+\section{What are the main options and how do they compare (status as of 2026)?}
+
+\subsection{Takeaway}
+
+The experiment-tracker market changed a lot in 2025-2026: Neptune is gone (OpenAI bought it, shut down 2026-03-05), W\&B is now a product inside CoreWeave Forge, DVC now belongs to lakeFS, and Aim has had no formal release since May 2025. MLflow (open source, self-hostable, SQLite by default) is the most stable choice. Among dashboard frameworks, Streamlit and Dash are the realistic Python-native picks. QuantStats remains the go-to library for per-run tearsheets.
+
+\subsection{Cited Findings}
+
+\textbf{Experiment trackers}
+
+\begin{itemize}
+
+\item \textbf{Neptune.ai: DISCONTINUED.} OpenAI acquired it in December 2025 (reportedly for under \$400M in stock), to support an internal research platform. The hosted app and API were turned off permanently on 2026-03-05 at 10:00 AM PST, and all remaining data was deleted. Neptune stated that no customer data was transferred to OpenAI. --- \href{https://techsoma.ca/openai-neptune-acquisition-shutdown/}{Techsoma}; \href{https://www.edtechinnovationhub.com/news/openai-moves-to-acquire-neptuneai-as-experiment-tracking-platform-prepares-three-month-shutdown}{EdTech Innovation Hub}; \href{https://docs.neptune.ai/transition_hub}{Neptune transition hub}. (The sub-\$400M figure comes from secondary press, not a primary filing.)
+
+\item \textbf{Weights \& Biases: ACQUIRED by CoreWeave and now sold as part of ``CoreWeave Forge''.} Forge was announced at Fully Connected 2026, and from 2026-09-30, Free, Pro and Enterprise SaaS accounts sign in through CoreWeave Forge. Existing credentials and wandb.ai links keep working. --- \href{https://www.coreweave.com/companies/weights-and-biases}{CoreWeave: W\&B is now part of CoreWeave}; \href{https://www.coreweave.com/news/coreweave-forge-launches-turning-the-ai-loop-production-run-into-a-better-model-and-agent}{CoreWeave Forge launch}; \href{https://wandb.ai/wandb_fc/cw-announcement/reports/Weights-Biases-completes-acquisition-by-CoreWeave--VmlldzoxMjU4MzE5OQ}{W\&B acquisition announcement}
+
+\item The wandb.ai/\allowbreak{}site/\allowbreak{}pricing URL now returns a 301 redirect to coreweave.com/\allowbreak{}forge-pricing. Plans listed there:
+
+\begin{itemize}
+
+\item \textbf{Free:} \$0, up to 5 model seats, 5 GB/\allowbreak{}month storage, experiment tracking and asset registry.
+
+\item \textbf{Pro:} from \$60/\allowbreak{}month, up to 10 seats, 100 GB (+\$0.03/\allowbreak{}GB), for teams under 50 employees, 30-day trial.
+
+\item \textbf{Enterprise:} custom pricing, adds SSO, audit logs, customer-managed encryption and ``bring your own bucket''.
+
+\item \textbf{Academic:} \$0, up to 100 seats, 200 GB cloud storage. Open to ``students, professors, postdoctoral researchers at academic institutions''.
+
+\end{itemize}
+
+--- \href{https://coreweave.com/forge-pricing}{CoreWeave Forge pricing}
+
+\item \textbf{MLflow:} open source (Apache-2.0, Linux Foundation project). It is still releasing actively: v3.14.0, then v3.15.0 on 2026-07-31 (which includes a Python 3.14 compatibility fix). It requires Python >=3.10, and there was an ``Add Python 3.14 support'' CI run. --- \href{https://mlflow.org/releases/}{MLflow releases}; \href{https://github.com/mlflow/mlflow/releases/tag/v3.14.0}{MLflow 3.14.0}; \href{https://github.com/mlflow/mlflow/actions/runs/18339072040}{CI run ``Add Python 3.14 support''}; \href{https://pypi.org/project/mlflow/}{PyPI}
+
+\item MLflow tracking server details:
+
+\begin{itemize}
+
+\item ``SQLite is the default backend and provides good performance and reliability for most use cases''. PostgreSQL or MySQL is recommended for high concurrency.
+
+\item A file store (\texttt{.\allowbreak{}/\allowbreak{}mlruns}) is still supported for backward compatibility.
+
+\item Artifacts can go to remote object storage such as S3, either proxied by the server (\texttt{-\allowbreak{}-\allowbreak{}artifacts-\allowbreak{}destination}, the server holds the credentials) or written directly by clients (\texttt{-\allowbreak{}-\allowbreak{}default-\allowbreak{}artifact-\allowbreak{}root -\allowbreak{}-\allowbreak{}no-\allowbreak{}serve-\allowbreak{}artifacts}).
+
+\item The server ``serves Tracking UI ... where team members can easily explore each other's results''.
+
+\end{itemize}
+
+--- \href{https://mlflow.org/docs/latest/self-hosting/architecture/tracking-server/}{MLflow tracking server docs}
+
+\item MLflow multi-user auth: built-in HTTP basic auth (\texttt{pip install mlflow[auth]}, \texttt{mlflow server -\allowbreak{}-\allowbreak{}app-\allowbreak{}name basic-\allowbreak{}auth}) with per-experiment and per-model permissions. It is marked \textbf{experimental}. On first start it creates a default admin \texttt{admin} /\allowbreak{} \texttt{password1234}, which must be changed. Clients authenticate through the \texttt{MLFLOW\_\allowbreak{}TRACKING\_\allowbreak{}USERNAME}/\allowbreak{}\texttt{MLFLOW\_\allowbreak{}TRACKING\_\allowbreak{}PASSWORD} environment variables or \texttt{\textasciitilde{}/\allowbreak{}.\allowbreak{}mlflow/\allowbreak{}credentials}. --- \href{https://mlflow.org/docs/latest/self-hosting/security/basic-http-auth/}{MLflow basic HTTP auth docs}
+
+\item \textbf{DVC /\allowbreak{} DVC Studio: ACQUIRED by lakeFS (Treeverse)} in November 2025. lakeFS took over the DVC open-source project from Iterative.ai and promises ``no breaking changes'', backward-compatible updates, and to keep ``DVC, DVCLive and the DVC extension for VS Code alive, maintained, and evolving''. The FAQ does \textbf{not} address DVC Studio's future, pricing or timelines. --- \href{https://dvc.org/blog/dvc-joins-lakefs-your-questions-answered/}{DVC blog: DVC joins lakeFS FAQ}; \href{https://lakefs.io/blog/celebration-shared-vision-lakefs-dvc/}{lakeFS blog}; \href{https://app.dealroom.co/news/feed/lakefs-acquires-dvc-raises-20m}{Dealroom}
+
+\item \textbf{Aim (aimhubio):} open-source, self-hosted tracker.
+
+\begin{itemize}
+
+\item The last formal release is v3.29.1 (2025-05-08).
+
+\item An open GitHub issue from a production user (Careem) asks whether v3.x still gets fixes and ``(eventually) Python 3.13+ compatibility''. It also notes that v4 tags exist on Docker Hub without official releases or docs. No maintainer had replied.
+
+\item The commercial ``AimHub'' team product was announced in May 2025.
+
+\item Practical risk: Python 3.14 support is unconfirmed.
+
+\end{itemize}
+
+--- \href{https://github.com/aimhubio/aim/issues/3414}{Aim issue \#3414}; \href{https://github.com/aimhubio/aim/blob/main/CHANGELOG.md}{Aim CHANGELOG}; \href{https://aimstack.io/blog/new-releases/introducing-aimhub-aim-now-available-for-teams}{AimHub announcement}
+
+\end{itemize}
+
+\textbf{Dashboard frameworks}
+
+\begin{itemize}
+
+\item \textbf{Streamlit Community Cloud (free hosting):} each user gets \textbf{1 private app}. Private-app viewers are added to an allow-list by email and sign in with Google OAuth or single-use emailed links, valid for 15 minutes. People with push/\allowbreak{}admin rights on the GitHub repo also have access. --- \href{https://docs.streamlit.io/deploy/streamlit-community-cloud/share-your-app}{Streamlit docs: Share your app}; \href{https://streamlit.io/cloud}{Streamlit Cloud}; \href{https://docs.streamlit.io/deploy/streamlit-community-cloud/get-started/trust-and-security}{Trust and security}
+
+\item \textbf{Dash (Plotly):} open source under MIT, no cost. Dash Open Source has no built-in authentication: you bring your own (Flask-Login, Auth0, OIDC) or use the \texttt{dash-\allowbreak{}auth} basic-auth package. Paid Dash Enterprise and Plotly Cloud add LDAP/\allowbreak{}SAML/\allowbreak{}OIDC/\allowbreak{}SSO. --- \href{https://plotly.com/dash/}{plotly.com/\allowbreak{}dash}; \href{https://plotly.com/blog/how-to-keep-your-data-safe-with-dash/}{Plotly: keep your data safe with Dash}; \href{https://info.plotly.com/rs/030-IKF-260/images/Dash_Enterprise_vs_Dash_Open_Source___Full_Stack_Development___2025.pdf}{Dash Enterprise vs Open Source PDF}
+
+\item \textbf{Grafana:} OSS is self-hostable. The Grafana Cloud free tier is permanent but limited to \textbf{3 active visualization users}, 10k active metric series and 14-day retention (paid plans from about \$19/\allowbreak{}month). It is built for time-series observability, not for comparing runs. --- \href{https://grafana.com/docs/grafana-cloud/platform/pricing-and-usage/stack-plans/}{Grafana docs: plans and stack tiers}; \href{https://last9.io/blog/grafana-cloud-pricing/}{Last9 Grafana Cloud pricing 2026}
+
+\item \textbf{Evidence.dev:} open-source ``BI as code''. Pages are Markdown files with fenced SQL queries and chart components, and the project compiles to a \textbf{static site}. Data sources include DuckDB, Postgres and others. It is free to self-host (Netlify, Vercel, Docker, your own infra); Evidence Cloud is the paid hosted option. Note it is SQL/\allowbreak{}JS-based, not Python. --- \href{https://docs.evidence.dev/}{Evidence docs}; \href{https://github.com/evidence-dev/evidence/blob/next/README.md}{Evidence README}; \href{https://duckdblab.org/en/post/duckdb-evidence-bi-dashboard/}{DuckDB + Evidence tutorial}
+
+\end{itemize}
+
+\textbf{Backtest report libraries}
+
+\begin{itemize}
+
+\item \textbf{QuantStats:}
+
+\begin{itemize}
+
+\item Apache-2.0. Latest release is 0.0.86 (2026-09-27). PyPI classifiers list Python 3.10-3.13, with no mention of 3.14.
+
+\item It has three modules: stats (Sharpe, volatility, win rate and more), plots (drawdowns, return distributions) and reports (tearsheets exported as HTML). It also has Monte Carlo simulation.
+
+\item It depends on pandas, numpy, scipy, matplotlib and yfinance.
+
+\item A fork, ``quantstats-reloaded'', exists for compatibility with newer Python versions and libraries.
+
+\end{itemize}
+
+--- \href{https://pypi.org/project/quantstats/}{PyPI quantstats}; \href{https://pypi.org/project/quantstats-reloaded/}{PyPI quantstats-reloaded}
+
+\item \textbf{pyfolio-reloaded 0.9.9 /\allowbreak{} alphalens-reloaded 0.4.5} (Stefan Jansen) were released for Python 3.13 /\allowbreak{} NumPy 2.0 compatibility, alongside zipline-reloaded 3.1.1. One search snippet also lists alphalens-reloaded 0.4.6. pyfolio-reloaded is built to integrate with Zipline. Alphalens analyses predictive equity factors, so it is a weak fit for a single-underlying SPY options strategy. --- \href{https://x.com/ml4trading/status/1948303607729631620}{Stefan Jansen on X}; \href{https://github.com/stefan-jansen/pyfolio-reloaded/releases}{pyfolio-reloaded releases}; \href{https://github.com/stefan-jansen/alphalens-reloaded}{alphalens-reloaded}
+
+\item \textbf{vectorbt:} the open-source edition is ``fair-code'' under Apache 2.0 + Commons Clause. It is free to use, but you may not sell products or services that are primarily the software, so it is source-available rather than OSI open source. VectorBT PRO is closed source: \$25/\allowbreak{}month, \$240/\allowbreak{}year or \$500 lifetime, and it adds parallelization, portfolio optimization, limit orders, leverage and more. --- \href{https://github.com/polakowo/vectorbt}{vectorbt GitHub}; \href{https://vectorbt.dev/terms/license/}{vectorbt license}; \href{https://vectorbt.pro/}{VectorBT PRO}
+
+\end{itemize}
+
+\subsection{Inferences}
+
+\begin{itemize}
+
+\item If the team adopts a SaaS tracker, do not pick Neptune (dead). W\&B now carries vendor-transition risk (account migration to CoreWeave Forge). Of the open-source trackers, Aim (stalled releases, Python 3.13+ unclear) is riskier than MLflow, and DVC Studio's future is unclear (see Gaps).
+
+\item MLflow now defaults to SQLite, so \texttt{mlflow ui} against a local or shared \texttt{mlflow.\allowbreak{}db} needs almost no setup. That lowers the barrier for a 5-person team.
+
+\item Python 3.14 is the team's binding constraint. Confirmed or partly confirmed: MLflow (a 3.14 CI run and a 3.14 fix). Not confirmed: QuantStats (classifiers stop at 3.13), Aim (no 3.13+ confirmation), pyfolio/\allowbreak{}alphalens (3.13). Expect to pin or test each one. It may be easiest to run the research/\allowbreak{}dashboard environment on 3.13 if QuantStats breaks.
+
+\item vectorbt and backtrader are backtest engines whose built-in stats and plots are not really ``report libraries''. For an options gamma-scalping backtest written in house, the useful outputs are a daily P\&L/\allowbreak{}returns series fed to QuantStats, plus your own trade/\allowbreak{}hedge logs.
+
+\end{itemize}
+
+\subsection{Gaps}
+
+\begin{itemize}
+
+\item I could not confirm Streamlit's, Dash's or Panel's official Python 3.14 support, or Streamlit Community Cloud's resource limits (RAM/\allowbreak{}CPU). They were not searched within the call budget.
+
+\item I did not research Panel (HoloViz) or Voila specifically. Status, cost (both are open source, BSD) and the Voila maintenance outlook are unverified here.
+
+\item bt/\allowbreak{}backtrader report outputs were not researched (backtrader has long been considered unmaintained, but I found no 2026 source in this session).
+
+\item DVC Studio's post-acquisition pricing and availability: the FAQ does not say. Check studio.datachain.ai /\allowbreak{} dvc.org directly.
+
+\item Whether W\&B Server (self-hosted) still exists under CoreWeave Forge, and on what terms: the pricing page mentions ``bring your own bucket'' only for Enterprise, and I found no self-host info.
+
+\end{itemize}
+
+\section{Costs, hosting model, multi-user support and learning curve}
+
+\subsection{Takeaway}
+
+For a 5-person academic team, every serious option can be free: MLflow self-hosted (free), W\&B/\allowbreak{}Forge Academic (free, 100 seats, but SaaS), Streamlit/\allowbreak{}Dash/\allowbreak{}Evidence (free OSS). The real cost is setup effort and the question of where data lives. The free hosted tiers have tight multi-user limits: 1 private Streamlit app, 3 Grafana Cloud viewers, and private GitHub Pages only on Enterprise Cloud.
+
+\subsection{Cited Findings}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Tool} & \textbf{Cost for this team} & \textbf{Hosting} & \textbf{Multi-user} & \textbf{Source} \\
+\midrule
+MLflow & Free (OSS) & Local /\allowbreak{} self-hosted server; SQLite default, Postgres for concurrency; S3-compatible artifact store & Shared server; basic-auth with per-experiment permissions (experimental) & \href{https://mlflow.org/docs/latest/self-hosting/architecture/tracking-server/}{MLflow server}, \href{https://mlflow.org/docs/latest/self-hosting/security/basic-http-auth/}{MLflow auth} \\
+W\&B (CoreWeave Forge) & Free tier (5 seats, 5 GB) or Academic \$0 (100 seats, 200 GB) & SaaS (sign-in via CoreWeave Forge since 2026-09-30) & Native teams; Pro adds team access controls & \href{https://coreweave.com/forge-pricing}{Forge pricing}, \href{https://www.coreweave.com/companies/weights-and-biases}{CoreWeave} \\
+Neptune & n/\allowbreak{}a: shut down 2026-03-05 & n/\allowbreak{}a & n/\allowbreak{}a & \href{https://techsoma.ca/openai-neptune-acquisition-shutdown/}{Techsoma} \\
+Aim & Free OSS; AimHub commercial & Self-hosted & AimHub is the team product & \href{https://github.com/aimhubio/aim/issues/3414}{Aim \#3414}, \href{https://aimstack.io/blog/new-releases/introducing-aimhub-aim-now-available-for-teams}{AimHub} \\
+DVC /\allowbreak{} DVCLive & Free OSS (lakeFS-stewarded) & Git + your own remote storage & Through Git; Studio status unclear & \href{https://dvc.org/blog/dvc-joins-lakefs-your-questions-answered/}{DVC FAQ} \\
+Streamlit & Free OSS; Community Cloud free & Self-host or Community Cloud & Cloud: 1 private app per user, email allow-list (Google OAuth /\allowbreak{} magic link) & \href{https://docs.streamlit.io/deploy/streamlit-community-cloud/share-your-app}{Streamlit share docs} \\
+Dash & Free OSS (MIT); Enterprise paid & Self-host & No built-in auth (dash-auth basic auth, or BYO OIDC) & \href{https://plotly.com/dash/}{Plotly Dash}, \href{https://plotly.com/blog/how-to-keep-your-data-safe-with-dash/}{Plotly blog} \\
+Grafana & OSS free; Cloud free tier & Self-host or SaaS & Cloud free: 3 active viewers & \href{https://grafana.com/docs/grafana-cloud/platform/pricing-and-usage/stack-plans/}{Grafana plans} \\
+Evidence.dev & Free OSS; Evidence Cloud paid & Static site on any host & Depends on the host's access control & \href{https://docs.evidence.dev/}{Evidence docs} \\
+QuantStats & Free (Apache-2.0) & Library; outputs HTML files & n/\allowbreak{}a (files) & \href{https://pypi.org/project/quantstats/}{PyPI} \\
+vectorbt /\allowbreak{} PRO & OSS free (Commons Clause) /\allowbreak{} PRO \$25/\allowbreak{}month & Library & n/\allowbreak{}a & \href{https://vectorbt.pro/}{vectorbt.pro} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Inferences}
+
+\begin{itemize}
+
+\item Learning curve, estimated without a single source:
+
+\begin{itemize}
+
+\item QuantStats is lowest (one call, \texttt{qs.\allowbreak{}reports.\allowbreak{}html(returns,\allowbreak{} benchmark,\allowbreak{} output=.\allowbreak{}.\allowbreak{}.\allowbreak{})}).
+
+\item Streamlit is low (a pure-Python script).
+
+\item MLflow logging is low (\texttt{log\_\allowbreak{}params}/\allowbreak{}\texttt{log\_\allowbreak{}metrics}/\allowbreak{}\texttt{log\_\allowbreak{}artifact}), but running a shared, authenticated server is moderate.
+
+\item Dash is moderate (callbacks).
+
+\item Grafana is higher and the wrong shape (it needs a time-series data source).
+
+\item Evidence requires SQL/\allowbreak{}Markdown/\allowbreak{}Node instead of Python.
+
+\end{itemize}
+
+\item The W\&B Academic plan is the most generous SaaS option (\$0, 100 seats). However, it puts results on CoreWeave's cloud (see Q5), and the account just went through a provider transition.
+
+\end{itemize}
+
+\subsection{Gaps}
+
+\begin{itemize}
+
+\item I did not verify whether W\&B/\allowbreak{}Forge Academic eligibility covers student clubs, as opposed to formal research groups.
+
+\item Streamlit Community Cloud's viewer-count limit for private apps: no explicit number found.
+
+\end{itemize}
+
+\section{Which tools log params, metrics and artifacts per backtest run and support side-by-side comparison?}
+
+\subsection{Takeaway}
+
+The dedicated experiment trackers (MLflow, W\&B, Aim, DVC/\allowbreak{}DVCLive) all have per-run params, metrics and artifacts plus a run-comparison UI, and MLflow is the self-hosted one with the strongest maintenance signal. Dashboard frameworks and report libraries do not track runs. You have to pair them with a run registry.
+
+\subsection{Cited Findings}
+
+\begin{itemize}
+
+\item MLflow's tracking server stores run metadata in a backend store (SQLite/\allowbreak{}Postgres) and run artifacts (files such as equity-curve PNGs, trade-log parquet, HTML tearsheets) in an artifact store. Its UI lets ``team members easily explore each other's results''. --- \href{https://mlflow.org/docs/latest/self-hosting/architecture/tracking-server/}{MLflow tracking server}
+
+\item W\&B (Forge) plans include ``experiment tracking'' and ``asset registry'' on every tier, including Free and Academic. --- \href{https://coreweave.com/forge-pricing}{Forge pricing}
+
+\item DVCLive and DVC experiment tracking remain maintained under lakeFS. --- \href{https://dvc.org/blog/dvc-joins-lakefs-your-questions-answered/}{DVC FAQ}
+
+\item QuantStats creates per-run HTML tearsheets with benchmark comparison, but it does not store or compare runs. --- \href{https://pypi.org/project/quantstats/}{PyPI quantstats}
+
+\end{itemize}
+
+\subsection{Inferences}
+
+\begin{itemize}
+
+\item Mapping a backtest to a tracker:
+
+\begin{itemize}
+
+\item \textbf{params} = strategy config (algo, delta-hedge band, VRP threshold, date window, slippage)
+
+\item \textbf{metrics} = Sharpe, max drawdown, total P\&L, hedge cost, turnover
+
+\item \textbf{artifacts} = equity curve parquet/\allowbreak{}PNG, trade log parquet, QuantStats HTML tearsheet, git commit SHA
+
+\end{itemize}
+
+MLflow records the git commit automatically when run from a repo (well-known MLflow behaviour, but not verified in this session).
+
+\item The ML-centric trackers (W\&B, Aim) are optimised for step-wise training curves, so a backtest's whole equity curve is better stored as an artifact or a logged table than as a ``metric over steps''.
+
+\end{itemize}
+
+\subsection{Gaps}
+
+\begin{itemize}
+
+\item I did not fetch MLflow's run-compare UI docs (parallel coordinates, metric diff), W\&B's table-comparison docs or Aim's comparison docs within the budget. The feature claims above are general, not verified in detail.
+
+\end{itemize}
+
+\section{Lightweight alternatives}
+
+\subsection{Takeaway}
+
+A minimal stack fits a 5-person desk well:
+
+\begin{enumerate}
+
+\item Each backtest writes a run folder (params JSON, metrics, equity/\allowbreak{}trades parquet, QuantStats HTML) to a gitignored or R2 location.
+
+\item An append-only parquet or SQLite ``run registry'' indexes those folders.
+
+\item A small Streamlit app reads the registry for side-by-side comparison.
+
+\end{enumerate}
+
+This avoids a server, avoids SaaS and matches the existing parquet workflow. GitHub Pages is a poor fit for private results, because private Pages needs GitHub Enterprise Cloud.
+
+\subsection{Cited Findings}
+
+\begin{itemize}
+
+\item QuantStats exports full tearsheets as standalone HTML. --- \href{https://pypi.org/project/quantstats/}{PyPI quantstats}
+
+\item GitHub Pages sites are \textbf{public by default even if the repo is private}. Restricting Pages to repo readers needs a GitHub Enterprise Cloud organization with Pages access control. --- \href{https://github.blog/changelog/2021-01-21-access-control-for-github-pages/}{GitHub Changelog: access control for Pages}; \href{https://docs.github.com/en/enterprise-cloud@latest/pages/getting-started-with-github-pages/changing-the-visibility-of-your-github-pages-site}{GitHub docs: changing Pages visibility}
+
+\item MLflow's default SQLite backend means the ``lightweight'' and ``tracker'' options converge: \texttt{mlflow ui} on a local SQLite file is effectively a run registry with a UI. --- \href{https://mlflow.org/docs/latest/self-hosting/architecture/tracking-server/}{MLflow tracking server}
+
+\item Evidence.dev can compile a DuckDB-over-parquet registry into a static report site. --- \href{https://docs.evidence.dev/}{Evidence docs}; \href{https://duckdblab.org/en/post/duckdb-evidence-bi-dashboard/}{DuckDB + Evidence}
+
+\item A free Streamlit Community Cloud private app with an email allow-list could host the comparison UI for 5 people (1 private app per account). However, the app would need to read the results from somewhere the cloud can reach (see Q5). --- \href{https://docs.streamlit.io/deploy/streamlit-community-cloud/share-your-app}{Streamlit share docs}
+
+\end{itemize}
+
+\subsection{Inferences}
+
+\begin{itemize}
+
+\item Commit to Git only small, non-licensed summaries (params plus aggregate metrics). Keep equity curves and trade logs derived from licensed data in the gitignored \texttt{results/\allowbreak{}} or a private R2 prefix, in line with the repo's rule never to commit data or results.
+
+\item A staged path: start with run folders + parquet registry + Streamlit run locally (\texttt{streamlit run}). Adopt self-hosted MLflow (SQLite, artifacts on a private R2/\allowbreak{}S3 bucket with proxied access) only if the number of runs or the need for collaboration grows. Both can coexist because MLflow artifacts can be the same files.
+
+\end{itemize}
+
+\subsection{Gaps}
+
+\begin{itemize}
+
+\item No practitioner write-ups specific to quant backtest tracking (as opposed to ML) were found within the budget.
+
+\end{itemize}
+
+\section{Security and data-licensing concerns of SaaS dashboards with university-licensed data}
+
+\subsection{Takeaway}
+
+WRDS terms restrict data to academic, non-commercial use, discourage sharing raw data outside the subscribing institution, and require secure, private storage and deletion when affiliation ends. Uploading raw licensed data, or reconstructable derivatives of it (for example option trade-level series or implied spot), to W\&B/\allowbreak{}CoreWeave, Streamlit Community Cloud, Grafana Cloud or public GitHub Pages creates licence and custody risk. Aggregate backtest statistics are lower risk, but the university's licence should confirm that.
+
+\subsection{Cited Findings}
+
+\begin{itemize}
+
+\item WRDS: services are ``for academic and non-commercial research purposes only''. Downloaded data may not be used for any non-academic or commercial endeavour. --- \href{https://wrds-www.wharton.upenn.edu/users/tou/}{WRDS Terms of Use}
+
+\item WRDS discourages sharing raw data with researchers at other institutions or with people not affiliated with WRDS, because doing so ``can violate licensing agreements'' and ``may breach terms agreed upon between WRDS and its data providers''. --- \href{https://wrds-www.wharton.upenn.edu/pages/about/navigating-co-authorship-across-institutions-a-guide-to-data-sharing-and-compliance/}{WRDS co-authorship data-sharing guide}
+
+\item WRDS asks users to store data ``in a secure, private location'', or to set permissions so that only you have access, and to delete it when it is no longer in use, when your affiliation ends, or when the vendor subscription ends. --- \href{https://wrds-www.wharton.upenn.edu/pages/about/data-download-and-analysis-policy/}{WRDS Data Download and Analysis Policy}
+
+\item Neptune's shutdown deleted all remaining hosted data on 2026-03-05, which shows the vendor-lifecycle risk of SaaS trackers (teams had about 3 months to export). --- \href{https://docs.neptune.ai/transition_hub}{Neptune transition hub}; \href{https://techsoma.ca/openai-neptune-acquisition-shutdown/}{Techsoma}
+
+\item W\&B accounts moved to CoreWeave Forge sign-in on 2026-09-30, so the legal and data custodian of hosted runs is now CoreWeave. --- \href{https://www.coreweave.com/companies/weights-and-biases}{CoreWeave}
+
+\item Only the Enterprise W\&B/\allowbreak{}Forge plan offers customer-managed encryption, ``bring your own bucket'', SSO and audit logs. The Free and Academic tiers store data in the vendor's cloud. --- \href{https://coreweave.com/forge-pricing}{Forge pricing}
+
+\item GitHub Pages from a private repo is publicly reachable unless the org has Enterprise Cloud. --- \href{https://docs.github.com/en/enterprise-cloud@latest/pages/getting-started-with-github-pages/changing-the-visibility-of-your-github-pages-site}{GitHub docs}
+
+\item MLflow's built-in auth is experimental and ships with a default admin password that has to be changed. Proxied artifact serving keeps storage credentials on the server rather than on every client. --- \href{https://mlflow.org/docs/latest/self-hosting/security/basic-http-auth/}{MLflow auth}; \href{https://mlflow.org/docs/latest/self-hosting/architecture/tracking-server/}{MLflow tracking server}
+
+\end{itemize}
+
+\subsection{Inferences}
+
+\begin{itemize}
+
+\item Safest posture: keep anything row-level derived from licensed data (option ticks, CRSP prices, implied intraday spot, per-trade P\&L tied to licensed quotes) on infrastructure the club or university controls: local machines, the club R2 bucket under its existing access, or a self-hosted MLflow. Send only aggregate metrics and charts to any SaaS, if at all. Ask Queen's library or WRDS which derived outputs count as shareable.
+
+\item The trading-desk code is paper-only, but a secondary concern is that strategy configs and signals logged to a third-party SaaS also expose the club's IP.
+
+\item Overlap with live trading: the same registry and Streamlit app could later display paper-trading fills from IBKR, but that should stay a separate data source, per the scope constraint.
+
+\end{itemize}
+
+\subsection{Gaps}
+
+\begin{itemize}
+
+\item The terms of Queen's specific WRDS/\allowbreak{}R2 data licence were not available. The WRDS terms are the general ones.
+
+\item The R2 bucket also holds option tick data whose original vendor and licence were not identified here, so I could not check its specific redistribution clauses.
+
+\item I did not review CoreWeave Forge's data-processing and data-residency terms (for example Canadian vs US hosting).
+
+\end{itemize}
+
+\end{document}

@@ -18,7 +18,7 @@
 
 \textbf{Method:} Searched all 26 papers in \texttt{docs/\allowbreak{}papers/\allowbreak{}} (page-tagged index) + web search. Quotes verified against the cited PDF pages. Page numbers are PDF pages; printed page numbers are given where they differ.
 
-\textbf{Previous research (builds on):} \href{2026-09-27-agent-routing-which-algo-to-run.pdf}{Agent routing} \textperiodcentered{} \href{2026-09-27-ml-rl-for-realised-volatility-forecasting.pdf}{ML/RL for RV forecasting} \textperiodcentered{} \href{2026-09-27-volatility-surface-for-the-strategy.pdf}{Volatility surface} \textperiodcentered{} \href{2026-09-27-leverage-effect-and-the-ls-gamma-desk.pdf}{Leverage effect}
+\textbf{Previous research (builds on):} \href{2026-09-27-agent-routing-which-algo-to-run.pdf}{Agent routing} \textperiodcentered{} \href{2026-09-27-ml-rl-for-realised-volatility-forecasting.pdf}{ML/\allowbreak{}RL for RV forecasting} \textperiodcentered{} \href{2026-09-27-volatility-surface-for-the-strategy.pdf}{Volatility surface} \textperiodcentered{} \href{2026-09-27-leverage-effect-and-the-ls-gamma-desk.pdf}{Leverage effect}
 
 \section{Short answer}
 
@@ -50,7 +50,7 @@ The papers agree on four things:
 
 \begin{itemize}
 
-\item \textbf{A three-state rule} (long / short / flat) based on RV versus IV is the natural starting point. OPHR uses exactly that as its starting policy.
+\item \textbf{A three-state rule} (long /\allowbreak{} short /\allowbreak{} flat) based on RV versus IV is the natural starting point. OPHR uses exactly that as its starting policy.
 
 \item \textbf{Regime \emph{uncertainty} should cut position size,} not just regime labels.
 
@@ -68,7 +68,7 @@ The papers agree on four things:
 
 \item \textbf{OPHR's starting policy is a three-state rule.} It:
 
-\begin{quote}``generates long/short signals by comparing the future RV and current IV'' (Chen, Cai, Qin \& An, \emph{OPHR}, p. 7)\end{quote}
+\begin{quote}``generates long/\allowbreak{}short signals by comparing the future RV and current IV'' (Chen, Cai, Qin \& An, \emph{OPHR}, p. 7)\end{quote}
 
 It goes long if future RV is above IV by more than a margin, short if below by more than a margin, and otherwise flat. It uses \emph{future} RV, which is only possible in training. The authors call it:
 
@@ -76,7 +76,7 @@ It goes long if future RV is above IV by more than a margin, short if below by m
 
 \item \textbf{OPHR's learned agent makes the same three-way choice:}
 
-\begin{quote}``determines the target position (long/short/neutral) of options at each step.'' (\emph{OPHR}, p. 5)\end{quote}
+\begin{quote}``determines the target position (long/\allowbreak{}short/\allowbreak{}neutral) of options at each step.'' (\emph{OPHR}, p. 5)\end{quote}
 
 \item \textbf{PRISM normalizes the VRP within each regime before using it:}
 
@@ -202,7 +202,7 @@ The same paper's emphasis on a leak-free environment matters for any learned sig
 \textbf{Layer} & \textbf{Approach} & \textbf{Evidence in library} & \textbf{Pros} & \textbf{Cons} & \textbf{Data needed} \\
 \midrule
 State & \textbf{Threshold rule} (VRP dead band, VRP z-score, term-structure gate) & OPHR (starting policy), PRISM (z-score and gates) & Transparent, fast, easy to backtest; the benchmark everything must beat & Thresholds are hand-set and regimes shift & Pipeline features today \\
-State & \textbf{Probabilistic regime model} (hidden Markov / Markov switching) & PRISM (simulated only); web studies on S\&P 500 & Gives probabilities, so uncertainty can scale size & Regime labels lag; many settings to fit & VIX, term structure, RV history \\
+State & \textbf{Probabilistic regime model} (hidden Markov /\allowbreak{} Markov switching) & PRISM (simulated only); web studies on S\&P 500 & Gives probabilities, so uncertainty can scale size & Regime labels lag; many settings to fit & VIX, term structure, RV history \\
 State & \textbf{ML predicting the payoff} (e.g. whether short gamma pays over the next N days) & Christensen (for forecasting); OPHR warns about the forecast vs P\&L gap & Captures non-linear patterns; can target P\&L directly & Needs labelled history of trade outcomes; overfitting risk & Backtest data (R2) \\
 Forecast input & \textbf{RL picking or weighting forecasters} & Medeiros \& Pinto; DMS; Yu et al. & Adapts when the best model changes & Often only slightly beats a simple average & Several forecasters running side by side \\
 Decision & \textbf{Rule table} (state \ensuremath{\rightarrow} algo) & PRISM gates; \emph{Practical Framework} & Auditable & Rigid & --- \\
@@ -236,7 +236,7 @@ These are suggestions, not decisions the desk has made:
 
 \begin{itemize}
 
-\item pipeline features: RV lags, VIX / VIX9D / VIX3M ratios, VIX percentile, VVIX, trend, rf, ATM IV per expiry
+\item pipeline features: RV lags, VIX /\allowbreak{} VIX9D /\allowbreak{} VIX3M ratios, VIX percentile, VVIX, trend, rf, ATM IV per expiry
 
 \item \texttt{forecasting/\allowbreak{}GARCH.\allowbreak{}py}
 
@@ -254,7 +254,7 @@ These are suggestions, not decisions the desk has made:
 
 \item \textbf{v1, regime probabilities.} Fit a 2--3 state hidden Markov model on VIX, term slope and RV, and \textbf{scale size by confidence} (PRISM's idea), not just by the label.
 
-\item \textbf{v2, ML on outcomes.} Using R2 history, train a classifier on ``did short/long gamma structure X pay over the next N days'', with walk-forward splits.
+\item \textbf{v2, ML on outcomes.} Using R2 history, train a classifier on ``did short/\allowbreak{}long gamma structure X pay over the next N days'', with walk-forward splits.
 
 \item \textbf{v3, routing.} An RL policy (OPHR-style) or an LLM agent choosing from the algo menu, fed the same pre-computed features. The LLM version is forward paper-tested only.
 
@@ -284,13 +284,13 @@ These are suggestions, not decisions the desk has made:
 
 \begin{itemize}
 
-\item \textbf{No peer-reviewed SPY options study} in the library tests regime-conditioned long/short gamma selection end to end. PRISM is simulated and a whitepaper; OPHR is crypto.
+\item \textbf{No peer-reviewed SPY options study} in the library tests regime-conditioned long/\allowbreak{}short gamma selection end to end. PRISM is simulated and a whitepaper; OPHR is crypto.
 
 \item \textbf{Backtesting option structures needs option prices.} R2 has trades, not quotes, so fitted smiles are needed to price structures (vol-surface report).
 
 \item \textbf{Labels:} ``which structure would have paid'' depends on your exits and hedging rules. Fix those rules first, or the labels change under you.
 
-\item \textbf{RL combination evidence is thin for volatility.} One ESWA paper on SPX/SSEC/FTSE; the other two are macro and load forecasting.
+\item \textbf{RL combination evidence is thin for volatility.} One ESWA paper on SPX/\allowbreak{}SSEC/\allowbreak{}FTSE; the other two are macro and load forecasting.
 
 \item \textbf{Regime models lag.} PRISM's claimed detection lag of under 2 days is simulated. Real hidden Markov models often switch late, right when gamma matters most.
 
@@ -324,7 +324,7 @@ These are suggestions, not decisions the desk has made:
 
 \end{itemize}
 
-\textbf{Checked, not about signal generation:} the deep hedging and hedging papers (they decide hedge size, not trade direction), \texttt{Volatility-\allowbreak{}of-\allowbreak{}Volatility-\allowbreak{}and-\allowbreak{}Leverage-\allowbreak{}Effect-\allowbreak{}from-\allowbreak{}Options.\allowbreak{}pdf}, \texttt{Identifying-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Price-\allowbreak{}Through-\allowbreak{}the-\allowbreak{}Leverage-\allowbreak{}Effect.\allowbreak{}pdf}, \texttt{Realized-\allowbreak{}GARCH,-\allowbreak{}CBOE-\allowbreak{}VIX,-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}, \texttt{Volatility-\allowbreak{}Forecasting-\allowbreak{}and-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}, \texttt{When-\allowbreak{}You-\allowbreak{}Hedge-\allowbreak{}Discretely-\allowbreak{}\ldots{}pdf}. Those are covered in the earlier reports.
+\textbf{Checked, not about signal generation:} the deep hedging and hedging papers (they decide hedge size, not trade direction), \texttt{Volatility-\allowbreak{}of-\allowbreak{}Volatility-\allowbreak{}and-\allowbreak{}Leverage-\allowbreak{}Effect-\allowbreak{}from-\allowbreak{}Options.\allowbreak{}pdf}, \texttt{Identifying-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Price-\allowbreak{}Through-\allowbreak{}the-\allowbreak{}Leverage-\allowbreak{}Effect.\allowbreak{}pdf}, \texttt{Realized-\allowbreak{}GARCH,\allowbreak{}-\allowbreak{}CBOE-\allowbreak{}VIX,\allowbreak{}-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}, \texttt{Volatility-\allowbreak{}Forecasting-\allowbreak{}and-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}, \texttt{When-\allowbreak{}You-\allowbreak{}Hedge-\allowbreak{}Discretely-\allowbreak{}\ldots{}pdf}. Those are covered in the earlier reports.
 
 \textbf{Web sources (outside the repo):}
 

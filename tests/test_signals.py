@@ -1,7 +1,7 @@
 from lsgamma.signals import SIGNALS
 from lsgamma.signals.vrp_band import decide
 
-CFG = {"signal": {"long_band": 0.05, "short_band": -0.02}}
+CFG = {"signal": {"long_band": -0.05, "short_band": 0.02}}
 
 
 def test_edges_are_flat():

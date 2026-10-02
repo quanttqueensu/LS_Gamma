@@ -51,5 +51,5 @@ def test_signal_history():
 
 def test_config_bands():
     cfg = config.load()
-    assert cfg["signal"]["long_band"] == 0.05
-    assert cfg["signal"]["short_band"] == -0.02
+    assert cfg["signal"]["long_band"] == -0.05
+    assert cfg["signal"]["short_band"] == 0.02

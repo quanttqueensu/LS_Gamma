@@ -1,0 +1,178 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Lesson 10: The Research Frontier: Regimes, Reinforcement Learning and AI Agents}
+\author{Analyst onboarding \textperiodcentered{} Lesson 10 of 10 \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-02}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Goal:} understand the advanced research the desk is exploring, what each idea could improve, and how a new idea earns its way into live trading.
+
+\textbf{You need:} Lessons 5--9.
+
+\section{Where the live strategy could improve}
+
+Our live strategy is a simple \textbf{rule}: one forecaster, a fixed band, one structure per side, a daily hedge. Each piece is a place where smarter methods might help:
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Piece} & \textbf{Today} & \textbf{Research direction} \\
+\midrule
+Forecast & GARCH & ML forecasts, forecast combination with RL \\
+Market state & Not used & Regime models (HMM, jump models) \\
+Which trade & Long call /\allowbreak{} short put & Choose among 10 structures by regime, RL or LLM \\
+Hedging & Delta hedge, daily & Deep hedging with RL \\
+Sizing & 1 contract & Size by regime confidence or risk budget \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Idea 1: market regimes}
+
+A \textbf{regime} is a market ``mood'' that lasts weeks or months: calm, normal or stressed. The best trade differs by regime. Selling volatility works best in calm regimes and worst in crises.
+
+\begin{itemize}
+
+\item \textbf{Hidden Markov models (HMMs)} assume the market switches between a few hidden states, each with its own volatility. The model outputs \textbf{probabilities}, e.g. 80\% calm and 20\% stressed, rather than a hard label. The PRISM paper sizes positions down when the regime is unclear.
+
+\item \textbf{Statistical jump models} are clustering with a penalty for switching regimes too often, so regimes stay stable. With no penalty they reduce to \textbf{k-means} clustering.
+
+\item \textbf{Why not plain k-means?} It groups similar-looking days but never sees which trades made money, and it ignores time order, so it flips too often. (See our clustering report.)
+
+\end{itemize}
+
+\section{Idea 2: reinforcement learning (RL)}
+
+\textbf{Reinforcement learning} trains an \textbf{agent} to make decisions by trial and error in a simulated environment:
+
+\begin{enumerate}
+
+\item \textbf{State:} what the agent sees, e.g. SPY price, position Greeks, IV, time to expiry.
+
+\item \textbf{Action:} what it does, e.g. how many shares to hold.
+
+\item \textbf{Reward:} the score after each step, e.g. P\&L minus a risk penalty.
+
+\item \textbf{Policy:} the rule it learns, a mapping from state to action, usually a neural network.
+
+\end{enumerate}
+
+The agent plays millions of simulated days and gradually learns actions that maximize total reward.
+
+\section{Idea 3: deep hedging}
+
+\textbf{Deep hedging} (Buehler et al.) replaces ``set delta to zero'' with an RL policy that learns \textbf{how many shares to hold} given costs and risk preferences.
+
+\begin{itemize}
+
+\item \textbf{What it learns:} to skip hedges that cost more than they save, to stay slightly under- or over-hedged, and to use IV and the VRP in its decisions.
+
+\item \textbf{For scalping:} a long-gamma hedger could be trained to maximize \textbf{scalping P\&L after costs}, not just to minimize risk.
+
+\item \textbf{The danger:} if the reward rewards profit too much, the agent stops hedging and starts \textbf{taking directional bets}. Strong penalties on bad outcomes keep it honest.
+
+\item \textbf{Our plan:} a deep hedger is just another file in \texttt{core/\allowbreak{}Algos/\allowbreak{}Hedging/\allowbreak{}} with a \texttt{target\_\allowbreak{}shares()} function, compared against plain delta hedging.
+
+\end{itemize}
+
+\section{Idea 4: RL for trading decisions and forecasts}
+
+\begin{itemize}
+
+\item \textbf{OPHR} (a multi-agent RL paper) uses one agent to choose long, short or neutral volatility, and a second agent to choose which hedger to use. That is the same split our code already has.
+
+\item \textbf{RL forecast combination:} rather than picking GARCH \emph{or} HAR, an RL agent learns how to \textbf{weight} several forecasts depending on market conditions.
+
+\end{itemize}
+
+\section{Idea 5: LLM agents as decision makers}
+
+Large language models such as Claude can read the day's features and choose an algo from a fixed menu. The \emph{Agents Are Not Algorithms} paper (2026) found:
+
+\begin{itemize}
+
+\item Agents did best when given \textbf{pre-computed numbers} and \textbf{coded execution rules}, deciding only the judgement calls.
+
+\item Agents were \textbf{competitive with good rules, not clearly better}.
+
+\end{itemize}
+
+\textbf{For us:} an LLM may only choose from our menu of structures. It never places orders or hedges directly. We would run it in \textbf{shadow mode} first: it logs what it would have done next to the live rule, without trading.
+
+\section{How a new idea earns its way into live trading}
+
+\begin{enumerate}
+
+\item \textbf{Write it up:} research the question (our \texttt{/\allowbreak{}strategy-\allowbreak{}research} workflow produces a sourced PDF in \texttt{research/\allowbreak{}strategy\_\allowbreak{}research/\allowbreak{}}).
+
+\item \textbf{Prototype} in the research sandbox: \texttt{research/\allowbreak{}Deep\_\allowbreak{}Hedging/\allowbreak{}}, \texttt{research/\allowbreak{}RV\_\allowbreak{}Forecasting/\allowbreak{}} or \texttt{research/\allowbreak{}Agentic\_\allowbreak{}Routing/\allowbreak{}}.
+
+\item \textbf{Backtest it honestly} (Lesson 9): walk-forward, costs, every trial logged.
+
+\item \textbf{Beat the baseline.} It must outperform the simple rule after costs, not just look clever.
+
+\item \textbf{Shadow mode:} log its decisions live next to the current rule for several weeks.
+
+\item \textbf{Promote it:} plug it into the right registry (\texttt{FORECASTERS}, \texttt{SIGNALS} or \texttt{Hedging/\allowbreak{}}) and change one line in \texttt{configs/\allowbreak{}paper.\allowbreak{}toml}.
+
+\end{enumerate}
+
+\textbf{$\Rightarrow$} Complexity must \textbf{pay for itself}. Several of the strongest papers we've read found that simple models (linear regressions, threshold rules) capture most of the gains of deep networks.
+
+\section{Reading list (in \texttt{docs/\allowbreak{}papers/\allowbreak{}})}
+
+\begin{itemize}
+
+\item \texttt{Deep-\allowbreak{}Hedging.\allowbreak{}pdf}: the original deep hedging framework.
+
+\item \texttt{OPHR-\allowbreak{}Mastering-\allowbreak{}Volatility-\allowbreak{}Trading-\allowbreak{}with-\allowbreak{}Multi-\allowbreak{}Agent-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf}: RL for long/\allowbreak{}short vol and hedger choice.
+
+\item \texttt{PRISM-\allowbreak{}A-\allowbreak{}Probabilistic-\allowbreak{}Regime-\allowbreak{}Integrated-\allowbreak{}Scalping-\allowbreak{}Model-\allowbreak{}for-\allowbreak{}Derivatives-\allowbreak{}Arbitrage.\allowbreak{}pdf}: regimes and gamma scalping (a whitepaper, simulated results).
+
+\item \texttt{Agents-\allowbreak{}Are-\allowbreak{}not-\allowbreak{}Algorithms.\allowbreak{}pdf}: LLM agents in trading.
+
+\item \texttt{Downside-\allowbreak{}Risk-\allowbreak{}Reduction-\allowbreak{}Using-\allowbreak{}Regime-\allowbreak{}Switching-\allowbreak{}Signals-\allowbreak{}A-\allowbreak{}Statistical-\allowbreak{}Jump-\allowbreak{}Model-\allowbreak{}Approach.\allowbreak{}pdf}: jump-model regimes.
+
+\item \texttt{Hedging-\allowbreak{}with-\allowbreak{}Linear-\allowbreak{}Regressions-\allowbreak{}and-\allowbreak{}Neural-\allowbreak{}Networks.\allowbreak{}pdf}: why simple models are a tough baseline.
+
+\end{itemize}
+
+\section{Words to know}
+
+\begin{itemize}
+
+\item \textbf{Regime:} a lasting market state. \textbf{HMM:} model of hidden switching states.
+
+\item \textbf{RL agent /\allowbreak{} state /\allowbreak{} action /\allowbreak{} reward /\allowbreak{} policy:} the learner, what it sees, what it does, its score, and its learned rule.
+
+\item \textbf{Deep hedging:} an RL-learned hedging policy.
+
+\item \textbf{Shadow mode:} running a model live without letting it trade.
+
+\end{itemize}
+
+\section{Check yourself}
+
+\begin{enumerate}
+
+\item Why might a deep hedger trained only to maximize profit be dangerous?
+
+\item An LLM router beats our rule in a backtest. What are the next two steps before it trades?
+
+\item Why do we keep the rule baseline even after adding ML?
+
+\end{enumerate}
+
+\emph{Answers: (1) It can drift into unhedged directional bets. (2) Walk-forward with costs and logged trials, then shadow mode. (3) Every new model must beat it, and it's the fallback if the model fails.}
+
+\end{document}

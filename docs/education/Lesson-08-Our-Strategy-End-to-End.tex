@@ -1,0 +1,179 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Lesson 8: Our Strategy, End to End}
+\author{Analyst onboarding \textperiodcentered{} Lesson 8 of 10 \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-02}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Goal:} know every rule our desk trades on and how a day runs, from data download to hedge.
+
+\textbf{You need:} Lessons 1--7.
+
+\section{The idea in one line}
+
+Every day, forecast SPY's volatility to expiry. If options are \textbf{too cheap}, buy one and scalp it (long gamma). If they are \textbf{too expensive}, sell one and scalp it (short gamma). Otherwise \textbf{do nothing}.
+
+\section{Rule 1: the signal}
+
+\[\text{VRP} = IV_{ATM} - RV_{forecast}\]
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{VRP} & \textbf{Signal} & \textbf{Trade} \\
+\midrule
+above +0.02 & \textbf{short} gamma & Sell 1 ATM put, delta hedge \\
+below \ensuremath{-}0.05 & \textbf{long} gamma & Buy 1 ATM call, delta hedge \\
+in between & \textbf{flat} & No new trade \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Why the band is lopsided:} the VRP means IV is usually above RV (Lesson 6). Buying volatility fights that premium, so we demand a bigger edge before buying (IV at least 5 vol points \emph{below} our forecast) than before selling (IV at least 2 points \emph{above} it). The \textbf{flat zone} in between keeps us out when the forecast's edge is too small to beat costs and forecast error.
+
+\section{Rule 2: which option}
+
+\begin{itemize}
+
+\item \textbf{Expiry:} the Friday expiry closest to \textbf{30 days}, within 21--45 DTE. One-to-two month options give the best delta-hedged Sharpe ratio (Sepp 2013), and very short-dated gamma swings too fast for once-a-day hedging.
+
+\item \textbf{Strike:} the one closest to SPY's price (\textbf{ATM}), where gamma, vega and the VRP are largest.
+
+\item \textbf{Calls for long gamma, puts for short gamma.} Once hedged, they're nearly the same bet (Lesson 4), but buying calls avoids paying the put skew, and selling puts collects it.
+
+\end{itemize}
+
+\section{Rule 3: size}
+
+\textbf{1 contract per trade, at most 1 open position.} Paper trading is first a test of the machinery. We size up only once we have a P\&L history to measure risk with.
+
+\section{Rule 4: hedging}
+
+\textbf{Once a day}, trade SPY shares to bring the total delta back to zero (Lesson 5).
+
+\section{Rule 5: exits (the first trigger to fire wins)}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{l l >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Order} & \textbf{Trigger} & \textbf{Rule} \\
+\midrule
+1 & \textbf{time} & 7 or fewer days to expiry: avoid the last week's gamma and theta cliff \\
+2 & \textbf{stop} & Short put: loss \ensuremath{\geq} 1\ensuremath{\times} premium received. Long call: loss \ensuremath{\geq} 50\% of premium paid. Measured on option P\&L \textbf{plus} hedge P\&L \\
+3 & \textbf{profit} & Short put: profit \ensuremath{\geq} 50\% of premium received \\
+4 & \textbf{flip} & The signal turns to the opposite side: close, then open the other side \\
+5 & \textbf{flat} & The signal has been flat for 3 days in a row \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Every number above lives in \textbf{\texttt{configs/\allowbreak{}paper.\allowbreak{}toml}}, so changing a rule never needs a code change.
+
+\section{Other structures we could trade}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Long gamma} & \textbf{Short gamma} & \textbf{Trade-off} \\
+\midrule
+Long call /\allowbreak{} put & Short call /\allowbreak{} put & Simplest, one leg. Starts with a big delta to hedge \\
+Long straddle (call + put, same strike) & Short straddle & Starts delta neutral, most gamma. Most expensive /\allowbreak{} most risk \\
+Long strangle (OTM call + put) & Short strangle & Cheaper, less gamma near the money \\
+Reverse calendar & Iron condor (strangle + bought wings) & Less vega /\allowbreak{} capped loss, but more legs and costs \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+All ten have execution code ready in \texttt{core/\allowbreak{}Algos/\allowbreak{}} (folders \texttt{LG\_\allowbreak{}*} and \texttt{SG\_\allowbreak{}*}). For now we deliberately use only the simplest pair. Choosing between structures by market regime is future work (Lesson 10).
+
+\section{A trading day, step by step (about 10:15 ET)}
+
+\begin{enumerate}
+
+\item \textbf{Data:} the pipeline downloads SPY prices and VIX indexes (yfinance) plus the SPY option chain (IBKR, delayed quotes).
+
+\item \textbf{Forecast:} fit GARCH on SPY returns and forecast volatility to the target expiry.
+
+\item \textbf{Signal:} compare the forecast with that expiry's ATM IV, then log it.
+
+\item \textbf{Exits:} if a position is open, mark it at the mid, compute option + hedge P\&L, and check the five triggers.
+
+\item \textbf{Entry:} if no position is open and the signal isn't flat, open the chosen option at mid + \$0.05.
+
+\item \textbf{Hedge:} trade shares to make delta zero.
+
+\item \textbf{Log:} everything goes to \texttt{results/\allowbreak{}paper/\allowbreak{}} (\texttt{signals}, \texttt{trades}, \texttt{hedges}, \texttt{position.\allowbreak{}json}).
+
+\end{enumerate}
+
+Run it with \texttt{python -\allowbreak{}m lsgamma.\allowbreak{}trading.\allowbreak{}runner} (add \texttt{-\allowbreak{}-\allowbreak{}dry-\allowbreak{}run} to see decisions without trading). All commands are in \texttt{docs/\allowbreak{}scripts.\allowbreak{}md}.
+
+\section{The code map}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Folder} & \textbf{Job} \\
+\midrule
+\texttt{pipeline/\allowbreak{}} & Daily data snapshot (yfinance + IBKR chain) \\
+\texttt{forecasting/\allowbreak{}} & GARCH, HAR (\texttt{FORECASTERS} registry) \\
+\texttt{signals/\allowbreak{}} & \texttt{vrp\_\allowbreak{}band} (\texttt{SIGNALS} registry) \\
+\texttt{trading/\allowbreak{}} & Selection, exits, P\&L, ledger, runner, smoke test \\
+\texttt{core/\allowbreak{}Algos/\allowbreak{}} & Execution only: \texttt{broker.\allowbreak{}py}, the 10 structures, \texttt{Hedging/\allowbreak{}} \\
+\texttt{configs/\allowbreak{}} & \texttt{paper.\allowbreak{}toml}: every number \\
+\texttt{tests/\allowbreak{}} & Offline tests with a fake broker (\texttt{pytest}) \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Design rule:} the algos only \emph{describe} trades. Every decision lives in \texttt{signals/\allowbreak{}} and \texttt{trading/\allowbreak{}}. That's why new signals or hedgers (e.g. an RL hedger) can be swapped in without touching execution.
+
+\section{Safety rules}
+
+\begin{itemize}
+
+\item \textbf{Paper only.} \texttt{broker.\allowbreak{}connect()} refuses any account that isn't a paper account (IDs starting with ``DU'').
+
+\item \textbf{Never commit data or keys.} Market data from the club's R2 bucket and WRDS is licensed to Queen's. \texttt{.\allowbreak{}env}, \texttt{data/\allowbreak{}} and \texttt{results/\allowbreak{}} are never committed.
+
+\end{itemize}
+
+\section{Words to know}
+
+\begin{itemize}
+
+\item \textbf{Signal band:} the thresholds that turn the VRP into long, short or flat.
+
+\item \textbf{Exit trigger:} a rule that closes a position.
+
+\item \textbf{Dry run:} a run that decides but doesn't trade.
+
+\item \textbf{Registry:} a dictionary mapping names to interchangeable models.
+
+\end{itemize}
+
+\section{Check yourself}
+
+\begin{enumerate}
+
+\item Forecast 16\%, ATM IV 13\%. What does the desk do?
+
+\item A short put opened for \$11.20 now shows \ensuremath{-}\$1,150 of combined P\&L. Which trigger fires?
+
+\item Where would you change the long band from \ensuremath{-}0.05 to \ensuremath{-}0.04?
+
+\end{enumerate}
+
+\emph{Answers: (1) VRP = 13\% \ensuremath{-} 16\% = \ensuremath{-}0.03 is inside the band: flat, no trade. (2) The stop: the loss exceeds 1\ensuremath{\times} the \$1,120 premium. (3) \texttt{configs/\allowbreak{}paper.\allowbreak{}toml}, \texttt{long\_\allowbreak{}band}.}
+
+\end{document}

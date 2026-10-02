@@ -1,0 +1,190 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Lesson 5: Delta Hedging and Gamma Scalping}
+\author{Analyst onboarding \textperiodcentered{} Lesson 5 of 10 \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-02}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Goal:} see how we remove the direction bet from an option and turn it into a pure bet on movement, on both the long side (forward scalping) and the short side (reverse scalping).
+
+\textbf{You need:} Lesson 4 (delta, gamma, theta).
+
+\section{Delta hedging}
+
+\textbf{Delta hedging} means trading SPY shares so your total delta is zero. If you buy the 761 call (+50 deltas), you \textbf{short 50 SPY shares}. Small moves in SPY now barely change your P\&L.
+
+Because of gamma, the delta drifts as SPY moves. \textbf{Re-hedging} means trading shares to bring it back to zero. \textbf{Gamma scalping} is the profit or loss from doing that, again and again.
+
+\textbf{$\Rightarrow$} Once hedged, the position no longer cares about \textbf{direction}, only about \textbf{how much} SPY moves.
+
+\section{Forward scalping: long gamma}
+
+You own options, so your delta moves \textbf{with} SPY. Re-hedging makes you trade \textbf{against} the move:
+
+\begin{enumerate}
+
+\item SPY goes \textbf{up} \ensuremath{\rightarrow} your delta turns positive \ensuremath{\rightarrow} you \textbf{sell} shares (selling high).
+
+\item SPY goes \textbf{down} \ensuremath{\rightarrow} your delta turns negative \ensuremath{\rightarrow} you \textbf{buy} shares (buying low).
+
+\end{enumerate}
+
+\textbf{Example} (round numbers): SPY at \$500, and your position has gamma \ensuremath{\Gamma} = 4 shares per \$1 (about three ATM contracts).
+
+\begin{enumerate}
+
+\item SPY rises to \$505 \ensuremath{\rightarrow} delta is +20 \ensuremath{\rightarrow} sell 20 shares at \$505.
+
+\item SPY falls back to \$500 \ensuremath{\rightarrow} delta is 0 again \ensuremath{\rightarrow} buy 20 shares back at \$500.
+
+\item Hedging profit: 20 \ensuremath{\times} \$5 = \textbf{\$100}.
+
+\end{enumerate}
+
+Each \$5 leg earns $\tfrac{1}{2}\Gamma (\Delta S)^2 = \tfrac{1}{2}(4)(5^2) = 50$ dollars, so the round trip makes \$100.
+
+\textbf{The catch:} you pay \textbf{theta} every day. If SPY sits still, you slowly bleed.
+
+\section{Reverse scalping: short gamma}
+
+You sold options, so your delta moves \textbf{against} SPY. Re-hedging makes you trade \textbf{with} the move:
+
+\begin{enumerate}
+
+\item SPY goes \textbf{up} \ensuremath{\rightarrow} your delta turns negative \ensuremath{\rightarrow} you \textbf{buy} shares (buying high).
+
+\item SPY goes \textbf{down} \ensuremath{\rightarrow} your delta turns positive \ensuremath{\rightarrow} you \textbf{sell} shares (selling low).
+
+\end{enumerate}
+
+The same round trip \textbf{costs} you \$100. \textbf{The payoff:} you \textbf{collect theta} every day. If SPY moves less than implied, the theta beats the hedging losses.
+
+\section{The P\&L formula}
+
+Over each hedging interval \ensuremath{\Delta}t, a delta-hedged option earns approximately:
+
+\[\text{P\&L} \approx \tfrac{1}{2}\,\Gamma S^2 \left( \frac{(\Delta S)^2}{S^2} - \sigma_{IV}^2\, \Delta t \right)\]
+
+\begin{itemize}
+
+\item $(\Delta S)^2/S^2$ is the \textbf{realized variance}: how much SPY actually moved (variance is volatility squared).
+
+\item $\sigma_{IV}^2 \Delta t$ is the \textbf{implied variance}: how much the option was priced to move.
+
+\item $\tfrac{1}{2}\Gamma S^2$ is the \textbf{dollar gamma}: the size of your bet.
+
+\end{itemize}
+
+\textbf{$\Rightarrow$} Long gamma wins when \textbf{realized > implied} (RV > IV). Short gamma wins when \textbf{implied > realized} (IV > RV).
+
+\section{The breakeven move}
+
+Setting the bracket to zero gives the daily move at which theta exactly equals the gamma gains:
+
+\[\text{Breakeven move} \approx S \times \frac{\sigma_{IV}}{\sqrt{252}}\]
+
+\textbf{Example:} SPY \$500 and IV 16\% \ensuremath{\rightarrow} the breakeven is 500 \ensuremath{\times} 0.16 /\allowbreak{} \ensuremath{\surd}252 \ensuremath{\approx} \$5.04 a day. With \ensuremath{\Gamma} = 4, daily theta \ensuremath{\approx} \ensuremath{\frac12}(4)(5.04\textsuperscript{2}) \ensuremath{\approx} \$51.
+
+\begin{itemize}
+
+\item SPY moves \$5 up and back in a day: the long-gamma trader makes \$100 from hedging against \$51 of theta. \textbf{Profit.}
+
+\item SPY moves only \$2 up and back: hedging makes 2 \ensuremath{\times} \ensuremath{\frac12}(4)(2\textsuperscript{2}) = \$16 against \$51 of theta. \textbf{Loss}, and a win for the short-gamma trader.
+
+\end{itemize}
+
+\section{Side by side}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{} & \textbf{Forward scalping} & \textbf{Reverse scalping} \\
+\midrule
+Gamma & Long & Short \\
+Theta & Pay & Collect \\
+Re-hedging & Buy low, sell high & Buy high, sell low \\
+Wins when & RV > IV & IV > RV \\
+Best market & Large, choppy moves & Quiet, range-bound \\
+Worst market & Flat and sleepy & Gaps and crashes \\
+Worst loss & Premium paid & Potentially very large \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{How often to re-hedge}
+
+The formula assumes you re-hedge every \ensuremath{\Delta}t. In practice you choose:
+
+\begin{enumerate}
+
+\item \textbf{Time-based:} on a schedule, e.g. hourly or daily. \textbf{Our desk hedges once a day.}
+
+\item \textbf{Band-based:} only when delta drifts past a threshold, e.g. \ensuremath{\pm}10 shares.
+
+\end{enumerate}
+
+Hedging more often tracks the theory more closely, but every trade pays the bid-ask spread. Long gamma wants to hedge often enough to \textbf{lock in} gains. Short gamma often uses wider bands, because if SPY reverts before you hedge, you \textbf{avoid} the loss.
+
+\section{Risks to know}
+
+\begin{enumerate}
+
+\item \textbf{Theta bleed (long gamma):} quiet markets cost money every day.
+
+\item \textbf{Gap risk (short gamma):} you can't hedge overnight or through a crash, and one gap can erase weeks of theta.
+
+\item \textbf{Vega risk (both):} the formula ignores IV changes. If IV spikes, long positions gain and short positions lose, even before any hedging.
+
+\item \textbf{Costs (both):} spreads and commissions can turn a paper profit into a real loss.
+
+\end{enumerate}
+
+\section{In our code}
+
+\begin{itemize}
+
+\item \texttt{core/\allowbreak{}Algos/\allowbreak{}Hedging/\allowbreak{}delta\_\allowbreak{}hedge.\allowbreak{}py} sets the target to minus the option delta: \texttt{target\_\allowbreak{}shares = -\allowbreak{}option\_\allowbreak{}delta}.
+
+\item \texttt{Hedging/\allowbreak{}portfolio.\allowbreak{}py} (\texttt{rebalance}) trades the difference between target and current shares.
+
+\item In our smoke test, buying 1 call and selling 1 put gave about +100 deltas, and the hedger sold \textbf{101 shares}.
+
+\end{itemize}
+
+\section{Words to know}
+
+\begin{itemize}
+
+\item \textbf{Delta hedge /\allowbreak{} re-hedge:} trade shares to make delta zero /\allowbreak{} do it again after SPY moves.
+
+\item \textbf{Forward /\allowbreak{} reverse scalping:} hedging a long /\allowbreak{} short gamma position.
+
+\item \textbf{Realized /\allowbreak{} implied variance:} volatility squared, actual /\allowbreak{} priced in. \textbf{Breakeven move:} the daily move where theta equals gamma gains.
+
+\end{itemize}
+
+\section{Check yourself}
+
+\begin{enumerate}
+
+\item You are short gamma and SPY rallies. Do you buy or sell shares to re-hedge?
+
+\item SPY \$760, IV 14\%: what is the daily breakeven move?
+
+\item Why might a short-gamma trader prefer wider hedging bands?
+
+\end{enumerate}
+
+\emph{Answers: (1) Buy, chasing the move. (2) 760 \ensuremath{\times} 0.14 /\allowbreak{} \ensuremath{\surd}252 \ensuremath{\approx} \$6.70. (3) Fewer forced ``buy high, sell low'' trades if SPY reverts.}
+
+\end{document}

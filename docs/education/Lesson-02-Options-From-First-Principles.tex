@@ -1,0 +1,179 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Lesson 2: Options from First Principles}
+\author{Analyst onboarding \textperiodcentered{} Lesson 2 of 10 \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-02}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Goal:} know exactly what an option is, what it pays, and why our desk trades them.
+
+\textbf{You need:} Lesson 1 (SPY, long/\allowbreak{}short, bid/\allowbreak{}ask, volatility).
+
+\section{What an option is}
+
+An option is a contract that gives its buyer a \textbf{right, but not an obligation}, to buy or sell something at a price agreed today, up to a set date. The buyer pays the seller for that right up front. This payment is the \textbf{premium}.
+
+Think of it like a concert-ticket reservation: you pay \$20 now to lock in the right to buy a \$100 ticket next month. If prices jump to \$300, your right is valuable. If they fall to \$50, you walk away and lose only the \$20.
+
+\begin{itemize}
+
+\item \textbf{Call option:} the right to \textbf{buy} at the agreed price.
+
+\item \textbf{Put option:} the right to \textbf{sell} at the agreed price.
+
+\item \textbf{Strike price (K):} the agreed price.
+
+\item \textbf{Expiry:} the last day the right exists. \textbf{DTE} means \emph{days to expiry}.
+
+\item \textbf{Exercise:} using the right, i.e. actually buying or selling at the strike.
+
+\item \textbf{Underlying:} what the option is on. For us, \textbf{SPY}.
+
+\end{itemize}
+
+\textbf{$\Rightarrow$} The buyer risks only the premium and keeps the upside. The seller collects the premium and takes on the risk.
+
+\section{The details of SPY options}
+
+\begin{itemize}
+
+\item \textbf{One contract covers 100 shares.} A quoted price of \$13.40 costs \$13.40 \ensuremath{\times} 100 = \$1,340.
+
+\item \textbf{American style:} they can be exercised on any trading day up to expiry.
+
+\item \textbf{They trade with a bid and an ask} like SPY itself, and the spread is a cost.
+
+\item \textbf{There are expiries for every trading day.} Our desk uses Friday expiries about one month out.
+
+\end{itemize}
+
+\section{What an option pays at expiry}
+
+On the expiry day the option is worth only what exercising it would pay:
+
+\[\text{Call value} = \max(S - K,\ 0) \qquad \text{Put value} = \max(K - S,\ 0)\]
+
+Here $S$ is SPY's price at expiry and ``max'' means ``take the larger of the two''. If exercising would lose money, you simply don't, so the value is 0. \textbf{Profit = value \ensuremath{-} premium paid.}
+
+\textbf{Example.} SPY trades at 760. The 761-strike call expiring in 30 days costs \$13.40, and the 761 put costs \$11.20 (real fills from our paper account).
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X l}
+\toprule
+\textbf{SPY at expiry} & \textbf{Bought the call} & \textbf{Bought the put} & \textbf{Sold the put} \\
+\midrule
+740 & \ensuremath{-}\$1,340 & +\$980 & \ensuremath{-}\$980 \\
+761 & \ensuremath{-}\$1,340 & \ensuremath{-}\$1,120 & +\$1,120 \\
+780 & +\$560 & \ensuremath{-}\$1,120 & +\$1,120 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item \textbf{Bought the call:} the most it can lose is \$1,340. It breaks even if SPY ends at 761 + 13.40 = 774.40.
+
+\item \textbf{Bought the put:} the most it can lose is \$1,120. It breaks even at 761 \ensuremath{-} 11.20 = 749.80.
+
+\item \textbf{Sold the put:} it keeps the whole \$1,120 if SPY ends above 761, and loses more the further SPY falls.
+
+\end{itemize}
+
+\textbf{$\Rightarrow$} Buying options is a bet on a \textbf{big} move. Selling options is a bet on a \textbf{small} move. This one idea drives everything our desk does.
+
+\section{Where the strike sits: moneyness}
+
+\begin{itemize}
+
+\item \textbf{At the money (ATM):} the strike is near SPY's current price. Our desk trades ATM options.
+
+\item \textbf{In the money (ITM):} exercising now would pay something (a call with K below SPY, a put with K above).
+
+\item \textbf{Out of the money (OTM):} exercising now would pay nothing (a call with K above SPY, a put with K below).
+
+\end{itemize}
+
+\section{Why an option is worth more than its payoff today}
+
+Before expiry, an option's price has two parts:
+
+\begin{itemize}
+
+\item \textbf{Intrinsic value:} what it would pay if exercised right now. The 761 call with SPY at 760 has none.
+
+\item \textbf{Time value:} everything else. The call still costs \$13.40 because SPY might rise a lot in 30 days.
+
+\end{itemize}
+
+Time value melts to zero by expiry. How much the market charges for it depends on \textbf{how much it expects SPY to move}, i.e. on volatility. Lesson 3 turns that into a number.
+
+\section{Buyers and sellers face very different risks}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{} & \textbf{Buyer (long the option)} & \textbf{Seller (short the option)} \\
+\midrule
+Premium & Pays it & Receives it \\
+Worst case & Loses the premium & Large losses (unlimited when selling calls) \\
+Hopes for & Big moves & Small moves \\
+Each day that passes & Costs money & Earns money \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{$\Rightarrow$} Sellers earn small, steady income and sometimes take a big loss. Buyers pay a small, steady cost and sometimes win big. Choosing \textbf{when to be which} is our job.
+
+\section{Why use options at all?}
+
+\begin{enumerate}
+
+\item \textbf{Curved payoffs:} gains grow faster as the move grows, while losses are capped at the premium. Shares pay in a straight line.
+
+\item \textbf{A bet on movement itself:} options let you bet on \emph{how much} SPY moves, not \emph{which way}. Lesson 5 shows how we remove the direction completely.
+
+\item \textbf{Leverage:} \$1,340 gives exposure to 100 shares worth about \$76,000. That cuts both ways.
+
+\end{enumerate}
+
+Our desk uses options for reason 2: we are \textbf{volatility traders}, not directional traders.
+
+\section{Words to know}
+
+\begin{itemize}
+
+\item \textbf{Call /\allowbreak{} put:} right to buy /\allowbreak{} sell. \textbf{Strike:} the agreed price. \textbf{Premium:} the option's price.
+
+\item \textbf{Expiry, DTE:} last day, days left. \textbf{Exercise:} use the right.
+
+\item \textbf{ATM /\allowbreak{} ITM /\allowbreak{} OTM:} strike near /\allowbreak{} in favour of /\allowbreak{} against the current price.
+
+\item \textbf{Intrinsic /\allowbreak{} time value:} payoff now /\allowbreak{} the extra the market charges for possible movement.
+
+\end{itemize}
+
+\section{Check yourself}
+
+\begin{enumerate}
+
+\item You buy the 761 put for \$11.20 and SPY finishes at 755. What do you make or lose on one contract?
+
+\item Why is the 761 call worth \$13.40 when exercising it today pays nothing?
+
+\item If SPY doesn't move at all for 30 days, who makes money: the call buyer or the put seller?
+
+\end{enumerate}
+
+\emph{Answers: (1) (761 \ensuremath{-} 755 \ensuremath{-} 11.20) \ensuremath{\times} 100 = \ensuremath{-}\$520. (2) Time value: SPY might rise a lot before expiry. (3) The put seller keeps the premium; the call buyer loses it.}
+
+\end{document}

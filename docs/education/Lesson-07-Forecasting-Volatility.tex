@@ -1,0 +1,150 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Lesson 7: Forecasting Volatility}
+\author{Analyst onboarding \textperiodcentered{} Lesson 7 of 10 \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-02}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Goal:} understand how we forecast SPY's realized volatility over the life of a trade, and how to judge whether a forecast is any good.
+
+\textbf{You need:} Lessons 1 and 6 (volatility patterns, RV, the VRP).
+
+\section{Why we forecast}
+
+IV is the market's forecast of future volatility. To trade against it, we need \textbf{our own forecast} of realized volatility over exactly the life of the option. If ours is better, the VRP (IV \ensuremath{-} our forecast) tells us which side to take.
+
+Volatility \emph{can} be forecast because of the patterns in Lesson 1: \textbf{clustering} (today's volatility predicts tomorrow's), \textbf{mean reversion} (extremes fade toward normal), and the \textbf{leverage effect} (selloffs raise volatility).
+
+\section{Model 1: the naive forecast}
+
+``Next month will look like last month'': use the last 21 days' RV. It's simple, and surprisingly hard to beat by much. Treat it as the \textbf{baseline} every model must beat.
+
+\section{Model 2: GARCH(1,1), our live model}
+
+\textbf{GARCH} (Generalized AutoRegressive Conditional Heteroskedasticity) updates tomorrow's variance from three pieces:
+
+\[\sigma^2_{t+1} = \omega + \alpha\, r_t^2 + \beta\, \sigma^2_t\]
+
+\begin{itemize}
+
+\item $\omega$: a constant that pulls volatility toward its \textbf{long-run level}.
+
+\item $\alpha\, r_t^2$: \textbf{today's shock}. A big move today raises tomorrow's volatility.
+
+\item $\beta\, \sigma^2_t$: \textbf{memory}. Today's volatility carries into tomorrow.
+
+\end{itemize}
+
+Typical values for SPY are $\alpha \approx 0.1$ and $\beta \approx 0.85$. Because $\alpha + \beta < 1$, a forecast drifts back toward the long-run variance $\omega / (1 - \alpha - \beta)$ the further ahead you look. That is mean reversion, built in.
+
+The parameters are \textbf{fitted} to past returns by maximum likelihood: the computer picks the $\omega, \alpha, \beta$ that make the observed returns most probable.
+
+\section{Model 3: HAR, volatility at three speeds}
+
+The \textbf{HAR} model (Heterogeneous AutoRegressive) says different traders react on different time scales: day traders to yesterday, swing traders to last week, investors to last month. So tomorrow's RV is a weighted mix of three averages:
+
+\[RV_{t+1} = c + \beta_d\, RV_{day} + \beta_w\, RV_{week} + \beta_m\, RV_{month}\]
+
+The weights are fitted by ordinary least squares regression. HAR is simple and fast, and it usually beats GARCH when good RV data is available.
+
+\section{Forecasting over the right horizon}
+
+We don't need tomorrow's volatility. We need the \textbf{average volatility from today until the option expires}:
+
+\begin{enumerate}
+
+\item Count the trading days to the target expiry. 29 calendar days is about 20 trading days ($\approx 29 \times 252/365$).
+
+\item Forecast the variance for each of those days. Each step leans further toward the long-run level.
+
+\item Average the daily variances, annualize (\ensuremath{\times} 252) and take the square root.
+
+\end{enumerate}
+
+That annualized number is \texttt{rv\_\allowbreak{}forecast}, directly comparable with the option's IV.
+
+\section{How to judge a forecast}
+
+\begin{enumerate}
+
+\item \textbf{Only out-of-sample.} Fit on the past, then forecast days the model never saw (Lesson 9). A model scored on its own training data always looks great.
+
+\item \textbf{Use a fair loss.} Mean squared error is dominated by a few crash days. \textbf{QLIKE}, $\text{QLIKE} = \frac{RV}{\hat{\sigma}^2} - \ln\frac{RV}{\hat{\sigma}^2} - 1$ (with $RV$ in variance units), penalizes under-forecasting more and is the standard loss for volatility.
+
+\item \textbf{Beat IV as a forecast.} IV itself is a forecast, though biased high by the VRP. A model worth trading should add information beyond IV.
+
+\item \textbf{What finally matters is P\&L.} A forecast with slightly better accuracy but the same trading signals adds nothing. Judge by the trades it produces.
+
+\end{enumerate}
+
+\section{Beyond GARCH and HAR}
+
+Our research (see \texttt{research/\allowbreak{}strategy\_\allowbreak{}research/\allowbreak{}}) has looked at:
+
+\begin{itemize}
+
+\item \textbf{Asymmetric models} (GJR-GARCH, leverage HAR) that let down moves raise volatility more than up moves.
+
+\item \textbf{HAR with extra inputs} such as IV, the VIX term structure and recent momentum.
+
+\item \textbf{Machine learning:} random forests, neural networks, and pretrained ``foundation'' time-series models such as TimesFM. They help modestly at best, and need careful out-of-sample testing.
+
+\item \textbf{Combining forecasts:} averaging several models often beats choosing one. Lesson 10 covers using RL to choose the weights.
+
+\end{itemize}
+
+\section{In our code}
+
+\begin{itemize}
+
+\item \texttt{forecasting/\allowbreak{}GARCH.\allowbreak{}py} and \texttt{forecasting/\allowbreak{}HAR.\allowbreak{}py} share one interface: \texttt{fit(returns)}, \texttt{predict(horizon)} (returns annualized volatility) and \texttt{params()}.
+
+\item \texttt{forecasting/\allowbreak{}\_\allowbreak{}\_\allowbreak{}init\_\allowbreak{}\_\allowbreak{}.\allowbreak{}py} has the registry: \texttt{FORECASTERS = \{``garch'': GARCH,\allowbreak{} ``har'': HAR\}}.
+
+\item Switch models by editing one line in \texttt{configs/\allowbreak{}paper.\allowbreak{}toml}: \texttt{forecaster = ``har''}.
+
+\item To add a model, write a class with the same three methods and register it.
+
+\end{itemize}
+
+\section{Words to know}
+
+\begin{itemize}
+
+\item \textbf{GARCH:} a volatility model driven by today's shock plus memory.
+
+\item \textbf{HAR:} RV forecast from daily, weekly and monthly averages.
+
+\item \textbf{Horizon:} how far ahead you forecast (for us, to expiry).
+
+\item \textbf{Out-of-sample:} data the model was not fitted on.
+
+\item \textbf{QLIKE:} the standard loss function for volatility forecasts.
+
+\end{itemize}
+
+\section{Check yourself}
+
+\begin{enumerate}
+
+\item After a \ensuremath{-}4\% day, what does GARCH do to tomorrow's forecast, and which term is responsible?
+
+\item Why do we average the forecast over the days to expiry rather than use tomorrow's forecast?
+
+\item Model A has lower forecast error than Model B but produces the same trades. Which should we use?
+
+\end{enumerate}
+
+\emph{Answers: (1) Raises it, through the $\alpha r_t^2$ shock term. (2) The option's payoff depends on volatility over its whole life. (3) Either: the trades are identical, so the extra accuracy is worth nothing. Keep the simpler one.}
+
+\end{document}

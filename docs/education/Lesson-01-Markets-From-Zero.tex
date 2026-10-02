@@ -1,0 +1,150 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Lesson 1: Markets from Zero}
+\author{Analyst onboarding \textperiodcentered{} Lesson 1 of 10 \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-02}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Goal:} understand what we trade and the handful of ideas every later lesson builds on.
+
+\textbf{You need:} no finance background. If you can read a percentage, you're ready.
+
+\section{Stocks, indexes and SPY}
+
+\begin{itemize}
+
+\item \textbf{A stock (or share)} is a small piece of ownership in a company. If you own 1 share of a company with 1 billion shares, you own one billionth of it. Its \textbf{price} is set by buyers and sellers trading it on an \textbf{exchange} (a marketplace such as the New York Stock Exchange).
+
+\item \textbf{An index} is a scoreboard that tracks a group of stocks. The \textbf{S\&P 500} tracks 500 of the largest US companies. When people say ``the market went up 1\% today'', they usually mean the S\&P 500.
+
+\item \textbf{An ETF} (exchange-traded fund) is a fund that holds a basket of stocks and trades like a single stock. \textbf{SPY} is an ETF that holds all 500 S\&P 500 companies. One SPY share costs about \$760 today, and its price moves with the whole US market.
+
+\end{itemize}
+
+\textbf{$\Rightarrow$} Our desk trades \textbf{SPY} and \textbf{options on SPY} (Lesson 2). SPY is one of the most traded products in the world, which keeps trading costs low.
+
+\section{Buying, selling and ``going short''}
+
+\begin{itemize}
+
+\item \textbf{Long:} you own something and profit if its price \textbf{rises}. Buy 10 SPY at \$760 and sell at \$770: you make 10 \ensuremath{\times} \$10 = \$100.
+
+\item \textbf{Short:} you profit if the price \textbf{falls}. You borrow shares from your broker, sell them now, and buy them back later to return them. Short 10 SPY at \$760 and buy back at \$750: you make \$100. If it rises instead, you lose.
+
+\item \textbf{Broker:} the company that sends your orders to the exchange and holds your account. We use \textbf{Interactive Brokers (IBKR)}, in a \textbf{paper account}: a practice account with fake money but real market prices.
+
+\end{itemize}
+
+\section{Prices have two sides: bid and ask}
+
+At any moment there are two prices:
+
+\begin{itemize}
+
+\item \textbf{Bid:} the highest price someone is willing to \textbf{pay}. You sell at the bid.
+
+\item \textbf{Ask:} the lowest price someone is willing to \textbf{sell} for. You buy at the ask.
+
+\item \textbf{Mid:} halfway between the two. \textbf{Spread:} the gap between them.
+
+\end{itemize}
+
+If SPY is bid \$759.99 and ask \$760.01, buying and immediately selling costs you the \$0.02 spread. That is a \textbf{transaction cost}. Every trade we make pays some of it, so a strategy that trades too often can lose money even if its ideas are right.
+
+\section{Returns: measuring gains in percent}
+
+A \textbf{return} is the percentage change in price. If SPY goes from 760 to 767.60, the return is +1\%.
+
+Quants (quantitative traders) often use \textbf{log returns}, $r = \ln(P_{today}/P_{yesterday})$. For small moves they are almost identical to percent returns (+1\% vs +0.995\%), and they add up neatly over many days. Our code uses them.
+
+\section{Risk and volatility: how much prices wiggle}
+
+Two stocks can both average +10\% a year, but one moves \ensuremath{\pm}0.3\% a day and the other \ensuremath{\pm}3\% a day. The second is far riskier. We measure that wiggle with \textbf{volatility}:
+
+\begin{enumerate}
+
+\item Take daily returns over some period.
+
+\item Compute their \textbf{standard deviation}: the typical size of a move away from the average. Roughly, about two thirds of days land within one standard deviation.
+
+\item \textbf{Annualize} it by multiplying by $\sqrt{252}$, because there are about 252 trading days in a year.
+
+\end{enumerate}
+
+\textbf{Example.} If SPY's daily returns have a standard deviation of 0.88\%, annual volatility is $\sigma = 0.88\% \times \sqrt{252} \approx 14\%$. Going the other way, a 14\% volatility means a ``typical'' day moves about 0.88\%, or about \$6.70 on a \$760 SPY.
+
+\[\sigma_{daily} = \frac{\sigma_{annual}}{\sqrt{252}}\]
+
+\textbf{$\Rightarrow$} Volatility, written \textbf{\ensuremath{\sigma} (sigma)}, is the single most important number in this course. It is also the thing we trade.
+
+\section{Two kinds of volatility}
+
+\begin{itemize}
+
+\item \textbf{Realized volatility (RV):} how much SPY \textbf{actually moved} over a period. You measure it from past prices.
+
+\item \textbf{Implied volatility (IV):} how much movement the \textbf{options market is pricing in} for the future (Lesson 3).
+
+\end{itemize}
+
+Our entire strategy is a bet on the gap between these two: will SPY move \textbf{more or less} than the market expects?
+
+\section{Volatility behaves in patterns}
+
+\begin{enumerate}
+
+\item \textbf{Clustering:} calm days follow calm days, and wild days follow wild days.
+
+\item \textbf{Mean reversion:} very high or very low volatility tends to drift back toward normal levels.
+
+\item \textbf{The leverage effect:} volatility usually jumps when markets \textbf{fall}, not when they rise. Crashes are fast, rallies are slow.
+
+\end{enumerate}
+
+These patterns are why volatility can be \textbf{forecast} (Lesson 7), unlike the direction of the market, which is very hard to predict.
+
+\section{What our desk does, in one paragraph}
+
+We are the \textbf{L/\allowbreak{}S Gamma desk} at QUANTT. Every day we forecast how much SPY will move over the next month and compare that with how much movement options are priced for. If options look \textbf{too cheap}, we buy them. If they look \textbf{too expensive}, we sell them. Then we remove the direction bet by trading SPY shares (Lesson 5), so we only make or lose money on \textbf{how much} SPY moves, not \textbf{which way}.
+
+\section{Words to know}
+
+\begin{itemize}
+
+\item \textbf{SPY:} ETF tracking the S\&P 500. \textbf{Long /\allowbreak{} short:} profit from up /\allowbreak{} down moves.
+
+\item \textbf{Bid /\allowbreak{} ask /\allowbreak{} mid /\allowbreak{} spread:} buy price, sell price, the middle, and the gap.
+
+\item \textbf{Return:} percent change. \textbf{Volatility (\ensuremath{\sigma}):} annualized standard deviation of returns.
+
+\item \textbf{RV /\allowbreak{} IV:} volatility that happened /\allowbreak{} volatility the options market expects.
+
+\item \textbf{Paper account:} practice brokerage account with fake money.
+
+\end{itemize}
+
+\section{Check yourself}
+
+\begin{enumerate}
+
+\item You short 5 SPY at \$760 and buy them back at \$766. What is your profit or loss?
+
+\item SPY's annual volatility is 20\%. Roughly how big is a typical daily move, in percent?
+
+\item Why does trading more often cost more, even at fair prices?
+
+\end{enumerate}
+
+\emph{Answers: (1) \ensuremath{-}5 \ensuremath{\times} \$6 = \ensuremath{-}\$30. (2) $\sigma_{daily} = 20\% / \sqrt{252} \approx 1.26\%$. (3) Each trade pays part of the bid-ask spread.}
+
+\end{document}

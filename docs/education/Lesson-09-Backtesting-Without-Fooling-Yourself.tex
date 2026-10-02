@@ -1,0 +1,153 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Lesson 9: Backtesting Without Fooling Yourself}
+\author{Analyst onboarding \textperiodcentered{} Lesson 9 of 10 \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-02}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Goal:} learn how to test a strategy on history honestly, and the traps that make most backtests look better than reality.
+
+\textbf{You need:} Lessons 7--8 (forecasting, our rules).
+
+\section{What a backtest is}
+
+A \textbf{backtest} replays a strategy's rules on historical data, day by day, as if you had traded them, and records the P\&L. It is how we decide whether a rule (a band, a forecaster, an exit) is worth trading.
+
+The danger: \textbf{a backtest is easy to fool, and the person most easily fooled is the one who wrote it.} Three traps matter most.
+
+\section{Trap 1: look-ahead bias}
+
+\textbf{Look-ahead bias} means the simulation uses information that wasn't available at the moment of the decision. The results look great and can never be repeated live.
+
+Examples relevant to our desk:
+
+\begin{itemize}
+
+\item \textbf{Fitting GARCH on the full history} and then ``forecasting'' 2018 with parameters that already saw 2020.
+
+\item \textbf{Using today's closing VIX at 10:15 am.} VIX closes at 4:15 pm, so at decision time only yesterday's value exists.
+
+\item \textbf{Using today's partial price bar}, or filling trades at prices from \emph{before} the decision was made.
+
+\item \textbf{Regime models that peek:} labelling day $t$ with a model fitted on later days.
+
+\end{itemize}
+
+\textbf{The rule:} for every number used on day $t$, ask \emph{``could I have known this at 10:15 am on day t?''} If not, it's look-ahead.
+
+\section{Trap 2: overfitting}
+
+\textbf{Overfitting} means tuning rules until they fit the past's noise rather than a real pattern. Try 50 band settings and one will look brilliant by luck alone.
+
+\begin{itemize}
+
+\item Studies of hundreds of trading algorithms found that backtest Sharpe ratios barely predict live results. The more backtests someone ran, the bigger the gap.
+
+\item With 5 years of daily data, trying about 45 independent variations makes a Sharpe ratio of 1 or more \textbf{likely by chance alone} (Bailey et al.).
+
+\end{itemize}
+
+\textbf{The Sharpe ratio}, the standard score, is average return divided by volatility of returns, annualized. Above 1 is good. But a Sharpe ratio means little unless you know \textbf{how many things were tried} to find it.
+
+\section{Trap 3: unrealistic trading costs}
+
+Option spreads are wide. A backtest that trades at the mid with no costs is fantasy. We assume fills at \textbf{mid \ensuremath{\pm} slippage} (the same \$0.05 the live system uses) and include commissions on hedge trades.
+
+\section{The fix: walk-forward testing plus a locked hold-out}
+
+\textbf{1. Walk-forward optimization.} Never tune and test on the same data:
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X l}
+\toprule
+\textbf{Fold} & \textbf{Tune rules on (train)} & \textbf{Gap (embargo)} & \textbf{Test on} \\
+\midrule
+1 & 2014--2017 & \textasciitilde{}30 trading days & 2018 \\
+2 & 2014--2018 & \textasciitilde{}30 trading days & 2019 \\
+3 & 2014--2019 & \textasciitilde{}30 trading days & 2020 \\
+... & ... & ... & ... \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Each test year uses settings chosen \emph{only} from earlier years. Stitch the test years together for an honest result.
+
+\textbf{2. Embargo.} A trade lasts about 23 days, so a trade opened at the end of training would still be open in the test year. The gap stops results leaking across the boundary.
+
+\textbf{3. Final hold-out.} Lock away the last \textasciitilde{}12 months. Run the final, chosen strategy on it \textbf{exactly once}. If you look, tweak, and look again, it is no longer out-of-sample.
+
+\textbf{4. Log every trial.} Record every configuration tried, not just the winner. The \textbf{Deflated Sharpe Ratio} then corrects the best Sharpe for how many trials it took to find it.
+
+\section{Our data, and its limits}
+
+\begin{itemize}
+
+\item \textbf{The club's R2 bucket:} intraday SPY option \textbf{trades} from 2014 to 2026, and daily SPY prices (CRSP).
+
+\item \textbf{No quotes and no intraday SPY price.} Daily option prices must be built from trades, and the bid-ask spread has to be modelled.
+
+\item \textbf{Few independent trades:} about 12 years of roughly 23-day trades gives \textbf{only \textasciitilde{}130 non-overlapping trades}. Keep the number of tuned parameters tiny.
+
+\end{itemize}
+
+\section{How our backtester will be built}
+
+\begin{itemize}
+
+\item \textbf{The same code as live:} each simulated day calls the same \texttt{signals}, \texttt{forecasting}, \texttt{selection}, \texttt{exits} and \texttt{pnl} modules as the live runner, with a simulated broker. The backtest then tests the exact rules we trade.
+
+\item \textbf{Point-in-time inputs only:} the forecast is refit on returns up to the previous close, and VIX is lagged one day.
+
+\item \textbf{Every run logged automatically} to a trial registry: settings, code version and daily returns.
+
+\end{itemize}
+
+\section{What to report}
+
+Report Sharpe, plus \textbf{Sortino} (counts only downside volatility), \textbf{maximum drawdown}, \textbf{skew} (short-vol strategies have rare big losses), cost drag, and the \textbf{number of trials} behind the result. Show the walk-forward results and the hold-out result separately.
+
+\section{Further reading}
+
+Our report on this exact topic is \texttt{research/\allowbreak{}strategy\_\allowbreak{}research/\allowbreak{}2026-\allowbreak{}10-\allowbreak{}01-\allowbreak{}walk-\allowbreak{}forward-\allowbreak{}backtest-\allowbreak{}without-\allowbreak{}look-\allowbreak{}ahead.\allowbreak{}pdf}.
+
+\section{Words to know}
+
+\begin{itemize}
+
+\item \textbf{Look-ahead bias:} using information not available at decision time.
+
+\item \textbf{Overfitting:} fitting noise, not signal.
+
+\item \textbf{Walk-forward:} tune on the past, test on the next unseen period, roll forward.
+
+\item \textbf{Embargo:} gap between train and test periods. \textbf{Hold-out:} final data used only once.
+
+\item \textbf{Sharpe /\allowbreak{} Sortino /\allowbreak{} drawdown:} return per unit of risk /\allowbreak{} per unit of downside risk /\allowbreak{} fall from a peak.
+
+\end{itemize}
+
+\section{Check yourself}
+
+\begin{enumerate}
+
+\item Your backtest decides at 10:15 am using that day's GARCH fit on closing prices. What's wrong?
+
+\item You test 40 band settings and report the best Sharpe of 1.4. What else must you report?
+
+\item Why must the hold-out be used only once?
+
+\end{enumerate}
+
+\emph{Answers: (1) Look-ahead: the close isn't known at 10:15. Fit on data up to the previous close. (2) That 40 were tried, and a Deflated Sharpe. (3) Every look lets you adapt to it, so it stops being unseen data.}
+
+\end{document}

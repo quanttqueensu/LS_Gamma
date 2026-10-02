@@ -1,0 +1,158 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Lesson 6: Realized Volatility and the Volatility Risk Premium}
+\author{Analyst onboarding \textperiodcentered{} Lesson 6 of 10 \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-02}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Goal:} measure how much SPY actually moves, and understand the gap between that and what options charge, the edge our desk exists to trade.
+
+\textbf{You need:} Lessons 1, 3 and 5 (volatility, implied volatility, RV vs IV).
+
+\section{Measuring realized volatility (RV)}
+
+Realized volatility is how much SPY \textbf{actually} moved. There are several ways to measure it.
+
+\textbf{1. Close-to-close.} Take daily log returns $r_t = \ln(P_t / P_{t-1})$ over a window, e.g. the last 21 trading days (one month), and compute
+
+\[\sigma_{RV} = \sqrt{252} \times \text{std}(r_t)\]
+
+It's simple and captures overnight gaps, but it's noisy because it uses only one price per day.
+
+\textbf{2. Range-based (Garman-Klass).} Also uses each day's \textbf{open, high, low and close}. The high-low range shows how far SPY travelled \emph{during} the day, which gives a sharper estimate from fewer days:
+
+\[\sigma^2_{GK} = \tfrac{1}{2}\left(\ln \tfrac{H}{L}\right)^2 - (2\ln 2 - 1)\left(\ln \tfrac{C}{O}\right)^2\]
+
+Our pipeline computes this (\texttt{rv\_\allowbreak{}gk} in \texttt{pipeline/\allowbreak{}features.\allowbreak{}py}). \textbf{Caveat:} it ignores the overnight jump from yesterday's close to today's open, so it reads a little \textbf{low} compared with VIX.
+
+\textbf{3. Intraday (high-frequency) RV.} Sum the squared 5-minute returns through the day. This is the most accurate, but needs intraday data that our free live pipeline doesn't have.
+
+\section{The volatility risk premium (VRP)}
+
+Compare what options \textbf{charged} (IV) with what then \textbf{happened} (RV over the same period):
+
+\[\text{VRP} = \text{IV} - \text{RV}\]
+
+\textbf{Fact:} IV is \textbf{usually higher} than the RV that follows.
+
+\begin{itemize}
+
+\item From 1990 to 2018, VIX averaged about \textbf{19.3\%}, while the S\&P 500's realized volatility averaged about \textbf{15.1\%} (Bondarenko, Cboe 2019).
+
+\item IV is above subsequent RV about \textbf{70--80\% of the time}.
+
+\item Delta-hedged index options \textbf{lose money on average} for buyers, and lose the most at the money (Bakshi \& Kapadia 2003).
+
+\end{itemize}
+
+\textbf{$\Rightarrow$} On average, \textbf{selling options and delta hedging earns the VRP}. That is the short-gamma trade from Lesson 5.
+
+\section{Why does the VRP exist?}
+
+If options are usually overpriced, why doesn't everyone sell them until the premium disappears?
+
+\begin{enumerate}
+
+\item \textbf{Insurance demand.} Big investors buy index puts to protect portfolios. Like any insurer, the seller expects a profit on average.
+
+\item \textbf{Crash risk.} Short-gamma losses are rare but huge, and arrive when everything else is crashing too. Sellers demand payment for that risk.
+
+\item \textbf{The leverage effect.} Volatility spikes when markets fall (Lesson 1), so puts become most valuable exactly when investors are poorest. That is also why the \textbf{put skew} exists (Lesson 3).
+
+\end{enumerate}
+
+So the VRP is \textbf{compensation for risk}, not a free lunch. In 2008 and March 2020, realized volatility blew far past implied, and short-gamma traders took large losses.
+
+\section{Why we don't just always sell}
+
+``Always sell options'' earns the VRP most of the time, but:
+
+\begin{itemize}
+
+\item \textbf{It loses big in crashes.} The Cboe PutWrite index, which sells puts every month, had a \ensuremath{-}32.7\% maximum drawdown and a 40-month longest drawdown (1986--2018).
+
+\item \textbf{The VRP changes over time.} Sometimes IV is cheap relative to the coming moves, and then \textbf{buying} options pays.
+
+\end{itemize}
+
+\textbf{$\Rightarrow$} Our edge is not ``sell vol''. It is \textbf{forecasting RV better than IV does}, so we know when to sell, when to buy, and when to sit out.
+
+\section{How our code uses the VRP}
+
+We use the \textbf{standard definition}, the same one as every paper you'll read, but with \textbf{our forecast} in place of the realized volatility we can't see yet:
+
+\[\text{VRP} = \text{IV} - \text{RV}_{forecast}\]
+
+\begin{itemize}
+
+\item \textbf{Positive VRP:} options charge more movement than we expect, so they look \textbf{expensive}: sell (short gamma).
+
+\item \textbf{Negative VRP:} options charge less than we expect, so they look \textbf{cheap}: buy (long gamma).
+
+\end{itemize}
+
+\section{The leverage effect in numbers}
+
+Volatility and SPY returns are \textbf{negatively correlated}: on big down days, IV usually jumps. Two consequences for us:
+
+\begin{enumerate}
+
+\item A \textbf{short put} loses twice in a selloff: SPY falls (gamma losses) \emph{and} IV rises (vega losses).
+
+\item A \textbf{long call} that has been delta hedged gains from the move but can lose vega if IV falls in a rally.
+
+\end{enumerate}
+
+\section{In our code}
+
+\begin{itemize}
+
+\item \texttt{pipeline/\allowbreak{}features.\allowbreak{}py} builds \texttt{rv\_\allowbreak{}gk} and its daily, weekly and monthly averages (\texttt{rv\_\allowbreak{}d}, \texttt{rv\_\allowbreak{}w}, \texttt{rv\_\allowbreak{}m}).
+
+\item The live signal logs \texttt{rv\_\allowbreak{}forecast}, \texttt{iv} and \texttt{vrp} every day to \texttt{results/\allowbreak{}paper/\allowbreak{}signals.\allowbreak{}parquet}.
+
+\item On 2026-10-02: forecast 12.9\%, IV 13.0\%, so the VRP was +0.001, about zero, and \textbf{no trade}.
+
+\end{itemize}
+
+\section{Words to know}
+
+\begin{itemize}
+
+\item \textbf{Realized volatility (RV):} volatility measured from actual price moves.
+
+\item \textbf{Garman-Klass:} an RV estimate using open, high, low and close.
+
+\item \textbf{VRP:} IV minus subsequent RV, usually positive.
+
+\item \textbf{Drawdown:} fall from a previous peak.
+
+\item \textbf{VRP (our code):} IV \ensuremath{-} forecast RV.
+
+\end{itemize}
+
+\section{Check yourself}
+
+\begin{enumerate}
+
+\item Over the next month SPY's realized volatility is 11\%, and you sold options at 14\% IV. Did you likely make or lose money (before costs)?
+
+\item Why does Garman-Klass RV read lower than VIX on average, even beyond the VRP?
+
+\item Our VRP today is +0.03. Are options cheap or expensive by our forecast?
+
+\end{enumerate}
+
+\emph{Answers: (1) Likely made money: IV > RV. (2) It misses overnight gaps. (3) Expensive: forecast RV is 3 points below IV.}
+
+\end{document}

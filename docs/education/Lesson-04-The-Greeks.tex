@@ -1,0 +1,161 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Lesson 4: The Greeks}
+\author{Analyst onboarding \textperiodcentered{} Lesson 4 of 10 \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-02}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Goal:} measure how an option's price reacts to SPY moving, time passing and volatility changing.
+
+\textbf{You need:} Lessons 1--3 (options, implied volatility).
+
+\section{Why we need the Greeks}
+
+An option's price changes for three main reasons: SPY moves, a day passes, or implied volatility changes. The \textbf{Greeks} are named after Greek letters, and each one measures one of these sensitivities. They tell you \textbf{what risks you hold} right now.
+
+Our running example: the \textbf{761 call, 29 DTE, SPY at 760, IV 14\%}.
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Greek} & \textbf{Measures} & \textbf{Our 761 call (per share)} & \textbf{Per contract (\ensuremath{\times}100)} \\
+\midrule
+Delta (\ensuremath{\Delta}) & Price change per \$1 SPY move & 0.50 & +50 shares of SPY exposure \\
+Gamma (\ensuremath{\Gamma}) & Change in delta per \$1 SPY move & 0.013 & +1.3 shares per \$1 \\
+Theta (\ensuremath{\Theta}) & Price change per day passing & \ensuremath{-}0.29 & \ensuremath{-}\$29 per trading day \\
+Vega (\ensuremath{\nu}) & Price change per 1 vol point & 0.87 & +\$87 per vol point \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Delta: direction}
+
+\textbf{Delta} is how much the option's price moves when SPY moves \$1.
+
+\begin{itemize}
+
+\item An ATM call has delta about \textbf{0.5}: if SPY rises \$1, the call gains about \$0.50 per share, or \textbf{\$50 per contract}.
+
+\item That is the same exposure as owning \textbf{50 shares} of SPY. Traders call this ``50 deltas''.
+
+\item Calls have delta between 0 and 1, and puts between \ensuremath{-}1 and 0. An ATM put has delta about \ensuremath{-}0.5.
+
+\item Deep ITM options behave like the stock (delta near \ensuremath{\pm}1). Far OTM options barely react (delta near 0).
+
+\end{itemize}
+
+\textbf{$\Rightarrow$} Delta is the option's \textbf{direction bet}. Our desk removes it by trading shares (Lesson 5).
+
+\section{Gamma: how fast delta changes}
+
+\textbf{Gamma} is how much the \textbf{delta itself} changes when SPY moves \$1.
+
+\begin{itemize}
+
+\item Our call has gamma 0.013. If SPY rises \$10, delta goes from 0.50 to about 0.63. The option now behaves like 63 shares instead of 50.
+
+\item \textbf{Gamma is largest for ATM options} and for options \textbf{close to expiry}, and shrinks for far ITM or OTM strikes.
+
+\item \textbf{Buying options gives positive gamma} (you are ``long gamma''). \textbf{Selling gives negative gamma} (``short gamma'').
+
+\end{itemize}
+
+\textbf{$\Rightarrow$} Long gamma means your exposure \textbf{grows in the direction SPY moves}: you get longer as it rises and shorter as it falls. This is the curved payoff from Lesson 2, and it is the thing our desk is named after.
+
+\section{Theta: the cost of time}
+
+\textbf{Theta} is how much the option loses as one day passes, everything else unchanged.
+
+\begin{itemize}
+
+\item Our call loses about \$0.29 per share, or \textbf{\$29 per contract per trading day}.
+
+\item Theta speeds up as expiry approaches: the last week loses value fastest.
+
+\item \textbf{Buyers pay theta. Sellers collect it.}
+
+\end{itemize}
+
+\section{Vega: sensitivity to implied volatility}
+
+\textbf{Vega} is how much the option's price changes when IV moves one vol point.
+
+\begin{itemize}
+
+\item Our call has vega 0.87: if IV rises from 14\% to 15\%, the call gains about \textbf{\$87 per contract}, even if SPY doesn't move.
+
+\item \textbf{Longer-dated options have more vega.} Short-dated options have more gamma.
+
+\end{itemize}
+
+\section{The key relationship: gamma and theta are two sides of one coin}
+
+You can't get gamma for free. For a hedged position, theta and gamma are linked by:
+
+\[\Theta \approx -\tfrac{1}{2}\, \Gamma\, S^2\, \sigma_{IV}^2\]
+
+Read it as: \textbf{the market sets the option's price so that the theta you pay exactly covers the gamma you get, if SPY moves exactly as much as IV says.} Whether you win or lose then comes down to one question: does SPY move \textbf{more} or \textbf{less} than implied? Lesson 5 makes this exact.
+
+\section{Calls vs puts once delta is removed}
+
+\textbf{Put-call parity} links a call and a put with the same strike and expiry:
+
+\[C - P = S - K e^{-rT}\]
+
+A call minus a put equals SPY minus some cash. So a call and a put differ only by a straight stock position, which has \textbf{no gamma, theta or vega}. After you hedge away the delta, a call and a put at the same strike carry \textbf{almost the same gamma, theta and vega}. The real differences are practical: skew (Lesson 3), liquidity, and early exercise.
+
+\textbf{$\Rightarrow$} This is why our desk can use a \textbf{call} for long gamma and a \textbf{put} for short gamma (Lesson 8). Once hedged, both are ``the same'' volatility bet.
+
+\section{Greeks of a whole position}
+
+Greeks add up. Your position's delta is the sum of every option's delta \ensuremath{\times} 100 \ensuremath{\times} number of contracts, plus any shares you hold (each share has delta 1).
+
+\textbf{Example:} you hold 1 long 761 call (+50 deltas) and are short 50 SPY shares (\ensuremath{-}50). Your net delta is \textbf{0}: small SPY moves no longer change your P\&L. But your gamma is still +1.3 shares per \$1, so the next move will make delta non-zero again.
+
+\section{In our code}
+
+\begin{itemize}
+
+\item IBKR sends Greeks with each option quote. \texttt{pipeline/\allowbreak{}chain.\allowbreak{}py} stores delta, gamma, vega and theta per contract.
+
+\item \texttt{core/\allowbreak{}Algos/\allowbreak{}Hedging/\allowbreak{}portfolio.\allowbreak{}py} (\texttt{option\_\allowbreak{}delta}) adds up the delta of every SPY option we hold.
+
+\end{itemize}
+
+\section{Words to know}
+
+\begin{itemize}
+
+\item \textbf{Delta:} direction exposure, in shares. \textbf{Gamma:} how fast delta changes.
+
+\item \textbf{Theta:} daily time decay. \textbf{Vega:} sensitivity to IV.
+
+\item \textbf{Long /\allowbreak{} short gamma:} own options /\allowbreak{} have sold options. \textbf{Put-call parity:} links calls and puts.
+
+\end{itemize}
+
+\section{Check yourself}
+
+\begin{enumerate}
+
+\item You sold 1 ATM put (delta \ensuremath{-}0.5). What is your position delta, in shares?
+
+\item Which has more gamma: a 7-DTE ATM option or a 60-DTE ATM option?
+
+\item IV jumps 3 points overnight while SPY is flat. Roughly what does our 761 call gain?
+
+\end{enumerate}
+
+\emph{Answers: (1) +50: selling a \ensuremath{-}0.5 delta put \ensuremath{\times} 100 gives +50. (2) The 7-DTE option. (3) About 3 \ensuremath{\times} \$87 = \$261.}
+
+\end{document}

@@ -1,0 +1,161 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Lesson 3: Option Prices and Implied Volatility}
+\author{Analyst onboarding \textperiodcentered{} Lesson 3 of 10 \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-02}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Goal:} understand what sets an option's price, and how the market's expected volatility is read from that price.
+
+\textbf{You need:} Lessons 1--2 (volatility, calls and puts, time value).
+
+\section{What goes into an option's price}
+
+An option's fair price depends on six things:
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X l l >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Input} & \textbf{Symbol} & \textbf{Known today?} & \textbf{Effect on a call} \\
+\midrule
+SPY price & $S$ & Yes & Higher SPY \ensuremath{\rightarrow} higher call price \\
+Strike & $K$ & Yes & Higher strike \ensuremath{\rightarrow} lower call price \\
+Time to expiry & $T$ & Yes & More time \ensuremath{\rightarrow} higher price \\
+Interest rate & $r$ & Yes & Small effect \\
+Dividends & $q$ & Roughly & Small effect \\
+\textbf{Volatility} & $\sigma$ & \textbf{No} & \textbf{More volatility \ensuremath{\rightarrow} higher price} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Five inputs are known. Only \textbf{future volatility} is unknown. So when traders argue about whether an option is cheap or expensive, they are really arguing about \textbf{how much SPY will move}.
+
+\textbf{Why more volatility means a higher price:} an option's losses are capped at the premium, but its gains are not. Bigger swings make big payoffs more likely without making the worst case any worse. That is true for calls \emph{and} puts.
+
+\section{The Black-Scholes model, in plain words}
+
+The \textbf{Black-Scholes formula} (1973) is the standard way to turn those six inputs into a price. You don't need to derive it. The idea is:
+
+\begin{enumerate}
+
+\item Imagine thousands of possible paths for SPY from now to expiry, with day-to-day swings set by $\sigma$.
+
+\item For each path, compute what the option pays at expiry.
+
+\item Average those payoffs and discount them back to today.
+
+\end{enumerate}
+
+\textbf{A handy shortcut} for an ATM option:
+
+\[\text{ATM price} \approx 0.4 \times S \times \sigma \times \sqrt{T}\]
+
+where $T$ is in years. With SPY at 760, $\sigma$ = 14\% and 30 days ($T$ = 30/\allowbreak{}365):
+
+\[0.4 \times 760 \times 0.14 \times \sqrt{30/365} \approx 12.20\]
+
+That's close to the \$13.40 we actually paid for the 761 call. The gap comes from interest rates, which make calls slightly dearer and puts slightly cheaper.
+
+\section{Implied volatility: running the formula backwards}
+
+Normally you feed in $\sigma$ and get a price. The market already gives us the price, so we run the formula backwards: \textbf{which $\sigma$ makes Black-Scholes match the market price?} That number is the \textbf{implied volatility (IV)}.
+
+\begin{itemize}
+
+\item The 761 call trades at \$13.40, and the \ensuremath{\sigma} that reproduces that price is about \textbf{14\%}.
+
+\item IV is quoted as an annual percentage, just like the volatility in Lesson 1.
+
+\item \textbf{IV is the market's forecast} of SPY's volatility from now until expiry.
+
+\end{itemize}
+
+\textbf{$\Rightarrow$} Traders quote options by their IV rather than their dollar price, because IV lets you compare options with different strikes and expiries on the same scale. ``SPY 30-day vol is 14'' means the 30-day ATM options are priced at 14\% IV.
+
+\section{The VIX: the market's fear gauge}
+
+The \textbf{VIX} index is computed from the prices of S\&P 500 options and measures the market's expected volatility over the next 30 days. A VIX of 17 means options price in about 17\% annualized volatility.
+
+\begin{itemize}
+
+\item Calm markets: VIX is about 12--15.
+
+\item Stress: 30--40. The COVID-19 crash in March 2020 briefly pushed it above 80.
+
+\item Our pipeline also downloads \textbf{VIX9D} (9 days), \textbf{VIX3M} (3 months) and \textbf{VVIX} (the volatility \emph{of} the VIX).
+
+\end{itemize}
+
+\section{IV is different for every strike and expiry}
+
+If Black-Scholes were exactly right, every SPY option would have the same IV. In reality the IV changes with the strike and the expiry.
+
+\textbf{1. Skew (across strikes).} OTM puts trade at \textbf{higher IV} than OTM calls, because investors pay up for crash protection. In our own 2026-09-29 data, 25-delta puts (moderately OTM puts, Lesson 4) traded \textbf{3--4 volatility points above} 25-delta calls.
+
+\textbf{2. Term structure (across expiries).} In calm markets, longer-dated options usually have \emph{higher} IV than short-dated ones (an upward-sloping curve). In a panic it flips: short-dated IV jumps above long-dated IV (an \emph{inverted} curve).
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{l l l l >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Date} & \textbf{VIX9D} & \textbf{VIX} & \textbf{VIX3M} & \textbf{Shape} \\
+\midrule
+2026-10-01 & 15.5 & 17.3 & 19.1 & Upward sloping: calm \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{3. The volatility surface.} Put skew and term structure together and you get a 3-D ``surface'' of IV over strike and expiry. Our desk only needs one point on it: the \textbf{ATM IV at the expiry we trade}.
+
+\section{In our code}
+
+\begin{itemize}
+
+\item \texttt{pipeline/\allowbreak{}chain.\allowbreak{}py} downloads the SPY option chain from IBKR every day, with each option's bid, ask, IV and Greeks.
+
+\item \texttt{pipeline/\allowbreak{}features.\allowbreak{}py} (\texttt{atm\_\allowbreak{}iv}) picks the ATM IV for each expiry.
+
+\item The signal (Lesson 8) compares that ATM IV with our own volatility forecast.
+
+\end{itemize}
+
+\section{Words to know}
+
+\begin{itemize}
+
+\item \textbf{Black-Scholes:} the standard option pricing formula.
+
+\item \textbf{Implied volatility (IV):} the volatility that makes the formula match the market price.
+
+\item \textbf{VIX:} 30-day implied volatility of the S\&P 500. \textbf{VVIX:} the volatility of the VIX.
+
+\item \textbf{Skew /\allowbreak{} term structure /\allowbreak{} surface:} how IV changes with strike /\allowbreak{} with expiry /\allowbreak{} with both.
+
+\item \textbf{Vol point:} one percentage point of volatility (14\% to 15\% is one vol point).
+
+\end{itemize}
+
+\section{Check yourself}
+
+\begin{enumerate}
+
+\item Two SPY options have the same strike and expiry, but one trades at a higher price. What must be true of its IV?
+
+\item Using the shortcut, roughly what does a 30-day ATM SPY option cost if IV is 20\% instead of 14\%?
+
+\item Why do OTM puts usually have higher IV than OTM calls?
+
+\end{enumerate}
+
+\emph{Answers: (1) It has a higher IV, since price rises with IV. (2) About 12.20 \ensuremath{\times} 20/\allowbreak{}14 \ensuremath{\approx} \$17.40 per share, about \$1,740 per contract. (3) Demand for crash protection.}
+
+\end{document}

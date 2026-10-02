@@ -1,8 +1,8 @@
 [signal]
 model = "vrp_band"
 forecaster = "garch"
-long_band = 0.05  # rv forecast - iv above: long
-short_band = -0.02  # rv forecast - iv below: short
+long_band = -0.05  # vrp = iv - rv forecast; below: long
+short_band = 0.02  # vrp above: short
 
 [entry]
 target_dte = 30

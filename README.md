@@ -78,6 +78,12 @@ pip install -r requirements.txt
 
 *QUANTT — Queen's University Algorithmic Network and Trading Team*
 ------
-*Portfolio Manager: Gabriel Soler*
+**Portfolio Manager: Gabriel Soler**
+
+#
+
 *R&D: Ben Gorenc*
+
+#
+
 *Analysts: Brandon Scheidler, Elizabeth Bighiu, Zach Glazer*

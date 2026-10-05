@@ -1,6 +1,8 @@
 import argparse
 from datetime import date
 
+import pandas as pd
+
 from lsgamma.core.Algos import broker
 from lsgamma.core.Algos.Hedging import delta_hedge, portfolio
 from lsgamma.forecasting import FORECASTERS
@@ -9,6 +11,11 @@ from lsgamma.signals import SIGNALS
 from lsgamma.trading import config, exits, ledger, pnl, selection
 
 TRADING_DAYS = 252
+MIN_IV_COVERAGE = 0.5  # delayed greeks vanish after the close
+
+
+class BadSnapshot(RuntimeError):
+    pass
 
 
 def horizon(dte):
@@ -19,9 +26,17 @@ def spot(chain):
     return float(chain["und_price"].median())
 
 
+def check(chain):
+    coverage = chain["iv"].notna().mean()
+    if coverage < MIN_IV_COVERAGE:
+        raise BadSnapshot(f"only {coverage:.0%} of options have IV; run during market hours")
+
+
 def decide(feats, chain, atm, cfg, today):
     expiry = selection.pick_expiry(chain, cfg)
     row = atm[atm["expiry"] == expiry].iloc[0]
+    if pd.isna(row["atm_iv"]):
+        raise BadSnapshot(f"no IV at the ATM strike for {expiry}; run during market hours")
     model = FORECASTERS[cfg["signal"]["forecaster"]]().fit(feats["ret"])
     rv = model.predict(horizon(row["dte"]))
     iv = float(row["atm_iv"])
@@ -124,6 +139,7 @@ def reconcile(ib, pos):
 
 def run(ib, cfg, today, dry=False):
     feats, chain, atm = store.load("features"), store.load("chain"), store.load("atm_iv")
+    check(chain)
     d = decide(feats, chain, atm, cfg, today)
     print(f"{d['date']}  rv {d['rv_forecast']:.3f}  iv {d['iv']:.3f}  "
           f"vrp {d['vrp']:+.3f}  signal {d['signal']}  ({d['expiry']}, {d['dte']} DTE)")
@@ -154,11 +170,14 @@ def main():
     if not a.skip_pipeline:
         from lsgamma.pipeline.build import build
         build(gateway=gateway)
-    if a.dry_run:
-        run(None, cfg, date.today(), dry=True)
-        return
-    with broker.connect(paper=True, gateway=gateway) as ib:
-        run(ib, cfg, date.today())
+    try:
+        if a.dry_run:
+            run(None, cfg, date.today(), dry=True)
+            return
+        with broker.connect(paper=True, gateway=gateway) as ib:
+            run(ib, cfg, date.today())
+    except BadSnapshot as e:
+        raise SystemExit(f"SKIPPED, nothing traded or logged: {e}")
 
 
 if __name__ == "__main__":

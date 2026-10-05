@@ -69,9 +69,12 @@ def build_features(spy, idx):
 
 
 def atm_iv(chain):
-    """Average call/put IV at the strike nearest spot, per expiry."""
+    """Average call/put IV at the strike nearest spot, per expiry.
+
+    NaN when that strike has no IV; never falls back to a farther strike.
+    """
     rows = []
-    for (expiry, dte), g in chain.dropna(subset=["iv"]).groupby(["expiry", "dte"]):
+    for (expiry, dte), g in chain.groupby(["expiry", "dte"]):
         spot = g["und_price"].median()
         strike = g.loc[(g["strike"] - spot).abs().idxmin(), "strike"]
         rows.append({"expiry": expiry, "dte": dte, "strike": strike,

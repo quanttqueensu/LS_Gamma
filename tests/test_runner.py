@@ -127,3 +127,20 @@ def test_flat_signal_no_trade(env):
     assert d["signal"] == "flat"
     assert ledger.load_position() is None
     assert ib.orders == []
+
+
+def test_missing_greeks_skips_run(env, monkeypatch):
+    data = snapshot()
+    data["chain"]["iv"] = float("nan")
+    monkeypatch.setattr(runner.store, "load", lambda name: data[name])
+    with pytest.raises(runner.BadSnapshot):
+        runner.run(FakeIB(), env, DAY1)
+    assert ledger.read_log("signals").empty
+
+
+def test_missing_atm_iv_skips_run(env, monkeypatch):
+    data = snapshot()
+    data["atm_iv"]["atm_iv"] = float("nan")
+    monkeypatch.setattr(runner.store, "load", lambda name: data[name])
+    with pytest.raises(runner.BadSnapshot):
+        runner.run(FakeIB(), env, DAY1)

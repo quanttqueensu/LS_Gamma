@@ -7,7 +7,7 @@
 | **Experiment** | `2026-10-05-har-vs-garch` (config: `configs/experiments/2026-10-05-har-vs-garch.toml`) |
 | **Topic** | RV_Forecasting |
 | **Owner** | TBD |
-| **Status** | running |
+| **Status** | failed |
 | **Started** | 2026-10-02 |
 
 ## Hypothesis

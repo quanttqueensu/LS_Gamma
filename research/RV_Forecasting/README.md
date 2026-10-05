@@ -24,4 +24,4 @@ Live forecasters are in `src/lsgamma/forecasting/` (`GARCH.py`, `HAR.py`, `FOREC
 ## Experiments
 | Date | Hypothesis | Owner | Status | Summary |
 |---|---|---|---|---|
-| 2026-10-05 | [HAR beats GARCH on 20-day RV](2026-10-05-har-vs-garch/README.md) (worked example) | TBD | running | [summary](2026-10-05-har-vs-garch/summary.md) |
+| 2026-10-05 | [HAR beats GARCH on 20-day RV](2026-10-05-har-vs-garch/README.md) (worked example) | setup example | failed | [summary](2026-10-05-har-vs-garch/summary.md) |

@@ -24,4 +24,4 @@ Live signals are in `src/lsgamma/signals/` (`SIGNALS` registry). The 10 executio
 ## Experiments
 | Date | Hypothesis | Owner | Status | Summary |
 |---|---|---|---|---|
-| | | | | |
+| 2026-10-07 | [Skipping shorts when VIX curve is inverted raises short precision](2026-10-07-vix-term-gate/README.md) | Gabe Soler (PM) | failed | [summary](2026-10-07-vix-term-gate/summary.md) |

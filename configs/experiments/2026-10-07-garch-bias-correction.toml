@@ -1,0 +1,29 @@
+[experiment]
+name = "2026-10-07-garch-bias-correction"
+topic = "RV_Forecasting"
+owner = "Gabe Soler (PM)"
+
+[data]
+symbol = "SPY"
+years = 16
+holdout_start = "2025-10-01"  # last 12 months: do not use until final run
+
+[walk_forward]
+train_days = 1255  # rolling 5y fit window, same as live
+step = 1  # refit every trading day, same as live
+embargo_days = 21  # = horizon: target windows never cross into the hold-out
+
+[model]
+forecaster = "garch"
+horizon = 21  # trading days, live horizon for ~30 DTE
+bias_window = 252  # past forecasts used to estimate bias
+
+[signal]
+iv_vix_ratio = 0.83  # ATM IV / VIX from live snapshots
+sensitivity_ratio = 1.0  # reported only, not used for the pass bar
+
+[pass]
+max_abs_bias = 0.01  # median forecast minus realized, vol units
+short_gain = 0.05  # short precision must beat baseline by this
+min_long_precision = 0.5
+min_days = 30  # per signal side, else that test fails

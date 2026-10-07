@@ -1,0 +1,323 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Should Long Gamma Use a Shock or Regime Trigger, and Is It Worth Doing?}
+\author{Strategy research \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-07}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Question:} look into a shock or regime detection condition for long gamma trades. look into if its worth doing at wll
+
+\textbf{Method:} Searched all 35 papers in \texttt{docs/\allowbreak{}papers/\allowbreak{}} (page-tagged index) + web search, plus a descriptive check on the desk's own 2006--2025 SPY/\allowbreak{}VIX data. Quotes verified against the cited PDF pages. Page numbers are PDF pages; printed page numbers are the same for every page cited here.
+
+\textbf{Previous research:} \href{2026-09-29-signal-generation-for-market-state.pdf}{Signal generation for market state} \textperiodcentered{} \href{2026-10-01-clustering-k-means-for-algo-selection.pdf}{Clustering for algo selection}
+
+\section{Short answer}
+
+\textbf{A trigger based on the market's own fear gauge (an inverted VIX curve) is the right kind of long-gamma condition. A statistical regime model (HMM or jump model) is not.} But even the right trigger is \textbf{not worth building as a standalone strategy yet.}
+
+\begin{itemize}
+
+\item \textbf{Long gamma on SPY fights the volatility risk premium.} Delta-hedged long options lose money on average, and the papers agree on why: buyers pay for crash insurance. Our current long trigger (VRP below \ensuremath{-}5) is right only 39\% of the time, close to the 34\% base rate.
+
+\item \textbf{The edge only appears in rare, short windows.} On our data, after a deep VIX curve inversion (VIX/\allowbreak{}VIX3M \ensuremath{\geq} 1.1), realized vol beat IV over the next \textbf{5} days 71\% of the time (median +10.5 vol pts). Over \textbf{21} days that falls to 56\% (+3.3 pts). This lines up with OPHR's long trades lasting hours and Johnson's next-day effect.
+
+\item \textbf{Statistical regime models are too slow for this.} They detect a crash about \textbf{two weeks} late, and the edge is gone within days. The VIX curve reacts the same day.
+
+\item \textbf{The sample is tiny.} The 133 deep-inversion days fall in 18 episodes, and late 2008 plus Feb--Mar 2020 make up 70 of them.
+
+\item \textbf{Recommendation:} treat long gamma as a small crisis hedge for the short-gamma book, not a profit source. Don't test it until the desk can price options historically, because the stand-in (IV vs realized) ignores the vega loss that likely decides this trade.
+
+\end{itemize}
+
+\section{What the papers say}
+
+\subsection{Long gamma loses on average on index options}
+
+\begin{itemize}
+
+\item \textbf{Delta-hedged long options have negative expected P\&L,} summarizing Bakshi \& Kapadia (2003) and Carr \& Wu (2009):
+
+\begin{quote}``The long-variance position earns a statistically significant negative average return at one-month horizons.'' (Wysocki 2026, \emph{Harvesting the Volatility Risk Premium: A Learning-to-Rank Approach}, p. 2)\end{quote}
+
+\begin{quote}``A long option position that is dynamically hedged against moves in the underlying earns a negative average gain, and the shortfall widens with the position's vega.'' (same, p. 2)\end{quote}
+
+\item \textbf{The premium exists because vol spikes come with crashes,} which makes long vol an insurance purchase:
+
+\begin{quote}``The VRP is a measure of volatility risk compensation and it is typically positive. This is to be expected because large increases in volatility tend to coincide with large negative returns.'' (Hansen, Huang, Tong \& Wang 2021, \emph{Realized GARCH, CBOE VIX, and the Volatility Risk Premium}, p. 2)\end{quote}
+
+\item \textbf{The shape of the trade: rarely right, but with big payoffs when it is:}
+
+\begin{quote}``Short Gamma positions achieve high WR but poor PLR because they collect small premiums consistently while remaining exposed to rare but catastrophic losses during volatility spikes. Conversely, Long Gamma strategies offer better PLR by capitalizing on large market movements, but suffer negative returns due to low WR and theta decay during market stability.'' (Chen, Cai, Qin \& An 2025, \emph{OPHR}, p. 9)\end{quote}
+
+WR is win rate and PLR is profit/\allowbreak{}loss ratio. In OPHR's own results, long trades won only 32--47\% of the time, with average wins 1.5--2.3 times the average loss (Table 3, p. 9). This is crypto data.
+
+\end{itemize}
+
+\subsection{Where long gamma does pay: brief spikes, short holds}
+
+\begin{itemize}
+
+\item \textbf{OPHR's agent goes long only in short bursts:}
+
+\begin{quote}``punctuated by brief episodes of extreme volatility (ideal for long volatility positions with shorter holding periods)'' (\emph{OPHR}, p. 10)\end{quote}
+
+Its long trades lasted about 9--21 hours, against 50 hours for short trades (p. 9).
+
+\item \textbf{The opportunity sits in the tails, and forecasting models miss it:}
+
+\begin{quote}``they consistently underperform in capturing the long-Gamma opportunities hidden in the fat tails of volatility distributions, precisely where the most significant profit potential exists'' (\emph{OPHR}, p. 9)\end{quote}
+
+\begin{quote}``these models fail to accurately capture the sharp spikes in realized volatility (RV), which are critical for long Gamma trading strategies.'' (\emph{OPHR}, p. 30)\end{quote}
+
+This is why a better RV forecast won't fix the long side (inference). It matches the desk's bias-correction experiment, which found the forecast wasn't the bottleneck.
+
+\end{itemize}
+
+\subsection{Regime models detect crashes too late for this trade}
+
+\begin{itemize}
+
+\item \textbf{Jump models and HMMs confirm a regime after the fact:}
+
+\begin{quote}``We observe a latency of approximately half a month in detecting both the onset and conclusion of the market crash, which is representative in our study and aligns with typical results in similar studies.'' (Shu, Yu \& Mulvey 2024, \emph{Downside Risk Reduction Using Regime-Switching Signals}, p. 13)\end{quote}
+
+They cite Nystrup et al.:
+
+\begin{quote}``the median [latency] in detecting regime changes is 25 (calendar) days.'' (same, p. 13)\end{quote}
+
+\item \textbf{By design, these models are built to ride a regime, not to catch its start:}
+
+\begin{quote}``not to predict regime shifts or future market movements, but to identify when a regime shift has occurred, and then benefit from the persistence of equilibrium risk-return relations'' (same, p. 7, quoting Nystrup et al. 2015)\end{quote}
+
+That fits a slow allocation decision, like cutting equity exposure for months. It doesn't fit a long-gamma edge that lasts days (inference).
+
+\item \textbf{Markov models also struggle in the crisis itself:}
+
+\begin{quote}``This may reflect the Markov model's limitations in adapting quickly to sharp, irregular market transitions during crisis periods.'' (Blake, Gandhi \& Jakkula 2025, \emph{Improving S\&P 500 Volatility Forecasting through Regime-Switching Methods}, p. 11)\end{quote}
+
+\end{itemize}
+
+\subsection{PRISM: contradictory, low weight}
+
+\begin{itemize}
+
+\item PRISM (a non-peer-reviewed whitepaper with simulated results) says to \emph{cut} long gamma in a crisis:
+
+\begin{quote}``In crisis regimes, the VRP frequently inverts---realized vol spikes above implied---which is precisely why PRISM's regime-adaptive position sizing reduces or eliminates long gamma exposure during detected crisis states.'' (Verma 2026, \emph{PRISM}, p. 10)\end{quote}
+
+But a VRP that ``inverts'' (realized above implied) is exactly when long gamma \emph{pays}. Elsewhere PRISM also says:
+
+\begin{quote}``crisis vol spikes generate the largest single-day gamma income'' (\emph{PRISM}, p. 37)\end{quote}
+
+\item It does make one useful practical point:
+
+\begin{quote}``During market dislocations---which are also the times when VRC's long gamma positions are most valuable---bid-ask spreads can widen abruptly'' (\emph{PRISM}, p. 41)\end{quote}
+
+\end{itemize}
+
+\section{Outside the repo (web sources)}
+
+\begin{itemize}
+
+\item \textbf{Investors pay \emph{more} for protection right after a crash} (Todorov 2010, \emph{Review of Financial Studies}): ``their willingness to pay for protection against jumps increases significantly immediately after the occurrence of jumps'' (\href{https://ideas.repec.org/a/oup/rfinst/v23y2010i1p345-383.html}{IDEAS abstract}). So buying vol \emph{after} a shock usually means paying an inflated price. That is consistent with a one-day VIX jump of 20\% or more not helping in our check below.
+
+\item \textbf{The VIX curve's shape predicts long-vol returns} (Johnson 2017, \emph{JFQA}): the slope ``predict[s] the excess returns of synthetic Standard \& Poor's (S\&P) 500 variance swaps, VIX futures, and S\&P 500 straddles for all maturities'' (\href{https://ideas.repec.org/a/cup/jfinqa/v52y2017i06p2461-2490_00.html}{IDEAS abstract}). A low or inverted slope predicts higher returns to long variance, and the published results are for \textbf{next-day} returns (\href{https://www.cxoadvisory.com/volatility-effects/vix-term-structure-slope-and-variance-asset-future-returns/}{CXO summary}).
+
+\item \textbf{The VIX futures premium falls before spikes} (Cheng 2019, \emph{RFS}): the premium can ``fall or stay flat when ex ante measures of risk rise'', and ``falling ex ante premiums predict increasing ex post market and investment risk, creating profitable trading opportunities'' (\href{https://ideas.repec.org/a/oup/rfinst/v32y2019i1p180-227..html}{IDEAS abstract}). This is a forward-looking trigger, but it needs VIX futures data the live pipeline doesn't have.
+
+\item \textbf{Constant protection is expensive} (Harvey, Hoyle, Rattray, Sargaison, Taylor \& Van Hemert 2019, \emph{J. Portfolio Management}): ``continuously holding short-dated S\&P 500 put options is the most reliable defensive method but also the most costly strategy'' (\href{https://people.duke.edu/~charvey/Research/Published_Papers/P140_The_best_of.pdf}{PDF}). Puts were costly in the normal times that make up 86\% of their sample.
+
+\item \textbf{The cheap-VRP rule works for single stocks, not obviously for the index} (Goyal \& Saretto 2009, \emph{JFE}): going long options where historical vol is far above IV ``produces an economically and statistically significant average monthly return'' in the \emph{cross-section of stocks} (\href{https://ideas.repec.org/a/eee/jfinec/v94y2009i2p310-326.html}{IDEAS abstract}). On SPY, the long side also has to overcome the index crash premium, which is consistent with our long signals losing (inference).
+
+\end{itemize}
+
+\section{Desk check: when has realized vol beaten IV? (descriptive)}
+
+This is SPY 2006-08 to 2025-08, with IV \ensuremath{\approx} 0.83 \ensuremath{\times} VIX and the live GARCH forecast. It is \emph{not} a pre-registered test, and it looks at the same history as the desk's earlier experiments. ``Long wins'' means realized vol over the window ended above IV.
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Condition (that day)} & \textbf{Days (\% of days)} & \textbf{Long wins, 21d} & \textbf{Median realized \ensuremath{-} IV, 21d} & \textbf{Long wins, 5d} & \textbf{Median realized \ensuremath{-} IV, 5d} \\
+\midrule
+All days & 4,801 (100\%) & 34\% & \ensuremath{-}1.7 pts & 32\% & \ensuremath{-}2.5 pts \\
+Live long signal (VRP < \ensuremath{-}5) & 294 (6.1\%) & 39\% & \ensuremath{-}2.0 & 39\% & \ensuremath{-}1.9 \\
+SPY down 2\% or more & 210 (4.4\%) & 47\% & \ensuremath{-}0.6 & 48\% & \ensuremath{-}0.2 \\
+VIX up 20\% or more in a day & 104 (2.2\%) & 37\% & \ensuremath{-}2.9 & 42\% & \ensuremath{-}0.6 \\
+VIX/\allowbreak{}VIX3M \ensuremath{\geq} 1 & 536 (11.2\%) & 43\% & \ensuremath{-}1.2 & 57\% & +1.3 \\
+\textbf{VIX/\allowbreak{}VIX3M \ensuremath{\geq} 1.1} & \textbf{133 (2.8\%)} & \textbf{56\%} & \textbf{+3.3} & \textbf{71\%} & \textbf{+10.5} \\
+Long signal and VIX/\allowbreak{}VIX3M \ensuremath{\geq} 1 & 113 (2.4\%) & 52\% & +0.4 & 61\% & +6.6 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item \textbf{Only a deep inversion moves the odds,} and mostly over 5 days. A big down day or a VIX spike on its own does not, consistent with Todorov.
+
+\item \textbf{The deep-inversion days are rare and clustered:} 133 days in 18 episodes (about 7 days a year). Late 2008 (46 days) and Feb--Mar 2020 (24 days) make up more than half.
+
+\item \textbf{IV \ensuremath{-} realized ignores vega.} An inverted curve means IV is already high, and it usually falls back afterwards. A 30-DTE long call bought then can lose more on falling IV than it earns from hedging gains over 5 days. This is why the trade can't be judged without option prices.
+
+\end{itemize}
+
+\section{How the papers connect}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Paper} & \textbf{Builds on /\allowbreak{} agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
+\midrule
+Wysocki 2026 (repo) & Bakshi \& Kapadia; Carr \& Wu & Studies the short side (0DTE puts) & Hedged long options lose on average \\
+Hansen et al. 2021 (repo) & Bakshi \& Kapadia; Bollerslev et al. & Model of the VRP, not a strategy & Why the VRP is positive \\
+OPHR 2025 (repo) & RV-vs-IV rule as starting policy & Crypto; learns timing with RL & Long gamma pays only in short spikes \\
+Shu, Yu \& Mulvey 2024 (repo) & Nystrup et al. 2020 & Equity allocation, not options & Regime detection lags \textasciitilde{}2 weeks \\
+Blake et al. 2025 (repo) & HAR, Markov switching & Forecasting only & Markov models slip in crises \\
+PRISM 2026 (repo, whitepaper) & HMM regimes & Internally inconsistent; simulated & Liquidity worsens when long gamma pays \\
+Todorov 2010 (web) & Jump-diffusion VRP literature & Variance swaps, not straddles & Protection gets pricier after jumps \\
+Johnson 2017 (web) & Expectations-hypothesis tests & Next-day horizon & VIX slope predicts straddle returns \\
+Cheng 2019 (web) & Hedging-demand theories & VIX futures & Falling premium predicts spikes \\
+Goyal \& Saretto 2009 (web) & Vol mean reversion & Single stocks, cross-section & Cheap-VRP long works across stocks \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item \textbf{Everyone agrees long gamma has a negative average} (Wysocki, Hansen, Harvey et al., OPHR). The disagreement is only over whether \emph{timing} can flip the sign in specific windows.
+
+\item \textbf{The papers that find a timing edge} (Johnson, Cheng, OPHR) all find it in \textbf{market-implied} signals and over \textbf{short} horizons. The regime-model papers (Shu, Blake) describe \textbf{lagging} detectors suited to slow decisions.
+
+\item \textbf{Todorov explains why ``buy after the shock'' fails:} the premium rises right after jumps, so the obvious trigger buys expensive vol.
+
+\end{itemize}
+
+\section{Relevance to the LS Gamma desk}
+
+These are suggestions. The structures and thresholds are your decisions:
+
+\begin{itemize}
+
+\item \textbf{Is it worth doing at all? As a profit source, probably not.} The best condition fires about 7 days a year, in a handful of episodes. The desk's live setup also limits it:
+
+\begin{itemize}
+
+\item one run per day around 10:15 ET, on delayed IBKR data;
+
+\item a 30-DTE long call that carries a lot of vega;
+
+\item an exit after 3 flat days, which is slower than the 5-day edge.
+
+\end{itemize}
+
+\item \textbf{As a hedge for the short-gamma book, maybe.} The 2026-10-07 VIX-gate experiments found that inverted-curve days hold the short side's worst losses. A long-gamma trade on those same days would be a natural pair: skip shorts, and optionally hold a small long. That's a risk-management choice, not alpha.
+
+\item \textbf{If you keep a long side, the trigger should be market-implied and fast.} VIX/\allowbreak{}VIX3M is already built in the pipeline (\texttt{pipeline/\allowbreak{}features.\allowbreak{}py}) and reacts the same day. Don't build an HMM or jump model for this, because the \textasciitilde{}2-week detection lag is longer than the edge lasts.
+
+\item \textbf{The current long trigger (VRP < \ensuremath{-}5) has no edge on our data:} 39\% wins, against a 34\% base rate. Keeping it on in paper costs little and gives execution practice. It's your call whether to replace it, disable it, or leave it.
+
+\item \textbf{Order of work:}
+
+\begin{enumerate}
+
+\item \textbf{The short-put P\&L backtest} already planned in PROGRESS. Its option-pricing layer (historical ATM IV from R2 trades) is the same thing a long-gamma test needs.
+
+\item \textbf{Then a long-gamma card on real option P\&L,} for example: \emph{long ATM gamma only when VIX/\allowbreak{}VIX3M \ensuremath{\geq} 1.1, held at most 5 trading days, delta-hedged daily, has positive mean P\&L after costs on 2006--2015.} Compare a shorter expiry (7--14 DTE, more gamma per unit of vega) against the current 30 DTE.
+
+\item \textbf{Not worth testing on the IV-vs-realized stand-in,} since it can't see the vega loss.
+
+\end{enumerate}
+
+\end{itemize}
+
+\section{Gaps and open questions}
+
+\begin{itemize}
+
+\item \textbf{Vega vs gamma:} none of the repo papers separate the gamma P\&L from the vega P\&L of a long position bought into an inverted curve. That split decides whether the 5-day edge survives.
+
+\item \textbf{Tiny sample:} 18 deep-inversion episodes, dominated by two. Any backtest result will have very wide error bars.
+
+\item \textbf{Execution in stress:} spreads widen exactly when the trade pays (PRISM p. 41), and paper fills on delayed data will flatter results.
+
+\item \textbf{Forward-looking triggers need data the pipeline lacks:} the VIX futures premium (Cheng) needs VX futures. It is worth checking whether the club's R2 \texttt{Data\_\allowbreak{}Jayden/\allowbreak{}} futures settlements include VX.
+
+\item \textbf{OPHR is crypto with hourly decisions.} Its holding periods may not carry over to SPY on a daily schedule.
+
+\end{itemize}
+
+\section{Sources}
+
+\textbf{Repo papers used, with pages cited:}
+
+\begin{itemize}
+
+\item \texttt{OPHR-\allowbreak{}Mastering-\allowbreak{}Volatility-\allowbreak{}Trading-\allowbreak{}with-\allowbreak{}Multi-\allowbreak{}Agent-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf}: Chen, Cai, Qin \& An 2025 (pp. 9, 10, 30)
+
+\item \texttt{Harvesting-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium-\allowbreak{}A-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}Rank-\allowbreak{}Approach.\allowbreak{}pdf}: Wysocki 2026 (p. 2)
+
+\item \texttt{Realized-\allowbreak{}GARCH,\allowbreak{}-\allowbreak{}CBOE-\allowbreak{}VIX,\allowbreak{}-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}: Hansen, Huang, Tong \& Wang 2021 (p. 2)
+
+\item \texttt{Downside-\allowbreak{}Risk-\allowbreak{}Reduction-\allowbreak{}Using-\allowbreak{}Regime-\allowbreak{}Switching-\allowbreak{}Signals-\allowbreak{}A-\allowbreak{}Statistical-\allowbreak{}Jump-\allowbreak{}Model-\allowbreak{}Approach.\allowbreak{}pdf}: Shu, Yu \& Mulvey 2024 (pp. 7, 13)
+
+\item \texttt{Improving-\allowbreak{}S\&P-\allowbreak{}500-\allowbreak{}Volatility-\allowbreak{}Forecasting-\allowbreak{}through-\allowbreak{}Regime-\allowbreak{}Switching-\allowbreak{}Methods.\allowbreak{}pdf}: Blake, Gandhi \& Jakkula 2025 (p. 11)
+
+\item \texttt{PRISM-\allowbreak{}A-\allowbreak{}Probabilistic-\allowbreak{}Regime-\allowbreak{}Integrated-\allowbreak{}Scalping-\allowbreak{}Model-\allowbreak{}for-\allowbreak{}Derivatives-\allowbreak{}Arbitrage.\allowbreak{}pdf}: Verma 2026 (pp. 10, 37, 41)
+
+\end{itemize}
+
+\textbf{Checked, nothing relevant to long-gamma timing:}
+
+\begin{itemize}
+
+\item \texttt{Volatility-\allowbreak{}of-\allowbreak{}Volatility-\allowbreak{}and-\allowbreak{}Leverage-\allowbreak{}Effect-\allowbreak{}from-\allowbreak{}Options.\allowbreak{}pdf} (estimation methods)
+
+\item \texttt{Volatility-\allowbreak{}Forecasting-\allowbreak{}and-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf} (measures the VRP, no timing)
+
+\item \texttt{Learning-\allowbreak{}Hidden-\allowbreak{}Markov-\allowbreak{}Models-\allowbreak{}with-\allowbreak{}Persistent-\allowbreak{}States-\allowbreak{}by-\allowbreak{}Penalizing-\allowbreak{}Jumps.\allowbreak{}pdf} and \texttt{Clustering-\allowbreak{}Market-\allowbreak{}Regimes-\allowbreak{}Using-\allowbreak{}the-\allowbreak{}Wasserstein-\allowbreak{}Distance.\allowbreak{}pdf} (regime methods, covered in the clustering report)
+
+\item The deep hedging, hedging, forecasting, walk-forward and survey papers (they decide hedge size or forecast vol, not when to go long gamma)
+
+\end{itemize}
+
+\textbf{Web sources (outside the repo):}
+
+\begin{itemize}
+
+\item \href{https://ideas.repec.org/a/oup/rfinst/v23y2010i1p345-383.html}{Todorov 2010, \emph{Variance Risk-Premium Dynamics: The Role of Jumps}, RFS 23(1)}
+
+\item \href{https://ideas.repec.org/a/cup/jfinqa/v52y2017i06p2461-2490_00.html}{Johnson 2017, \emph{Risk Premia and the VIX Term Structure}, JFQA 52(6)}, with the \href{https://www.cxoadvisory.com/volatility-effects/vix-term-structure-slope-and-variance-asset-future-returns/}{CXO Advisory summary}
+
+\item \href{https://ideas.repec.org/a/oup/rfinst/v32y2019i1p180-227..html}{Cheng 2019, \emph{The VIX Premium}, RFS 32(1)}
+
+\item \href{https://people.duke.edu/~charvey/Research/Published_Papers/P140_The_best_of.pdf}{Harvey et al. 2019, \emph{The Best of Strategies for the Worst of Times: Can Portfolios Be Crisis Proofed?}, JPM}
+
+\item \href{https://ideas.repec.org/a/eee/jfinec/v94y2009i2p310-326.html}{Goyal \& Saretto 2009, \emph{Cross-Section of Option Returns and Volatility}, JFE 94(2)}
+
+\end{itemize}
+
+\textbf{Suggested papers to add to \texttt{docs/\allowbreak{}papers/\allowbreak{}}:}
+
+\begin{enumerate}
+
+\item \textbf{Johnson 2017:} the closest published evidence for a VIX-term-structure trigger on S\&P 500 straddles.
+
+\item \textbf{Todorov 2010:} explains why ``buy vol after a shock'' tends to overpay.
+
+\item \textbf{Cheng 2019:} a forward-looking spike signal (VIX futures premium) if VX data becomes available.
+
+\item \textbf{Bakshi \& Kapadia 2003, \emph{Delta-Hedged Gains and the Negative Market Volatility Risk Premium}:} the foundation for why hedged long options lose.
+
+\end{enumerate}
+
+\end{document}

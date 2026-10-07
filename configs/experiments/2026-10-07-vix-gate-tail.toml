@@ -1,0 +1,33 @@
+[experiment]
+name = "2026-10-07-vix-gate-tail"
+topic = "Agentic_Routing"
+owner = "Gabe Soler (PM)"
+
+[data]
+symbol = "SPY"
+years = 30
+test_start = "2006-08-01"  # VIX3M starts 2006-07; unseen by desk experiments
+test_end = "2015-09-30"  # reference period starts after this
+holdout_start = "2025-10-01"  # last 12 months: do not use until final run
+
+[walk_forward]
+train_days = 1255  # rolling 5y fit window, same as live
+step = 1  # refit every trading day, same as live
+embargo_days = 21  # = horizon: target windows never cross into the hold-out
+
+[model]
+forecaster = "garch"
+horizon = 21  # trading days, live horizon for ~30 DTE
+
+[gate]
+max_vix_vix3m = 1.0  # skip shorts at or above this
+
+[signal]
+iv_vix_ratio = 0.83  # ATM IV / VIX from live snapshots
+sensitivity_ratio = 1.0  # reported only, not used for the pass bar
+
+[pass]
+tail = 0.05  # worst share of short days for expected shortfall
+es_cut = 0.30  # gated ES must be this much smaller
+min_keep = 0.75  # gated short days / live short days
+min_days = 30

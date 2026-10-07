@@ -10,6 +10,7 @@ min_dte = 21
 max_dte = 45
 
 [size]
+capital = 250000  # paper money (USD), not real; unused
 quantity = 1  # contracts per leg
 max_positions = 1
 

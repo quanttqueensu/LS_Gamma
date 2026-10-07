@@ -78,11 +78,7 @@ pip install -r requirements.txt
 
 *QUANTT — Queen's University Algorithmic Network and Trading Team*
 ------
-**Portfolio Manager: Gabriel Soler**
-
-#
-
-*R&D: Ben Gorenc*
+**Portfolio Manager: Gabriel Soler, Ben Gorenc**
 
 #
 

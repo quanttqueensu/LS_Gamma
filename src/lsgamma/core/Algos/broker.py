@@ -175,7 +175,8 @@ def submit_stock(ib, shares, underlying=UNDERLYING):
         raise ValueError("shares must be non-zero")
     stock = Stock(underlying, EXCHANGE, CURRENCY)
     ib.qualifyContracts(stock)
-    order = MarketOrder("BUY" if shares > 0 else "SELL", abs(shares))
+    # explicit TIF avoids IBKR warning 10349
+    order = MarketOrder("BUY" if shares > 0 else "SELL", abs(shares), tif="DAY")
     return ib.placeOrder(stock, order)
 
 

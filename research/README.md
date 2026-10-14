@@ -20,6 +20,9 @@ How the desk tests ideas. Work is organized **by topic**. Each topic's README li
 
 A finished example: `RV_Forecasting/2026-10-05-har-vs-garch/`.
 
+## Work logs
+At the end of every session, run `/log-work` in Claude Code. See `work-logs/README.md`.
+
 ## Rules
 - **Import desk code, don't copy it.** Use `from lsgamma.forecasting import FORECASTERS`, `lsgamma.signals` and so on, so a passing result tests the code that would actually go live.
 - **Every parameter goes in the experiment's TOML** (`configs/experiments/<name>.toml`), not hard-coded.

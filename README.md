@@ -26,6 +26,7 @@ research/                  # Research notes (AI), papers (Written by Analysts or
 ├── RV_Forecasting/
 ├── strategy_research/     # research reports (LaTeX + PDF)
 └── Misc_Research_Notes/   # deep research reports and notes (LaTeX + PDF)
+work-logs/                 # analyst session logs: run /log-work (see work-logs/README.md)
 docs/
 ├── education/             # 10 onboarding lessons (LaTeX + PDF)
 ├── decisions/             # decision records

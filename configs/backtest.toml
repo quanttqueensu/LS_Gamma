@@ -1,0 +1,18 @@
+# Backtest settings. Merged over paper.toml, then the experiment TOML.
+
+[history]
+version = "v1"  # snapshot folder: data/backtest/<version>/
+lag = "15min"  # decide on data this stale
+fill_window = "15min"  # fill on trades after deciding
+grid = ["10:15", "10:45", "11:15", "11:45", "12:15", "12:45",
+        "13:15", "13:45", "14:15", "14:45", "15:15", "15:45"]  # ET
+last_day = "2026-07-31"  # R2 ends; never later
+conditions = [209, 219, 227, 228, 229, 230, 231]  # single-leg OPRA codes
+
+[backtest]
+start = "2014-06-02"
+end = "2024-12-31"
+holdout_start = "2025-01-01"  # needs --holdout
+spread_mult = 1.0  # stress run at 2.0
+commission_contract = 0.65  # USD per option contract
+commission_share = 0.005  # USD per share

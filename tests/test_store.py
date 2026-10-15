@@ -39,3 +39,11 @@ def test_old_day_folders_still_load(root):
     assert store.load("chain")["x"].iloc[0] == 0
     store.save(df(1), "chain", at("2026-09-29 10:15"))
     assert store.load("chain")["x"].iloc[0] == 1
+
+
+def test_custom_root_and_exact_folder(tmp_path):
+    other = tmp_path / "backtest"
+    t = at("2026-10-01 10:15")
+    store.save(df(5), "chain", t, root=other)
+    assert store.folder(t, other) == other / "2026-10-01" / "1015"
+    assert store.load("chain", t, root=other)["x"].iloc[0] == 5

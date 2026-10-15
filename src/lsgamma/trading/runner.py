@@ -42,12 +42,17 @@ def check(chain):
         raise BadSnapshot(f"only {coverage:.0%} of options have IV; run during market hours")
 
 
+def completed(feats, asof):
+    # forecasts use completed days only
+    return feats[feats.index < pd.Timestamp(asof.date())]
+
+
 def decide(feats, chain, atm, cfg, asof):
     expiry = selection.pick_expiry(chain, cfg)
     row = atm[atm["expiry"] == expiry].iloc[0]
     if pd.isna(row["atm_iv"]):
         raise BadSnapshot(f"no IV at the ATM strike for {expiry}; run during market hours")
-    model = FORECASTERS[cfg["signal"]["forecaster"]]().fit(feats["ret"])
+    model = FORECASTERS[cfg["signal"]["forecaster"]]().fit(completed(feats, asof)["ret"])
     rv = model.predict(horizon(row["dte"]))
     iv = float(row["atm_iv"])
     signal = SIGNALS[cfg["signal"]["model"]](rv, iv, cfg)

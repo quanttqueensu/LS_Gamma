@@ -32,6 +32,7 @@ docs/
 ├── decisions/             # decision records
 ├── papers/                # research papers (Academic)
 ├── scripts.md             # how to test and run everything
+├── commands.md            # Claude Code commands for analysts (/log-work)
 └── repo-architecture.png  # architecture diagram
 configs/
 ├── paper.toml             # every strategy number for paper trading

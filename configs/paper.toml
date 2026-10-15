@@ -21,6 +21,10 @@ short_stop_mult = 1.0  # stop at credit times this
 long_stop_frac = 0.5  # stop after losing this premium fraction
 short_profit_frac = 0.5  # take profit at this credit fraction
 
+[schedule]
+signal = ["10:15"]  # ET; live runner allows one time
+hedge = ["10:15"]  # ET; may differ in backtests
+
 [execution]
 slippage = 0.05
 fill_timeout = 60  # seconds

@@ -13,12 +13,13 @@ from lsgamma.pipeline import features, market, store
 
 
 def build(chain=True, all_expiries=False, gateway=False):
+    asof = store.now()
     spy = market.spy_daily()
     idx = market.indices()
     feats = features.build_features(spy, idx)
 
     for name, df in [("spy_daily", spy), ("indices", idx), ("features", feats)]:
-        print(f"saved {store.save(df, name)}  ({len(df)} rows)")
+        print(f"saved {store.save(df, name, asof)}  ({len(df)} rows)")
 
     if chain:
         # Imported here so --no-chain works without TWS
@@ -30,7 +31,7 @@ def build(chain=True, all_expiries=False, gateway=False):
             ch = option_chain(ib, fridays_only=not all_expiries)
         atm = features.atm_iv(ch)
         for name, df in [("chain", ch), ("atm_iv", atm)]:
-            print(f"saved {store.save(df, name)}  ({len(df)} rows)")
+            print(f"saved {store.save(df, name, asof)}  ({len(df)} rows)")
         print(f"chain pulled in {time.time() - start:.0f}s")
 
 

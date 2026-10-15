@@ -7,7 +7,11 @@ import pytest
 
 from lsgamma.trading import config, ledger, runner
 
-DAY1, DAY2 = date(2026, 10, 1), date(2026, 10, 2)
+def at(day, hhmm="10:15"):
+    return pd.Timestamp(f"2026-10-{day:02d} {hhmm}", tz="America/New_York")
+
+
+DAY1, DAY2 = at(1), at(2)
 SPOT = 600.0
 
 
@@ -64,7 +68,7 @@ def snapshot():
     for expiry in (date(2026, 10, 2), date(2026, 10, 30), date(2026, 11, 6)):
         for strike in (595.0, 600.0, 605.0):
             for right in ("C", "P"):
-                rows.append({"expiry": expiry, "dte": (expiry - DAY1).days, "strike": strike,
+                rows.append({"expiry": expiry, "dte": (expiry - DAY1.date()).days, "strike": strike,
                              "right": right, "mid": 5.0, "iv": 0.15, "und_price": SPOT})
     chain = pd.DataFrame(rows)
     atm = pd.DataFrame({"expiry": [date(2026, 10, 30)], "dte": [29],
@@ -86,7 +90,7 @@ class Fixed:
 def env(tmp_path, monkeypatch):
     monkeypatch.setattr(ledger, "ROOT", tmp_path)
     data = snapshot()
-    monkeypatch.setattr(runner.store, "load", lambda name: data[name])
+    monkeypatch.setattr(runner.store, "load", lambda name, asof=None: data[name])
     monkeypatch.setitem(runner.FORECASTERS, "fixed", Fixed)
     cfg = config.load()
     cfg["signal"]["forecaster"] = "fixed"
@@ -132,7 +136,7 @@ def test_flat_signal_no_trade(env):
 def test_missing_greeks_skips_run(env, monkeypatch):
     data = snapshot()
     data["chain"]["iv"] = float("nan")
-    monkeypatch.setattr(runner.store, "load", lambda name: data[name])
+    monkeypatch.setattr(runner.store, "load", lambda name, asof=None: data[name])
     with pytest.raises(runner.BadSnapshot):
         runner.run(FakeIB(), env, DAY1)
     assert ledger.read_log("signals").empty
@@ -141,6 +145,35 @@ def test_missing_greeks_skips_run(env, monkeypatch):
 def test_missing_atm_iv_skips_run(env, monkeypatch):
     data = snapshot()
     data["atm_iv"]["atm_iv"] = float("nan")
-    monkeypatch.setattr(runner.store, "load", lambda name: data[name])
+    monkeypatch.setattr(runner.store, "load", lambda name, asof=None: data[name])
     with pytest.raises(runner.BadSnapshot):
         runner.run(FakeIB(), env, DAY1)
+
+
+def test_flat_exit_counts_days_not_runs(env):
+    ib = FakeIB()
+    Fixed.vol = 0.10
+    runner.run(ib, env, DAY1)
+    Fixed.vol = 0.16
+    for hhmm in ("10:15", "11:15", "12:15", "13:15"):
+        runner.run(ib, env, at(2, hhmm))
+    assert ledger.load_position() is not None
+    runner.run(ib, env, at(3))
+    assert ledger.load_position() is not None
+    runner.run(ib, env, at(4))
+    assert ledger.load_position() is None
+    assert ledger.read_log("trades")["reason"].iloc[-1] == "flat"
+
+
+def test_rows_carry_timestamps(env):
+    Fixed.vol = 0.10
+    runner.run(FakeIB(), env, at(1, "11:15"))
+    assert ledger.read_log("signals")["ts"].iloc[0] == "2026-10-01T11:15:00-04:00"
+    assert ledger.load_position()["hedges"][0]["ts"] == "2026-10-01T11:15:00-04:00"
+
+
+def test_live_rejects_intraday_schedule(env):
+    runner.check_schedule(env)
+    env["schedule"]["hedge"] = ["10:15", "11:15"]
+    with pytest.raises(SystemExit):
+        runner.check_schedule(env)

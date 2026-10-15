@@ -1,27 +1,35 @@
-"""Save and load daily snapshots under data/live/<YYYY-MM-DD>/."""
+"""Save and load snapshots under data/live/<YYYY-MM-DD>/<HHMM>/ (US Eastern)."""
 
-from datetime import date
 from pathlib import Path
 
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[3] / "data" / "live"
+TZ = "America/New_York"
 
 
-def save(df, name, day=None):
-    folder = ROOT / str(day or date.today())
-    folder.mkdir(parents=True, exist_ok=True)
-    path = folder / f"{name}.parquet"
+def now():
+    return pd.Timestamp.now(tz=TZ)
+
+
+def key(asof):
+    return f"{asof.date()}/{asof:%H%M}"
+
+
+def save(df, name, asof=None):
+    path = ROOT / key(asof or now()) / f"{name}.parquet"
+    path.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(path)
     return path
 
 
-def load(name, day=None):
-    """Load a dataset from `day`, or from the latest snapshot that has it."""
-    if day is not None:
-        return pd.read_parquet(ROOT / str(day) / f"{name}.parquet")
-    for folder in sorted(ROOT.glob("*"), reverse=True):
-        path = folder / f"{name}.parquet"
-        if path.exists():
-            return pd.read_parquet(path)
-    raise FileNotFoundError(f"no snapshot of {name} in {ROOT}")
+def load(name, asof=None):
+    """Load a dataset from the latest snapshot at or before `asof` (any time if None)."""
+    # old day-only folders sort before that day's runs
+    paths = [*ROOT.glob(f"*/{name}.parquet"), *ROOT.glob(f"*/*/{name}.parquet")]
+    folders = sorted((p.parent.relative_to(ROOT).as_posix(), p) for p in paths)
+    if asof is not None:
+        folders = [(k, p) for k, p in folders if k <= key(asof)]
+    if not folders:
+        raise FileNotFoundError(f"no snapshot of {name} in {ROOT}")
+    return pd.read_parquet(folders[-1][1])

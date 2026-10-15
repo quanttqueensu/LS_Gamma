@@ -18,6 +18,16 @@ class BadSnapshot(RuntimeError):
     pass
 
 
+def stamp(asof):
+    return asof.isoformat(timespec="seconds")
+
+
+def check_schedule(cfg):
+    s = cfg["schedule"]
+    if len(s["signal"]) != 1 or s["hedge"] != s["signal"]:
+        raise SystemExit("live runner supports one run a day; intraday schedules are backtest-only")
+
+
 def horizon(dte):
     return max(1, round(dte * TRADING_DAYS / 365))
 
@@ -32,7 +42,7 @@ def check(chain):
         raise BadSnapshot(f"only {coverage:.0%} of options have IV; run during market hours")
 
 
-def decide(feats, chain, atm, cfg, today):
+def decide(feats, chain, atm, cfg, asof):
     expiry = selection.pick_expiry(chain, cfg)
     row = atm[atm["expiry"] == expiry].iloc[0]
     if pd.isna(row["atm_iv"]):
@@ -41,11 +51,12 @@ def decide(feats, chain, atm, cfg, today):
     rv = model.predict(horizon(row["dte"]))
     iv = float(row["atm_iv"])
     signal = SIGNALS[cfg["signal"]["model"]](rv, iv, cfg)
-    return {"date": str(today), "expiry": str(expiry), "dte": int(row["dte"]),
-            "rv_forecast": rv, "iv": iv, "vrp": iv - rv, "signal": signal}
+    return {"date": str(asof.date()), "ts": stamp(asof), "expiry": str(expiry),
+            "dte": int(row["dte"]), "rv_forecast": rv, "iv": iv, "vrp": iv - rv, "signal": signal}
 
 
 def history(today, signal, n):
+    # flat exit counts days: last signal per day
     log = ledger.read_log("signals")
     past = []
     if len(log):
@@ -65,10 +76,10 @@ def fill(ib, trade, cfg):
     return trade.orderStatus.avgFillPrice
 
 
-def close(ib, pos, chain, signal, hist, cfg, today, dry):
+def close(ib, pos, chain, signal, hist, cfg, asof, dry):
     mark = selection.mark(chain, pos["expiry"], pos["strike"], pos["right"])
     total = pnl.combined_pnl(pos, mark, spot(chain))
-    reason = exits.exit_reason(pos, today, total, signal, hist, cfg)
+    reason = exits.exit_reason(pos, asof.date(), total, signal, hist, cfg)
     print(f"position {pos['side']} {pos['right']} {pos['strike']} {pos['expiry']}"
           f"  mark {mark:.2f}  pnl {total:.2f}  exit {reason}")
     if reason is None:
@@ -84,15 +95,15 @@ def close(ib, pos, chain, signal, hist, cfg, today, dry):
     price = fill(ib, trade, cfg)
     if price is None:
         return pos
-    ledger.log("trades", {"date": str(today), "action": "close", "side": pos["side"],
-                          "right": pos["right"], "strike": pos["strike"],
+    ledger.log("trades", {"date": str(asof.date()), "ts": stamp(asof), "action": "close",
+                          "side": pos["side"], "right": pos["right"], "strike": pos["strike"],
                           "expiry": pos["expiry"], "qty": pos["qty"], "price": price,
                           "reason": reason, "pnl": pnl.combined_pnl(pos, price, spot(chain))})
     ledger.clear_position()
     return None
 
 
-def enter(ib, signal, chain, cfg, today, dry):
+def enter(ib, signal, chain, cfg, asof, dry):
     t = selection.trade_for(signal, chain, cfg)
     qty = cfg["size"]["quantity"]
     print(f"enter {signal}: {t['algo'].__name__.split('.')[-1]} {t['right']} "
@@ -107,14 +118,15 @@ def enter(ib, signal, chain, cfg, today, dry):
         return None
     pos = {"side": signal, "right": t["right"], "expiry": str(t["expiry"]),
            "strike": t["strike"], "qty": qty, "entry_price": price,
-           "entry_date": str(today), "hedges": []}
+           "entry_date": str(asof.date()), "entry_ts": stamp(asof), "hedges": []}
     ledger.save_position(pos)
     ledger.log("trades", {**{k: v for k, v in pos.items() if k != "hedges"},
-                          "date": str(today), "action": "open", "price": price})
+                          "date": str(asof.date()), "ts": stamp(asof), "action": "open",
+                          "price": price})
     return pos
 
 
-def hedge(ib, pos, cfg, today):
+def hedge(ib, pos, cfg, asof):
     trade = delta_hedge.hedge(ib, min_shares=cfg["hedge"]["min_shares"])
     if trade is None:
         print("hedge: no trade needed")
@@ -123,7 +135,8 @@ def hedge(ib, pos, cfg, today):
     if price is None:
         return
     sign = 1 if trade.order.action == "BUY" else -1
-    row = {"date": str(today), "shares": sign * int(trade.orderStatus.filled), "price": price}
+    row = {"date": str(asof.date()), "ts": stamp(asof),
+           "shares": sign * int(trade.orderStatus.filled), "price": price}
     ledger.log("hedges", row)
     if pos:
         pos["hedges"].append(row)
@@ -137,24 +150,24 @@ def reconcile(ib, pos):
               f"{'1 position' if pos else 'none'}")
 
 
-def run(ib, cfg, today, dry=False):
-    feats, chain, atm = store.load("features"), store.load("chain"), store.load("atm_iv")
+def run(ib, cfg, asof, dry=False):
+    feats, chain, atm = (store.load(n, asof) for n in ("features", "chain", "atm_iv"))
     check(chain)
-    d = decide(feats, chain, atm, cfg, today)
+    d = decide(feats, chain, atm, cfg, asof)
     print(f"{d['date']}  rv {d['rv_forecast']:.3f}  iv {d['iv']:.3f}  "
           f"vrp {d['vrp']:+.3f}  signal {d['signal']}  ({d['expiry']}, {d['dte']} DTE)")
-    hist = history(today, d["signal"], cfg["exit"]["flat_days"])
+    hist = history(asof.date(), d["signal"], cfg["exit"]["flat_days"])
     if not dry:
         ledger.log("signals", d)
         reconcile(ib, ledger.load_position())
 
     pos = ledger.load_position()
     if pos:
-        pos = close(ib, pos, chain, d["signal"], hist, cfg, today, dry)
+        pos = close(ib, pos, chain, d["signal"], hist, cfg, asof, dry)
     if pos is None and d["signal"] != "flat":
-        pos = enter(ib, d["signal"], chain, cfg, today, dry)
+        pos = enter(ib, d["signal"], chain, cfg, asof, dry)
     if not dry:
-        hedge(ib, pos, cfg, today)
+        hedge(ib, pos, cfg, asof)
     return d
 
 
@@ -165,6 +178,7 @@ def main():
     p.add_argument("--skip-pipeline", action="store_true", help="use the latest snapshot")
     a = p.parse_args()
     cfg = config.load(a.config)
+    check_schedule(cfg)
     gateway = cfg["execution"]["gateway"]
 
     if not a.skip_pipeline:
@@ -172,10 +186,10 @@ def main():
         build(gateway=gateway)
     try:
         if a.dry_run:
-            run(None, cfg, date.today(), dry=True)
+            run(None, cfg, store.now(), dry=True)
             return
         with broker.connect(paper=True, gateway=gateway) as ib:
-            run(ib, cfg, date.today())
+            run(ib, cfg, store.now())
     except BadSnapshot as e:
         raise SystemExit(f"SKIPPED, nothing traded or logged: {e}")
 

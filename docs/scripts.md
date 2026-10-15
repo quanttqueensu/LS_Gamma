@@ -13,7 +13,7 @@ PYTHONPATH=src python -m pytest tests -q
 ```
 
 ## 2. Data pipeline
-Saves today's snapshot to `data/live/<date>/`.
+Saves a snapshot to `data/live/<date>/<HHMM>/` (US Eastern run time).
 ```bash
 PYTHONPATH=src python -m lsgamma.pipeline.build --no-chain    # yfinance only, no Gateway
 PYTHONPATH=src python -m lsgamma.pipeline.build --gateway     # full run with the IBKR chain (~3.5 min)
@@ -57,7 +57,7 @@ Saved in `results/paper/` (gitignored):
 | File | Contents |
 |---|---|
 | `position.json` | The open position |
-| `signals.parquet` | The daily signal log |
+| `signals.parquet` | The signal log, one row per run (`date` and `ts`) |
 | `trades.parquet` | Opens and closes, with the exit reason and P&L |
 | `hedges.parquet` | Hedge fills |
 

@@ -1,0 +1,32 @@
+[experiment]
+name = "2026-10-16-har-signal"
+topic = "RV_Forecasting"
+owner = "Gabe Soler (PM)"
+
+# reference: registered runs of 2026-10-16-short-only/short_only (not rerun)
+[variants.har.signal]
+forecaster = "har"
+long_band = -inf  # short-only book
+
+[pass]
+primary = "har"
+against = "short_only"
+min_events = 30  # round trips the primary must reach
+event = "round_trip"  # any closed trade counts
+[[pass.check]]
+metric = "pnl"
+period = "all"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2014-2019"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2020-2024"
+rule = "higher"
+[[pass.check]]
+metric = "es_5"
+period = "all"
+rule = "abs_within"
+value = 1.10

@@ -42,13 +42,22 @@ def check(chain):
         raise BadSnapshot(f"only {coverage:.0%} of options have IV; run during market hours")
 
 
-def decide(feats, chain, atm, cfg, asof):
+def completed(feats, asof):
+    # forecasts use completed days only
+    return feats[feats.index < pd.Timestamp(asof.date())]
+
+
+def forecast(feats, cfg, asof, dte):
+    model = FORECASTERS[cfg["signal"]["forecaster"]]().fit(completed(feats, asof)["ret"])
+    return model.predict(horizon(dte))
+
+
+def decide(feats, chain, atm, cfg, asof, rv_for=forecast):
     expiry = selection.pick_expiry(chain, cfg)
     row = atm[atm["expiry"] == expiry].iloc[0]
     if pd.isna(row["atm_iv"]):
         raise BadSnapshot(f"no IV at the ATM strike for {expiry}; run during market hours")
-    model = FORECASTERS[cfg["signal"]["forecaster"]]().fit(feats["ret"])
-    rv = model.predict(horizon(row["dte"]))
+    rv = rv_for(feats, cfg, asof, int(row["dte"]))
     iv = float(row["atm_iv"])
     signal = SIGNALS[cfg["signal"]["model"]](rv, iv, cfg)
     return {"date": str(asof.date()), "ts": stamp(asof), "expiry": str(expiry),
@@ -56,8 +65,11 @@ def decide(feats, chain, atm, cfg, asof):
 
 
 def history(today, signal, n):
+    return recent(ledger.read_log("signals"), today, signal, n)
+
+
+def recent(log, today, signal, n):
     # flat exit counts days: last signal per day
-    log = ledger.read_log("signals")
     past = []
     if len(log):
         log = log.drop_duplicates("date", keep="last")
@@ -103,6 +115,22 @@ def close(ib, pos, chain, signal, hist, cfg, asof, dry):
     return None
 
 
+def carried(shares, chain, asof):
+    # shares left from the last position
+    if not shares:
+        return []
+    return [{"date": str(asof.date()), "ts": stamp(asof), "shares": int(shares),
+             "price": spot(chain)}]
+
+
+def last_stop():
+    t = ledger.read_log("trades")
+    if t.empty or "reason" not in t:
+        return None
+    stops = t[(t["action"] == "close") & (t["reason"] == "stop")]
+    return None if stops.empty else (stops["side"].iloc[-1], stops["date"].iloc[-1])
+
+
 def enter(ib, signal, chain, cfg, asof, dry):
     t = selection.trade_for(signal, chain, cfg)
     qty = cfg["size"]["quantity"]
@@ -118,7 +146,8 @@ def enter(ib, signal, chain, cfg, asof, dry):
         return None
     pos = {"side": signal, "right": t["right"], "expiry": str(t["expiry"]),
            "strike": t["strike"], "qty": qty, "entry_price": price,
-           "entry_date": str(asof.date()), "entry_ts": stamp(asof), "hedges": []}
+           "entry_date": str(asof.date()), "entry_ts": stamp(asof),
+           "hedges": carried(portfolio.stock_position(ib), chain, asof)}
     ledger.save_position(pos)
     ledger.log("trades", {**{k: v for k, v in pos.items() if k != "hedges"},
                           "date": str(asof.date()), "ts": stamp(asof), "action": "open",
@@ -165,7 +194,10 @@ def run(ib, cfg, asof, dry=False):
     if pos:
         pos = close(ib, pos, chain, d["signal"], hist, cfg, asof, dry)
     if pos is None and d["signal"] != "flat":
-        pos = enter(ib, d["signal"], chain, cfg, asof, dry)
+        if exits.cooling(d["signal"], last_stop(), asof.date(), cfg["exit"]["stop_cooloff_days"]):
+            print(f"no {d['signal']} entry: stop cool-off ({cfg['exit']['stop_cooloff_days']} days)")
+        else:
+            pos = enter(ib, d["signal"], chain, cfg, asof, dry)
     if not dry:
         hedge(ib, pos, cfg, asof)
     return d

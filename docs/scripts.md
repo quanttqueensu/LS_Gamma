@@ -7,7 +7,7 @@ pip install -r requirements.txt
 ```
 
 ## 1. Offline tests
-No IB Gateway needed. Expect `39 passed`.
+No IB Gateway needed. Every test should pass.
 ```bash
 PYTHONPATH=src python -m pytest tests -q
 ```
@@ -77,5 +77,25 @@ cp -r research/_template research/<Topic>/YYYY-MM-DD-short-slug
 cp configs/experiments/TEMPLATE.toml configs/experiments/YYYY-MM-DD-short-slug.toml
 ```
 
-## 8. Changing the rules
-All numbers live in `configs/paper.toml`: the VRP bands, forecaster (`garch` or `har`), DTE window, size, exits, slippage, fill timeout and hedge band. No code changes are needed.
+## 8. Backtesting
+Replays R2 option trades into snapshots like the live ones (`data/backtest/v1/`, gitignored), then runs the paper rules over them. Build the data once:
+```bash
+PYTHONPATH=src python -m lsgamma.history.r2 sync                  # copy raw R2 + daily files to data/r2/
+PYTHONPATH=src python -m lsgamma.history.spread                   # refit configs/backtest_spread.toml from live quotes
+PYTHONPATH=src python -m lsgamma.history.build [--start --end]    # write the snapshots
+PYTHONPATH=src python -m lsgamma.history.validate                 # sanity checks on spot and IV
+```
+Then run a backtest (no `--exp` = `paper.toml` + `backtest.toml`):
+```bash
+PYTHONPATH=src python -m lsgamma.backtest.run --exp <name> [--start --end]
+PYTHONPATH=src python -m lsgamma.backtest.run --exp <name> --holdout   # final run only
+```
+- Every run repeats at 2x spreads (options and hedges) and prints P&L, Sharpe, max drawdown, 5% ES, trades, win rate (net of fees) and holding days.
+- It also prints the data gaps: skipped, unfilled, unhedged and unmarked times, and the share of fills priced from the decide-view smile. Read these before the P&L.
+- Costs: $0.65 per contract, $0.005 per share, $1 minimum per order (`[backtest]` in `configs/backtest.toml`).
+- Outputs go to `results/research/<name>/<timestamp>/` (signals, trades, hedges, equity, events), and each run adds a row to `results/research/registry.parquet`.
+- Dates from 2025-01-01 need `--holdout`. Nothing before 2014-06-02 or after 2026-07-10 (R2's last day) runs. The output shows the last trading day actually used.
+- Experiments can't change the hold-out, the data window or `[history]` (except `version`); the run stops if they try.
+
+## 9. Changing the rules
+All numbers live in `configs/paper.toml`: the VRP bands, forecaster (`garch` or `har`), DTE window, size, exits, slippage, fill timeout and hedge band. After a stop, `stop_cooloff_days` blocks a same-side re-entry (1 = rest of that day; 0 = off). No code changes are needed.

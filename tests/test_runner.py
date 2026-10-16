@@ -63,7 +63,8 @@ class FakeIB:
 
 def snapshot():
     rng = np.random.default_rng(0)
-    feats = pd.DataFrame({"ret": rng.normal(0, 0.01, 500)})
+    days = pd.bdate_range(end=DAY1.date(), periods=500, name="date")
+    feats = pd.DataFrame({"ret": rng.normal(0, 0.01, 500)}, index=days)
     rows = []
     for expiry in (date(2026, 10, 2), date(2026, 10, 30), date(2026, 11, 6)):
         for strike in (595.0, 600.0, 605.0):
@@ -78,8 +79,10 @@ def snapshot():
 
 class Fixed:
     vol = 0.0
+    fitted = None
 
     def fit(self, returns):
+        Fixed.fitted = returns
         return self
 
     def predict(self, horizon):
@@ -177,3 +180,40 @@ def test_live_rejects_intraday_schedule(env):
     env["schedule"]["hedge"] = ["10:15", "11:15"]
     with pytest.raises(SystemExit):
         runner.check_schedule(env)
+
+
+def test_forecast_skips_todays_partial_bar(env):
+    Fixed.vol = 0.16
+    runner.run(None, env, DAY1, dry=True)
+    assert len(Fixed.fitted) == 499
+    assert Fixed.fitted.index.max() < pd.Timestamp(DAY1.date())
+
+
+def test_flip_carries_hedge_shares(env):
+    ib = FakeIB()
+    Fixed.vol = 0.10
+    runner.run(ib, env, DAY1)
+    Fixed.vol = 0.25
+    runner.run(ib, env, DAY2)
+    pos = ledger.load_position()
+    assert pos["side"] == "long"
+    assert pos["hedges"] == [{"date": "2026-10-02", "ts": "2026-10-02T10:15:00-04:00",
+                              "shares": -50, "price": SPOT}]
+    assert len(ledger.read_log("hedges")) == 1
+
+
+def test_stop_cooloff_blocks_same_side_that_day(env, monkeypatch):
+    data, spiked = snapshot(), snapshot()
+    spiked["chain"]["mid"] = 15.0
+    pick = lambda name, asof=None: (spiked if f"{asof:%H%M}" == "1115" else data)[name]
+    monkeypatch.setattr(runner.store, "load", pick)
+    ib = FakeIB()
+    Fixed.vol = 0.10
+    runner.run(ib, env, DAY1)
+    runner.run(ib, env, at(1, "11:15"))
+    assert ledger.read_log("trades")["reason"].iloc[-1] == "stop"
+    assert ledger.load_position() is None
+    runner.run(ib, env, at(1, "12:15"))
+    assert ledger.load_position() is None
+    runner.run(ib, env, DAY2)
+    assert ledger.load_position()["side"] == "short"

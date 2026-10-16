@@ -1,5 +1,7 @@
 from datetime import date
 
+import numpy as np
+
 from lsgamma.trading.pnl import premium
 
 OPPOSITE = {"long": "short", "short": "long"}
@@ -32,3 +34,10 @@ def exit_reason(position, today, pnl, signal, history, cfg):
     if flat_run(history, ex["flat_days"]):
         return "flat"
     return None
+
+
+def cooling(side, last_stop, today, n):
+    # last_stop: (side, date) of the latest stop
+    if not n or last_stop is None or last_stop[0] != side:
+        return False
+    return bool(np.busday_count(str(last_stop[1]), str(today)) < n)

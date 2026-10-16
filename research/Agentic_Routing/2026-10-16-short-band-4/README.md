@@ -8,7 +8,7 @@
 | **Experiment** | `2026-10-16-short-band-4` (config: `configs/experiments/2026-10-16-short-band-4.toml`) |
 | **Topic** | Agentic_Routing |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed |
 | **Started** | 2026-10-16 |
 
 ## Hypothesis
@@ -53,3 +53,4 @@ Primary `band4` against reference `short_only` at the same spread multiple. Ever
 Combine it with the other passing short-only rules into one candidate. Run the hold-out once on that combination, then shadow mode, then a decision record, then the one-line change `[signal] short_band` in `configs/paper.toml`.
 
 ## Changes
+- 2026-10-16: run once (4 trials, commit 6b9adb9; the `short_only` reference reused, not rerun). The pass bar above was not changed. Verdict: failed (1x full window, and 2020-2024 at both spreads). See `summary.md` and `2026-10-16-short-band-4.pdf`.

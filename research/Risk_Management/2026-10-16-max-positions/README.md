@@ -8,7 +8,7 @@
 | **Experiment** | `2026-10-16-max-positions` (config: `configs/experiments/2026-10-16-max-positions.toml`) |
 | **Topic** | Risk_Management |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed |
 | **Started** | 2026-10-16 |
 
 ## Hypothesis
@@ -49,4 +49,4 @@ Reported, not part of the bar: Sharpe on $250k, ES 5% and max drawdown against N
 Run the hold-out once (`experiment.py --holdout`). If it holds, the live runner would need multi-position support, which is a code change to the live engine. Then shadow mode, then a decision record, then setting the size in `configs/paper.toml`.
 
 ## Changes
-- (dated notes, if the plan had to change)
+- 2026-10-16: run once (10 trials, commit e5e0806). The pass bar above was not changed. Verdict: failed (best N = 1 at 1x and 2x, in both halves). See `summary.md` and `2026-10-16-max-positions.pdf`.

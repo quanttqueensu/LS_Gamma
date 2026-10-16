@@ -30,11 +30,21 @@ def expected_shortfall(daily, q=0.05):
     return float(daily[daily <= daily.quantile(q)].mean())
 
 
+def pairs(trades):
+    # match each close to its open
+    o = trades[trades["action"] == "open"].reset_index(drop=True)
+    c = trades[trades["action"] == "close"].reset_index(drop=True)
+    if "entry_ts" not in c or c["entry_ts"].isna().any():
+        return o.iloc[:len(c)], c
+    o = o.set_index("ts").loc[c["entry_ts"]].reset_index()
+    return o, c
+
+
 def holding_days(trades):
     if trades.empty:
         return math.nan
-    opens = trades.loc[trades["action"] == "open", "date"].map(pd.Timestamp).tolist()
-    closes = trades.loc[trades["action"] == "close", "date"].map(pd.Timestamp).tolist()
+    o, c = pairs(trades)
+    opens, closes = o["date"].map(pd.Timestamp).tolist(), c["date"].map(pd.Timestamp).tolist()
     days = [(c - o).days for o, c in zip(opens, closes)]
     return float(sum(days) / len(days)) if days else math.nan
 

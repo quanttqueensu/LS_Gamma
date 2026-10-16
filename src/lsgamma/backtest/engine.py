@@ -89,23 +89,20 @@ def embargoed(s, asof):
     return not s["holdout"] and asof.date() >= s["no_entry"]
 
 
-def held_mark(s, chain, asof, note=False):
-    b = s["book"]
-    pos = b["pos"]
+def held_mark(s, pos, chain, asof, note=False):
     m = selection.mark(chain, pos["expiry"], pos["strike"], pos["right"])
     if not math.isnan(m):
-        b["mark"] = m
+        pos["mark"] = m
         return m
     if note:
         log(s, asof, "no_mark", f"{pos['right']} {pos['strike']} {pos['expiry']}")
-    return sim.conservative(pos, b["mark"], runner.spot(chain))
+    return sim.conservative(pos, pos["mark"], runner.spot(chain))
 
 
-def exit_for(s, chain, asof, d, hist):
-    pos = s["book"]["pos"]
+def exit_for(s, pos, chain, asof, d, hist):
     if date.fromisoformat(pos["expiry"]) < asof.date():
         return "expired"
-    total = pnl.combined_pnl(pos, held_mark(s, chain, asof, note=True), runner.spot(chain))
+    total = pnl.combined_pnl(pos, held_mark(s, pos, chain, asof, note=True), runner.spot(chain))
     signal, hist = (d["signal"], hist) if d else (None, [])
     reason = exits.exit_reason(pos, asof.date(), total, signal, hist, s["cfg"])
     return reason or ("embargo" if embargo_close(s, asof) else None)
@@ -126,8 +123,8 @@ def expiry_spot(s, expiry):
     return s["last_spot"]
 
 
-def close(s, reason, chain, fill, asof):
-    b, bt, pos = s["book"], s["cfg"]["backtest"], s["book"]["pos"]
+def close(s, pos, reason, chain, fill, asof):
+    b, bt = s["book"], s["cfg"]["backtest"]
     if reason == "expired":
         spot, ts = expiry_spot(s, date.fromisoformat(pos["expiry"]))
         price, cost, src = sim.intrinsic(pos, spot), 0.0, "expiry"
@@ -140,14 +137,15 @@ def close(s, reason, chain, fill, asof):
     if math.isnan(price):
         return log(s, asof, "no_fill", f"close {reason}")
     total = pnl.combined_pnl(pos, price, spot)
-    cost = sim.close_option(b, price, cost)
+    cost = sim.close_option(b, pos, price, cost)
     if reason == "stop":
         s["last_stop"], s["reset"] = (pos["side"], str(asof.date())), False
     s["trades"].append({"date": str(asof.date()), "ts": runner.stamp(asof), "action": "close",
                         "side": pos["side"], "right": pos["right"], "strike": pos["strike"],
                         "expiry": pos["expiry"], "qty": pos["qty"], "price": price,
                         "reason": reason, "pnl": total, "commission": cost,
-                        "pnl_net": total - b["pos_fees"], "src": src})
+                        "pnl_net": total - pos["fees"], "src": src,
+                        "entry_ts": pos["entry_ts"]})
 
 
 def enter(s, signal, chain, fill, asof):
@@ -164,20 +162,39 @@ def enter(s, signal, chain, fill, asof):
     pos = {"side": signal, "right": t["right"], "expiry": str(t["expiry"]),
            "strike": t["strike"], "qty": qty, "entry_price": price,
            "entry_date": str(asof.date()), "entry_ts": runner.stamp(asof),
-           "hedges": runner.carried(s["book"]["shares"], chain, asof)}
+           "hedges": carry(s["book"], chain, asof)}
     cost = sim.open_option(s["book"], pos, sim.fee(bt["commission_contract"], qty,
                                                    bt["min_per_order"]))
-    s["trades"].append({**{k: v for k, v in pos.items() if k != "hedges"},
+    s["trades"].append({**{k: v for k, v in pos.items() if k not in ("hedges", "mark", "fees")},
                         "date": str(asof.date()), "ts": runner.stamp(asof), "action": "open",
                         "price": price, "commission": cost, "src": src})
 
 
+def carry(b, chain, asof):
+    # orphan shares join the new position
+    left = sim.unallocated(b)
+    if not left:
+        return []
+    return [{"date": str(asof.date()), "ts": runner.stamp(asof), "shares": left,
+             "price": runner.spot(chain)}]
+
+
+def attach(b, targets, chain, asof):
+    # orphan shares split over open positions
+    rows = carry(b, chain, asof)
+    if rows and b["open"]:
+        for p, part in zip(b["open"], sim.split(rows[0]["shares"], targets)):
+            p["hedges"].append({**rows[0], "shares": part})
+
+
 def hedge(s, chain, fill, asof):
     b, bt = s["book"], s["cfg"]["backtest"]
-    target = sim.target_shares(b["pos"], chain)
-    if math.isnan(target):
+    targets = [sim.target_shares(p, chain) for p in b["open"]]
+    if any(math.isnan(t) for t in targets):
         return log(s, asof, "no_delta", "hedge skipped")
-    shares = round(target - b["shares"])
+    attach(b, targets, chain, asof)
+    gaps = [t - sim.held(p) for t, p in zip(targets, b["open"])]
+    shares = round(sum(targets, 0.0) - b["shares"])
     if abs(shares) < s["cfg"]["hedge"]["min_shares"]:
         return
     price = sim.share_price(fill, shares, bt["share_half_spread"] * bt["spread_mult"])
@@ -187,17 +204,19 @@ def hedge(s, chain, fill, asof):
     cost = sim.trade_shares(b, shares, price, sim.fee(bt["commission_share"], abs(shares),
                                                       bt["min_per_order"]))
     s["hedges"].append({**row, "commission": cost})
-    if b["pos"]:
-        b["pos"]["hedges"].append(row)
+    parts = sim.allot(gaps, shares) if gaps else []
+    for p, part in zip(b["open"], parts):
+        p["hedges"].append({**row, "shares": part})
+        p["fees"] += cost if len(parts) == 1 else cost * abs(part) / sum(map(abs, parts))
 
 
 def mark(s, chain, asof):
     b = s["book"]
-    m = held_mark(s, chain, asof) if b["pos"] else math.nan
+    marks = [held_mark(s, p, chain, asof) for p in b["open"]]
     spot = runner.spot(chain)
     s["last_spot"] = (spot, runner.stamp(asof))
     s["equity"].append({"date": str(asof.date()), "ts": runner.stamp(asof),
-                        **sim.equity(b, m, spot)})
+                        **sim.equity(b, marks, spot)})
 
 
 def decide(s, folder, chain, asof):
@@ -232,16 +251,23 @@ def waiting(s, side):
             and stop[0] == side and not s["reset"])
 
 
+def room(s, side):
+    # research only: ladder same-side positions
+    held = s["book"]["open"]
+    return (len(held) < s["cfg"]["backtest"].get("max_positions", 1)
+            and all(p["side"] == side for p in held))
+
+
 def act(s, chain, fill, asof, d, hist):
     # decisions read chain; fill only prices them
     if fill is None:
         log(s, asof, "no_fill_view", "")
-    if s["book"]["pos"]:
-        reason = exit_for(s, chain, asof, d, hist)
+    for pos in list(s["book"]["open"]):
+        reason = exit_for(s, pos, chain, asof, d, hist)
         if reason:
-            close(s, reason, chain, fill, asof)
+            close(s, pos, reason, chain, fill, asof)
     note_reset(s, d)
-    if d and s["book"]["pos"] is None and d["signal"] != "flat" and not embargoed(s, asof):
+    if d and room(s, d["signal"]) and d["signal"] != "flat" and not embargoed(s, asof):
         if exits.cooling(d["signal"], s["last_stop"], asof.date(),
                          s["cfg"]["exit"]["stop_cooloff_days"]):
             log(s, asof, "cooloff", f"no {d['signal']} entry after stop")

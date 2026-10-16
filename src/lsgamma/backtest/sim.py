@@ -8,7 +8,7 @@ DEFAULT_SRC = "fill_smile"
 
 
 def book():
-    return {"pos": None, "shares": 0, "cash": 0.0, "fees": 0.0, "mark": math.nan, "pos_fees": 0.0}
+    return {"open": [], "shares": 0, "cash": 0.0, "fees": 0.0}
 
 
 def row(chain, expiry, strike, right):
@@ -52,25 +52,53 @@ def fee(per, units, minimum):
     return max(per * units, minimum)
 
 
-def pay(b, amount, cost):
+def pay(b, amount, cost, pos=None):
     b["cash"] -= amount + cost
     b["fees"] += cost
-    b["pos_fees"] += cost
+    if pos is not None:
+        pos["fees"] += cost
     return cost
 
 
 def open_option(b, pos, cost):
-    b["pos"], b["mark"], b["pos_fees"] = pos, pos["entry_price"], 0.0
+    pos["mark"], pos["fees"] = pos["entry_price"], 0.0
+    b["open"].append(pos)
     value = SIGN[pos["side"]] * pos["entry_price"] * MULTIPLIER * pos["qty"]
-    return pay(b, value, cost)
+    return pay(b, value, cost, pos)
 
 
-def close_option(b, price, cost):
-    pos = b["pos"]
+def close_option(b, pos, price, cost):
     value = SIGN[pos["side"]] * price * MULTIPLIER * pos["qty"]
-    pay(b, -value, cost)
-    b["pos"], b["mark"] = None, math.nan
+    pay(b, -value, cost, pos)
+    b["open"] = [p for p in b["open"] if p is not pos]
     return cost
+
+
+def held(pos):
+    return sum(h["shares"] for h in pos["hedges"])
+
+
+def unallocated(b):
+    # shares no open position owns
+    left = b["shares"] - sum(held(p) for p in b["open"])
+    return 0 if abs(left) < 1e-9 else left
+
+
+def split(total, weights):
+    if len(weights) == 1:
+        return [total]
+    w = [abs(x) for x in weights]
+    return [total * x / sum(w) if sum(w) else total / len(w) for x in w]
+
+
+def allot(gaps, shares):
+    # each position takes its gap; rounding to largest
+    if len(gaps) == 1:
+        return [shares]
+    parts = list(gaps)
+    big = max(range(len(gaps)), key=lambda i: abs(gaps[i]))
+    parts[big] += shares - sum(gaps)
+    return parts
 
 
 def trade_shares(b, shares, price, cost):
@@ -91,8 +119,8 @@ def conservative(pos, last, spot):
     return max(last, floor) if pos["side"] == "short" else min(last, floor)
 
 
-def equity(b, mark, spot):
-    pos = b["pos"]
-    option = 0.0 if pos is None else SIGN[pos["side"]] * mark * MULTIPLIER * pos["qty"]
+def equity(b, marks, spot):
+    option = sum((SIGN[p["side"]] * m * MULTIPLIER * p["qty"] for p, m in zip(b["open"], marks)),
+                 0.0)
     return {"cash": b["cash"], "option": option, "shares": b["shares"], "spot": spot,
             "fees": b["fees"], "equity": b["cash"] + option + b["shares"] * spot}

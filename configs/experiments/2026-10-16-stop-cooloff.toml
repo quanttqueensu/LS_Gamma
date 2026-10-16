@@ -1,0 +1,29 @@
+[experiment]
+name = "2026-10-16-stop-cooloff"
+topic = "Risk_Management"
+owner = "Gabe Soler (PM)"
+# every variant uses the same tighter stops (fixed before results)
+# so stops fire; cool1 is the live 1-day rule
+
+[variants.cool0.exit]
+short_stop_mult = 0.5
+long_stop_frac = 0.25
+stop_cooloff_days = 0
+
+[variants.cool1.exit]
+short_stop_mult = 0.5
+long_stop_frac = 0.25
+stop_cooloff_days = 1
+
+[variants.cool5.exit]
+short_stop_mult = 0.5
+long_stop_frac = 0.25
+stop_cooloff_days = 5
+
+[variants.reset.exit]
+short_stop_mult = 0.5
+long_stop_frac = 0.25
+stop_cooloff_days = 0
+
+[variants.reset.backtest]
+stop_reset = true  # research only: wait for signal reset

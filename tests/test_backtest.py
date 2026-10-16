@@ -613,3 +613,57 @@ def test_pairs_match_by_entry_time():
     o, c = metrics.pairs(t)
     assert o["ts"].tolist() == ["b", "a"]
     assert metrics.holding_days(t) == (3 + 8) / 2
+
+
+def gate_run(cfg, root, vol, prev, today, n=1):
+    plan = list(zip(days("2024-03-04", n), [vol] * n))
+    write(root, plan)
+    path = root / "features.parquet"
+    f = pd.read_parquet(path)
+    f["vix_vix3m"] = 0.9
+    f.loc[pd.Timestamp("2024-03-01"), "vix_vix3m"] = prev
+    f.loc[pd.Timestamp(plan[0][0]), "vix_vix3m"] = today
+    f.to_parquet(path)
+    return plan, engine.backtest(no_stops(cfg), plan[0][0], plan[-1][0], root=root)
+
+
+@pytest.mark.parametrize("vol, prev, opens", [(0.10, 1.05, False), (0.10, 1.0, False),
+                                               (0.10, 0.99, True), (0.10, np.nan, True),
+                                               (0.25, 1.05, True)])
+def test_short_gate_blocks_on_yesterday_ratio(bt, vol, prev, opens):
+    cfg, root = bt
+    cfg["backtest"]["short_gate"] = 1.0
+    plan, out = gate_run(cfg, root, vol, prev, today=0.9)
+    assert (len(out["trades"]) == 1) is opens
+    gates = out["events"][out["events"]["event"] == "gate"] if len(out["events"]) else []
+    assert len(gates) == (0 if opens else 1)
+    if not opens:
+        assert gates["detail"].iloc[0] == f"no short entry, VIX/VIX3M {prev:.3f}"
+
+
+def test_short_gate_ignores_today(bt):
+    cfg, root = bt
+    cfg["backtest"]["short_gate"] = 1.0
+    plan, out = gate_run(cfg, root, 0.10, prev=0.9, today=5.0)
+    assert out["trades"]["action"].tolist() == ["open"]
+
+
+def test_short_gate_waits_then_enters(bt):
+    cfg, root = bt
+    cfg["backtest"]["short_gate"] = 1.0
+    plan, out = gate_run(cfg, root, 0.10, prev=1.2, today=0.9, n=2)
+    assert out["trades"]["date"].tolist() == [str(plan[1][0])]
+
+
+def test_short_gate_off_by_default(bt):
+    cfg, root = bt
+    assert cfg["backtest"]["short_gate"] == 0.0
+    assert "short_gate" not in config.read(config.CONFIGS / "paper.toml")["exit"]
+    plan = list(zip(days("2024-03-04", len(PARITY)), PARITY))
+    write(root, plan)
+    plain = engine.backtest(cfg, plan[0][0], plan[-1][0], root=root)
+    path = root / "features.parquet"
+    pd.read_parquet(path).assign(vix_vix3m=5.0).to_parquet(path)
+    out = engine.backtest(cfg, plan[0][0], plan[-1][0], root=root)
+    for k in engine.OUTPUTS:
+        pd.testing.assert_frame_equal(out[k], plain[k])

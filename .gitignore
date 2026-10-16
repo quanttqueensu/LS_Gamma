@@ -243,3 +243,6 @@ results/
 # deep-research skill scratch output (converted to research/Misc_Research_Notes/)
 /research_notes/
 /reports/
+
+# experiment result tables (aggregates; rebuilt with --report-only)
+research/**/figures/*.csv

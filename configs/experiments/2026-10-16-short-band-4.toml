@@ -1,0 +1,36 @@
+[experiment]
+name = "2026-10-16-short-band-4"
+topic = "Agentic_Routing"
+owner = "Gabe Soler (PM)"
+
+# reference: registered 2026-10-16-short-only/short_only runs
+[variants.band4.signal]
+long_band = -inf  # no long entries
+short_band = 0.04  # short only when vrp above 4 vol points
+
+[variants.band3.signal]
+long_band = -inf
+short_band = 0.03  # sensitivity: 3 vol points
+
+[pass]
+primary = "band4"
+against = "short_only"
+min_events = 30  # round trips the primary must reach
+event = "round_trip"  # counts every close
+[[pass.check]]
+metric = "pnl"
+period = "all"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2014-2019"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2020-2024"
+rule = "higher"
+[[pass.check]]
+metric = "es_5"
+period = "all"
+rule = "abs_within"
+value = 1.10

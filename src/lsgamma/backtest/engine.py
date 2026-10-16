@@ -71,7 +71,7 @@ def state(cfg, feats, root, holdout, cache):
             "no_entry": hold.date() - timedelta(days=cfg["entry"]["max_dte"]),
             "last_dev": feats.index[feats.index < hold].max().date(),
             "keep": (cfg["exit"]["flat_days"] + 1) * sum(sig for _, sig in sched),
-            "last_spot": (math.nan, ""), "last_stop": None,
+            "last_spot": (math.nan, ""), "last_stop": None, "reset": True,
             **{k: [] for k in OUTPUTS}}
 
 
@@ -142,7 +142,7 @@ def close(s, reason, chain, fill, asof):
     total = pnl.combined_pnl(pos, price, spot)
     cost = sim.close_option(b, price, cost)
     if reason == "stop":
-        s["last_stop"] = (pos["side"], str(asof.date()))
+        s["last_stop"], s["reset"] = (pos["side"], str(asof.date())), False
     s["trades"].append({"date": str(asof.date()), "ts": runner.stamp(asof), "action": "close",
                         "side": pos["side"], "right": pos["right"], "strike": pos["strike"],
                         "expiry": pos["expiry"], "qty": pos["qty"], "price": price,
@@ -220,6 +220,18 @@ def step(s, asof, signal_time):
     act(s, chain, read(folder, "fill"), asof, d, hist)
 
 
+def note_reset(s, d):
+    if d and s["last_stop"] and d["signal"] != s["last_stop"][0]:
+        s["reset"] = True
+
+
+def waiting(s, side):
+    # research only: wait for signal to leave side
+    stop = s["last_stop"]
+    return (s["cfg"]["backtest"].get("stop_reset", False) and stop is not None
+            and stop[0] == side and not s["reset"])
+
+
 def act(s, chain, fill, asof, d, hist):
     # decisions read chain; fill only prices them
     if fill is None:
@@ -228,10 +240,13 @@ def act(s, chain, fill, asof, d, hist):
         reason = exit_for(s, chain, asof, d, hist)
         if reason:
             close(s, reason, chain, fill, asof)
+    note_reset(s, d)
     if d and s["book"]["pos"] is None and d["signal"] != "flat" and not embargoed(s, asof):
         if exits.cooling(d["signal"], s["last_stop"], asof.date(),
                          s["cfg"]["exit"]["stop_cooloff_days"]):
             log(s, asof, "cooloff", f"no {d['signal']} entry after stop")
+        elif waiting(s, d["signal"]):
+            log(s, asof, "reset_wait", f"no {d['signal']} entry until signal resets")
         else:
             enter(s, d["signal"], chain, fill, asof)
     hedge(s, chain, fill, asof)

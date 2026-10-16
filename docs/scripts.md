@@ -96,6 +96,9 @@ PYTHONPATH=src python -m lsgamma.backtest.run --exp <name> --holdout   # final r
 - Outputs go to `results/research/<name>/<timestamp>/` (signals, trades, hedges, equity, events), and each run adds a row to `results/research/registry.parquet`.
 - Dates from 2025-01-01 need `--holdout`. Nothing before 2014-06-02 or after 2026-07-10 (R2's last day) runs. The output shows the last trading day actually used.
 - Experiments can't change the hold-out, the data window or `[history]` (except `version`); the run stops if they try.
+- Several variants in one experiment: put a `[variants.<label>]` table per variant in the TOML and call `run.variants(name, cfg, cfg["variants"])` from `experiment.py`. Each variant runs at 1x and 2x on the development window and is logged as `<name>/<label>`.
+- Charts and tables for reports: `lsgamma.backtest.report` (`runs(name)`, `table(sets)` with 2014-2019 / 2020-2024 halves, `standard(sets, folder)` for cumulative P&L, drawdown, yearly, exit reasons and fees, `trials(name)`).
+- `[backtest] stop_reset = true` (research only, not in live) blocks a same-side re-entry after a stop until the signal has left that side.
 
 ## 9. Changing the rules
 All numbers live in `configs/paper.toml`: the VRP bands, forecaster (`garch` or `har`), DTE window, size, exits, slippage, fill timeout and hedge band. After a stop, `stop_cooloff_days` blocks a same-side re-entry (1 = rest of that day; 0 = off). No code changes are needed.

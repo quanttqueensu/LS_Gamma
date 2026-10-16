@@ -422,3 +422,81 @@ def test_forecast_window_matches_live(bt):
     used = runner.completed(engine.window(feats, asof, 5), asof)
     assert used.index.min() == pd.Timestamp("2019-03-04")
     assert used.index.max() < pd.Timestamp("2024-03-04")
+
+
+def reset_run(cfg, root, vols):
+    cfg["exit"]["stop_cooloff_days"] = 0
+    cfg["backtest"]["stop_reset"] = True
+    plan = list(zip(days("2024-03-04", len(vols)), vols))
+    write(root, plan, make=spike_on(plan[1][0]))
+    return plan, engine.backtest(cfg, plan[0][0], plan[-1][0], root=root)
+
+
+def test_stop_reset_waits_while_signal_stays(bt):
+    cfg, root = bt
+    plan, out = reset_run(cfg, root, [0.10] * 4)
+    assert out["trades"]["action"].tolist() == ["open", "close"]
+    assert out["trades"]["reason"].iloc[1] == "stop"
+    assert out["events"]["event"].tolist().count("reset_wait") == 3
+
+
+def test_stop_reset_reenters_after_flat(bt):
+    cfg, root = bt
+    plan, out = reset_run(cfg, root, [0.10, 0.10, 0.16, 0.10])
+    t = out["trades"]
+    assert t["action"].tolist() == ["open", "close", "open"]
+    assert t["date"].iloc[2] == str(plan[3][0])
+
+
+def test_stop_reset_off_by_default(bt):
+    cfg, root = bt
+    assert cfg["backtest"]["stop_reset"] is False
+    assert "stop_reset" not in config.read(config.CONFIGS / "paper.toml")["exit"]
+
+
+def test_variants_run_each_at_both_mults(bt):
+    cfg, root = bt
+    d = days("2024-03-04", 3)
+    write(root, list(zip(d, [0.10] * 3)))
+    cfg["backtest"].update(start=str(d[0]), end=str(d[-1]))
+    out = run.variants("demo", cfg, {"a": {}, "b": {"hedge": {"min_shares": 1000}}}, root=root)
+    reg = pd.read_parquet(experiments.ROOT / "registry.parquet")
+    assert reg["experiment"].tolist() == ["demo/a"] * 2 + ["demo/b"] * 2
+    assert reg["spread_mult"].tolist() == [1.0, 2.0, 1.0, 2.0]
+    assert not reg["holdout"].any()
+    hedged = [pd.read_parquet(experiments.ROOT / r / "hedges.parquet") for r in reg["run"]]
+    assert len(hedged[0]) > 0 and len(hedged[2]) == 0
+    assert set(out) == {"a", "b"}
+
+
+def test_variants_cannot_move_pinned_keys(bt):
+    cfg, root = bt
+    with pytest.raises(SystemExit, match="holdout_start"):
+        run.variants("demo", cfg, {"x": {"backtest": {"holdout_start": "2030-01-01"}}}, root=root)
+
+
+def test_registry_lock_keeps_parallel_rows(bt):
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(8) as ex:
+        list(ex.map(lambda i: run.register({"experiment": f"e{i}", "pnl": float(i)}), range(16)))
+    reg = pd.read_parquet(experiments.ROOT / "registry.parquet")
+    assert sorted(reg["experiment"]) == sorted(f"e{i}" for i in range(16))
+
+
+def test_report_tables_and_charts(bt, tmp_path):
+    from lsgamma.backtest import report
+    cfg, root = bt
+    plan = list(zip(days("2019-12-23", len(PARITY)), PARITY))
+    write(root, plan)
+    cfg["backtest"].update(start=str(plan[0][0]), end=str(plan[-1][0]))
+    run.variants("demo", cfg, {"a": {}}, root=root)
+    sets = {"baseline": report.runs("demo/a"), "a": report.runs("demo/a")}
+    assert set(sets["a"]) == {1.0, 2.0} and report.trials("demo") == 2
+    t = report.table(sets)
+    whole = t[(t["period"] == "all") & (t["mult"] == 1.0)].iloc[0]
+    halves = t[(t["period"] != "all") & (t["mult"] == 1.0) & (t["label"] == "a")]
+    assert np.isclose(halves["pnl"].sum(), whole["pnl"])
+    reg = pd.read_parquet(experiments.ROOT / "registry.parquet")
+    assert np.isclose(whole["pnl"], reg["pnl"].iloc[0])
+    for path in report.standard(sets, tmp_path / "figs"):
+        assert path.exists() and path.stat().st_size > 0

@@ -1,5 +1,6 @@
 import argparse
 import copy
+import fcntl
 import json
 import time
 
@@ -21,10 +22,13 @@ def start_run(name, cfg):
 def register(row):
     path = experiments.ROOT / "registry.parquet"
     path.parent.mkdir(parents=True, exist_ok=True)
-    df = pd.DataFrame([row])
-    if path.exists():
-        df = pd.concat([pd.read_parquet(path), df], ignore_index=True)
-    df.to_parquet(path)
+    with open(path.with_suffix(".lock"), "w") as lock:
+        # parallel runs must not drop rows
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        df = pd.DataFrame([row])
+        if path.exists():
+            df = pd.concat([pd.read_parquet(path), df], ignore_index=True)
+        df.to_parquet(path)
 
 
 def trial(name, cfg, start, end, holdout=False, mult=None, root=None, cache=None):
@@ -45,6 +49,26 @@ def trial(name, cfg, start, end, holdout=False, mult=None, root=None, cache=None
               "schedule": json.dumps(cfg["schedule"]), **m})
     return {"spread_mult": cfg["backtest"]["spread_mult"], **m, "run": str(run),
             "last_day_used": span["last_day"]}
+
+
+def mults(cfg):
+    bt = cfg["backtest"]
+    return sorted({bt["spread_mult"], bt["stress_mult"]})
+
+
+def variants(name, cfg, table, root=None):
+    # development window only; one trial per variant and mult
+    base = {k: v for k, v in cfg.items() if k != "variants"}
+    start, end = engine.day(base["backtest"]["start"]), engine.day(base["backtest"]["end"])
+    caches, out = {}, {}
+    for v, over in table.items():
+        config.check_pins(over, f"{name}/{v}")
+        vcfg = config.merge(base, over)
+        key = (vcfg["signal"]["forecaster"], vcfg["backtest"]["fit_years"])
+        cache = caches.setdefault(key, {})
+        out[v] = [trial(f"{name}/{v}", vcfg, start, end, False, m, root, cache)
+                  for m in mults(vcfg)]
+    return out
 
 
 def table(rows):
@@ -69,8 +93,8 @@ def main():
     start, end = engine.day(start), engine.day(end)
     engine.check_window(cfg, start, end, a.holdout)
     cache = {}
-    mults = sorted({bt["spread_mult"], bt["stress_mult"]})
-    rows = [trial(a.exp or "baseline", cfg, start, end, a.holdout, m, cache=cache) for m in mults]
+    rows = [trial(a.exp or "baseline", cfg, start, end, a.holdout, m, cache=cache)
+            for m in mults(cfg)]
     used = rows[0]["last_day_used"]
     print(f"{a.exp or 'baseline'}  {start} to {end}{'  HOLD-OUT' if a.holdout else ''}"
           f"  (last trading day used: {used})")

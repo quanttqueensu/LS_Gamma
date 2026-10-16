@@ -8,7 +8,7 @@
 | **Experiment** | `2026-10-16-short-only` (config: `configs/experiments/2026-10-16-short-only.toml`) |
 | **Topic** | Agentic_Routing |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | passed (in-sample; hold-out not run) |
 | **Started** | 2026-10-16 |
 
 ## Hypothesis
@@ -49,3 +49,5 @@ Robustness halves: 2014-06..2019-12 and 2020-01..2024-12 (part of bar 1).
 3. The PM decides; the live change would be one line in `configs/paper.toml` (`[signal] long_band`, or a router that never picks long), recorded in `docs/decisions/`.
 
 ## Changes
+- 2026-10-16: run once (2 trials, 1x and 2x, commit 8d1f0fe). The pass bar above was not changed. Result: passed; see `summary.md` and `2026-10-16-short-only.pdf`. The report step crashed on a registry read while parallel experiments were writing, after both trials were registered; charts and tables were rebuilt with `--report-only` (no new trials).
+- 2026-10-16 (after all trials): shared research code changed, results unchanged. `lsgamma.backtest.run` now writes the registry atomically, and the `report.fees` chart legend got headroom. All figures and the PDF were rebuilt with `--report-only` (no new trials). Registry rows say `8d1f0fe-dirty` because uncommitted research files (figures, other experiments' scripts) were in the tree; `src/` and `configs/` matched 8d1f0fe.

@@ -76,7 +76,7 @@ def trips(sets):
 
 
 def exits_per_year(rt, labels, path):
-    fig, axes = plt.subplots(2, 2, figsize=(7.5, 4.6), sharex=True, sharey=True)
+    fig, axes = plt.subplots(2, 2, figsize=(7.5, 4.6), sharex=True, sharey="row")
     n = len(labels)
     for row, reason in zip(axes, ("stop", "profit")):
         for ax, mult in zip(row, MULTS):

@@ -26,4 +26,4 @@ Live signals are in `src/lsgamma/signals/` (`SIGNALS` registry). The 10 executio
 |---|---|---|---|---|
 | 2026-10-07 | [Skipping shorts when VIX curve is inverted raises short precision](2026-10-07-vix-term-gate/README.md) | Gabe Soler (PM) | failed | [summary](2026-10-07-vix-term-gate/summary.md) |
 | 2026-10-07 | [VIX term gate cuts the worst short outcomes (2006–2015 test)](2026-10-07-vix-gate-tail/README.md) | Gabe Soler (PM) | failed | [summary](2026-10-07-vix-gate-tail/summary.md) |
-| 2026-10-16 | [Turning long gamma off improves net P&L (option backtest)](2026-10-16-short-only/README.md) | Gabe Soler (PM) | planned | |
+| 2026-10-16 | [Turning long gamma off improves net P&L (option backtest)](2026-10-16-short-only/README.md) | Gabe Soler (PM) | passed (in-sample; hold-out not run) | [summary](2026-10-16-short-only/summary.md) · [report](2026-10-16-short-only/2026-10-16-short-only.pdf) |

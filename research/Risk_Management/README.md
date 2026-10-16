@@ -18,5 +18,5 @@ Exit rules are in `src/lsgamma/trading/exits.py`, with settings in `[exit]` of `
 ## Experiments
 | Date | Hypothesis | Owner | Status | Summary |
 |---|---|---|---|---|
-| 2026-10-16 | [Tighter stops cut the tail; a 25% profit-take adds P&L](2026-10-16-stop-levels/README.md) | Gabe Soler (PM) | planned | |
-| 2026-10-16 | [A longer wait after a stop beats the 1-day cool-off](2026-10-16-stop-cooloff/README.md) | Gabe Soler (PM) | planned | |
+| 2026-10-16 | [Tighter stops cut the tail; a 25% profit-take adds P&L](2026-10-16-stop-levels/README.md) | Gabe Soler (PM) | failed | [summary](2026-10-16-stop-levels/summary.md) · [report](2026-10-16-stop-levels/2026-10-16-stop-levels.pdf) |
+| 2026-10-16 | [A longer wait after a stop beats the 1-day cool-off](2026-10-16-stop-cooloff/README.md) | Gabe Soler (PM) | inconclusive (3 stops < 5) | [summary](2026-10-16-stop-cooloff/summary.md) · [report](2026-10-16-stop-cooloff/2026-10-16-stop-cooloff.pdf) |

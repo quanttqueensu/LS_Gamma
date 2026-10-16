@@ -8,7 +8,7 @@
 | **Experiment** | `2026-10-16-stop-levels` (config: `configs/experiments/2026-10-16-stop-levels.toml`) |
 | **Topic** | Risk_Management |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed (H1 failed, H2 failed) |
 | **Started** | 2026-10-16 |
 
 ## Hypothesis
@@ -53,3 +53,5 @@ Each hypothesis gets its own verdict; the experiment verdict lists both (e.g. "H
 - Record the decision in `docs/decisions/`.
 
 ## Changes
+- 2026-10-16: run once (6 trials: 3 variants at 1x and 2x). The pass bar above was not changed. `exits_per_year.png` was rebuilt with `--report-only` (y-axis shared per row instead of across all panels); no new trials.
+- 2026-10-16 (after all trials): shared research code changed, results unchanged. `lsgamma.backtest.run` now writes the registry atomically, and the `report.fees` chart legend got headroom. All figures and the PDF were rebuilt with `--report-only` (no new trials). Registry rows say `8d1f0fe-dirty` because uncommitted research files (figures, other experiments' scripts) were in the tree; `src/` and `configs/` matched 8d1f0fe.

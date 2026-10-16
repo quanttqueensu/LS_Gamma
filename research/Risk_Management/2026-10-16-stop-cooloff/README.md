@@ -8,7 +8,7 @@
 | **Experiment** | `2026-10-16-stop-cooloff` (config: `configs/experiments/2026-10-16-stop-cooloff.toml`) |
 | **Topic** | Risk_Management |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | inconclusive |
 | **Started** | 2026-10-16 |
 
 ## Hypothesis
@@ -52,3 +52,5 @@ Also reported (not part of the bar): number of stops, blocked re-entry days (`co
 Run the winning rule once on the hold-out. If it holds: `cool5` would set `stop_cooloff_days = 5` in `[exit]` of `configs/paper.toml`; `reset` would move the signal-reset rule from `src/lsgamma/backtest/engine.py` into `src/lsgamma/trading/exits.py` with tests. Either runs in shadow mode next to the live rule before switching, and the change is recorded as a new decision record that updates 0003. Note that the result is conditional on the tighter stops; the live stop levels are tested separately in `2026-10-16-stop-levels`.
 
 ## Changes
+- 2026-10-16: run once (8 trials). The pass bar above was not changed. Verdict INCONCLUSIVE: `cool1` had 3 stop exits at 1x (minimum 5). See `summary.md` and `2026-10-16-stop-cooloff.pdf`.
+- 2026-10-16 (after all trials): shared research code changed, results unchanged. `lsgamma.backtest.run` now writes the registry atomically, and the `report.fees` chart legend got headroom. All figures and the PDF were rebuilt with `--report-only` (no new trials). Registry rows say `8d1f0fe-dirty` because uncommitted research files (figures, other experiments' scripts) were in the tree; `src/` and `configs/` matched 8d1f0fe.

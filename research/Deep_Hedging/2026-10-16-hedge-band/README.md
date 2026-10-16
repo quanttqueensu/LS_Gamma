@@ -8,7 +8,7 @@
 | **Experiment** | `2026-10-16-hedge-band` (config: `configs/experiments/2026-10-16-hedge-band.toml`) |
 | **Topic** | Deep_Hedging |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | passed (development window; hold-out run still to do) |
 | **Started** | 2026-10-16 |
 
 ## Hypothesis
@@ -53,3 +53,5 @@ Both at both multiples = pass; otherwise fail. band5 and band20 are reported as 
 3. Then the PM decides whether to set `[hedge] min_shares = 10` in `configs/paper.toml`, recorded in `docs/decisions/`.
 
 ## Changes
+- 2026-10-16: run once (6 trials). The report step crashed on a registry read while parallel experiments were writing, after all 6 trials were registered. Charts and tables were rebuilt with `--report-only` (no new trials). After the run, `experiment.py` gained report-only diagnostics (a share P&L split, a P&L bridge chart, and the hedge charts merged into one figure). The pass bar above was not changed.
+- 2026-10-16 (after all trials): shared research code changed, results unchanged. `lsgamma.backtest.run` now writes the registry atomically, and the `report.fees` chart legend got headroom. All figures and the PDF were rebuilt with `--report-only` (no new trials). Registry rows say `8d1f0fe-dirty` because uncommitted research files (figures, other experiments' scripts) were in the tree; `src/` and `configs/` matched 8d1f0fe.

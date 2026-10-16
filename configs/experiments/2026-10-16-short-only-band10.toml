@@ -1,0 +1,33 @@
+[experiment]
+name = "2026-10-16-short-only-band10"
+topic = "Deep_Hedging"
+owner = "Gabe Soler (PM)"
+
+# reference: registered 2026-10-16-short-only/short_only runs (not rerun)
+[variants.band10.signal]
+long_band = -inf  # no long entries
+[variants.band10.hedge]
+min_shares = 10  # primary: skip rebalances under 10 shares
+
+[pass]
+primary = "band10"
+against = "short_only"
+min_events = 0  # floor is the hedge-order cut below
+hedge_cut = 0.20  # band10 must cut 1x hedge orders this much
+[[pass.check]]
+metric = "pnl"
+period = "all"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2014-2019"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2020-2024"
+rule = "higher"
+[[pass.check]]
+metric = "es_5"
+period = "all"
+rule = "abs_within"
+value = 1.10

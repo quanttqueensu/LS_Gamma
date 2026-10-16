@@ -177,9 +177,9 @@ def fees(sets, path):
     fig, ax = plt.subplots(figsize=(7, 3))
     ax.bar(labels, opt, color="tab:blue", label="option commissions")
     ax.bar(labels, hed, bottom=opt, color="tab:orange", label="hedge commissions")
-    ax.set(title="Commissions paid", ylabel="USD")
+    ax.set(title="Commissions paid", ylabel="USD", ylim=(0, max(map(sum, zip(opt, hed))) * 1.3))
     ax.tick_params(axis="x", labelsize=7)
-    ax.legend(fontsize=7, frameon=False)
+    ax.legend(fontsize=7, frameon=False, ncol=2, loc="upper left")
     return save(fig, path)
 
 

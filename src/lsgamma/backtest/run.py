@@ -2,6 +2,7 @@ import argparse
 import copy
 import fcntl
 import json
+import os
 import time
 
 import pandas as pd
@@ -28,7 +29,9 @@ def register(row):
         df = pd.DataFrame([row])
         if path.exists():
             df = pd.concat([pd.read_parquet(path), df], ignore_index=True)
-        df.to_parquet(path)
+        tmp = path.with_suffix(".tmp")
+        df.to_parquet(tmp)
+        os.replace(tmp, path)  # readers never see half a file
 
 
 def trial(name, cfg, start, end, holdout=False, mult=None, root=None, cache=None):

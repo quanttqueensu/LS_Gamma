@@ -8,7 +8,7 @@
 | **Experiment** | `2026-10-16-dte-45-21` (config: `configs/experiments/2026-10-16-dte-45-21.toml`) |
 | **Topic** | Risk_Management |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed |
 | **Started** | 2026-10-16 |
 
 ## Hypothesis
@@ -54,3 +54,4 @@ Primary `dte45` against reference `short_only` at the same spread multiple. Ever
 Combine it with the other passing rules (short-only, hedge band) into one candidate. Run the hold-out once on that combination, then shadow mode, then a decision record, then the change to `[entry]` and `[exit]` in `configs/paper.toml`.
 
 ## Changes
+- 2026-10-16: run once (4 trials, pre-registration commit 1d4144f; reference reused from 2026-10-16-short-only, 2 trials, not rerun). The pass bar above was not changed. The PM approved testing the full live change, including the signal moving to the picked expiry, before the run. Verdict: failed (1x full window and the 2020-2024 half at both spreads). See `summary.md` and `2026-10-16-dte-45-21.pdf`.

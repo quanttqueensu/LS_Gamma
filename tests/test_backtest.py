@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from lsgamma import experiments
-from lsgamma.backtest import config, engine, metrics, run, sim
+from lsgamma.backtest import config, engine, metrics, report, run, sim
 from lsgamma.pipeline import features, store
 from lsgamma.trading import ledger, runner
 from test_runner import FakeIB
@@ -559,3 +559,57 @@ def test_holdout_reuses_existing_baseline(bt):
     assert set(out) == {"b"}
     reg = pd.read_parquet(experiments.ROOT / "registry.parquet")
     assert (reg["experiment"] == "baseline").sum() == 2
+
+
+def ladder(cfg, root, vols, n=3):
+    cfg = no_stops(cfg)
+    cfg["backtest"]["max_positions"] = n
+    plan = list(zip(days("2024-03-04", len(vols)), vols))
+    write(root, plan)
+    return plan, engine.backtest(cfg, plan[0][0], plan[-1][0], root=root)
+
+
+def test_max_positions_ladders_one_per_run(bt):
+    cfg, root = bt
+    plan, out = ladder(cfg, root, [0.10] * 5)
+    t = out["trades"]
+    assert t["action"].tolist() == ["open"] * 3
+    assert t["date"].tolist() == [str(d) for d, _ in plan[:3]]
+    assert out["hedges"]["shares"].tolist() == [-50, -50, -50]
+    assert out["equity"]["shares"].iloc[-1] == -150
+
+
+def test_max_positions_flip_closes_all(bt):
+    cfg, root = bt
+    plan, out = ladder(cfg, root, [0.10, 0.10, 0.25])
+    t = out["trades"]
+    assert t["action"].tolist() == ["open", "open", "close", "close", "open"]
+    assert t["reason"].dropna().tolist() == ["flip", "flip"]
+    assert t["side"].iloc[-1] == "long"
+    assert out["hedges"]["shares"].tolist() == [-50, -50, 50]
+    rt = report.round_trips(out)
+    assert rt["entry_date"].tolist() == [str(plan[0][0]), str(plan[1][0])]
+
+
+def test_max_positions_fees_add_up(bt):
+    cfg, root = bt
+    plan, out = ladder(cfg, root, [0.10, 0.10, 0.10, 0.16, 0.16, 0.16, 0.16])
+    t, h = out["trades"], out["hedges"]
+    closes = t[t["action"] == "close"]
+    assert len(closes) == 3 and set(closes["reason"]) == {"flat"}
+    eq = out["equity"]["equity"].iloc[-1]
+    unwind = abs(h["shares"].iloc[-1]) * cfg["backtest"]["share_half_spread"]
+    fees = t["commission"].sum() + h["commission"].sum()
+    assert np.isclose(eq, closes["pnl"].sum() - fees - unwind)
+    assert np.isclose(closes["pnl"].sum() - closes["pnl_net"].sum(), fees - h["commission"].iloc[-1])
+    assert out["equity"]["shares"].iloc[-1] == 0
+
+
+def test_pairs_match_by_entry_time():
+    t = pd.DataFrame({"action": ["open", "open", "close", "close"],
+                      "ts": ["a", "b", "c", "d"], "date": ["2024-01-01", "2024-01-02",
+                                                          "2024-01-05", "2024-01-09"],
+                      "entry_ts": ["a", "b", "b", "a"]})
+    o, c = metrics.pairs(t)
+    assert o["ts"].tolist() == ["b", "a"]
+    assert metrics.holding_days(t) == (3 + 8) / 2

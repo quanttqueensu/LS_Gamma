@@ -1,0 +1,27 @@
+[experiment]
+name = "2026-10-16-max-positions"
+topic = "Risk_Management"
+owner = "Gabe Soler (PM)"
+
+# baseline (trial 1) is max_positions = 1
+[variants.pos2.backtest]
+max_positions = 2
+
+[variants.pos3.backtest]
+max_positions = 3
+
+[variants.pos4.backtest]
+max_positions = 4
+
+[variants.pos6.backtest]
+max_positions = 6
+
+[variants.pos8.backtest]
+max_positions = 8  # Reg-T cap at $250k
+
+[pass]
+primary = "peak"  # set by the dev-window rule
+grid = [1, 2, 3, 4, 6, 8]
+margin = 500.0  # USD the peak must clear both ends
+min_ladder = 30  # ladder entries at N = 8
+capital = 250000.0

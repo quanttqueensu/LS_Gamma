@@ -90,9 +90,7 @@ def round_trips(out):
     t = out["trades"]
     if t.empty:
         return t
-    o = t[t["action"] == "open"].reset_index(drop=True)
-    c = t[t["action"] == "close"].reset_index(drop=True)
-    o = o.iloc[:len(c)]
+    o, c = metrics.pairs(t)
     return pd.DataFrame({"side": o["side"], "entry_date": o["date"], "exit_date": c["date"],
                          "reason": c["reason"], "premium": o["price"] * 100 * o["qty"],
                          "pnl": c["pnl"], "pnl_net": c["pnl_net"]})

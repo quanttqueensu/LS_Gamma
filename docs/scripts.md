@@ -99,6 +99,7 @@ PYTHONPATH=src python -m lsgamma.backtest.run --exp <name> --holdout   # final r
 - Several variants in one experiment: put a `[variants.<label>]` table per variant in the TOML and call `run.variants(name, cfg, cfg["variants"])` from `experiment.py`. Each variant runs at 1x and 2x on the development window and is logged as `<name>/<label>`.
 - Charts and tables for reports: `lsgamma.backtest.report` (`runs(name)`, `table(sets)` with 2014-2019 / 2020-2024 halves, `standard(sets, folder)` for cumulative P&L, drawdown, yearly, exit reasons and fees, `trials(name)`).
 - `[backtest] stop_reset = true` (research only, not in live) blocks a same-side re-entry after a stop until the signal has left that side.
+- `[backtest] max_positions = N` (research only, default 1; live holds one position and ignores it) ladders up to N same-side positions, one per signal run. Each exits on its own; flip/flat closes all; hedges are netted into one order per run.
 
 ## 9. Changing the rules
 All numbers live in `configs/paper.toml`: the VRP bands, forecaster (`garch` or `har`), DTE window, size, exits, slippage, fill timeout and hedge band. After a stop, `stop_cooloff_days` blocks a same-side re-entry (1 = rest of that day; 0 = off). No code changes are needed.

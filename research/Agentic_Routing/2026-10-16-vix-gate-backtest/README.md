@@ -8,7 +8,7 @@
 | **Experiment** | `2026-10-16-vix-gate-backtest` (config: `configs/experiments/2026-10-16-vix-gate-backtest.toml`) |
 | **Topic** | Agentic_Routing |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed |
 | **Started** | 2026-10-16 |
 
 ## Hypothesis
@@ -55,3 +55,5 @@ This bar differs from the standard one because the tail is the target: ES is the
 Combine it with the other passing rules (short-only first) into one candidate. Run the hold-out once on that combination, then shadow mode with the gate as a `SIGNALS` wrapper around `vrp_band`, then a decision record, then the one-line change in `configs/paper.toml`.
 
 ## Changes
+- 2026-10-16: run once (4 trials, commit fc6e788; engine flag in 7cd43ab). The pass bar above was not changed. Verdict: failed (ES cut about 11% against the 20% bar, and net P&L below the reference, at both 1x and 2x; event floor met with 21 blocked days). See `summary.md` and `2026-10-16-vix-gate-backtest.pdf`.
+- 2026-10-16 (after the run): a chart-only edit to `experiment.py`, because the `gate1` markers in the VIX/VIX3M chart were hidden under the `gate095` markers. Figures were rebuilt with `--report-only`; no new trials.

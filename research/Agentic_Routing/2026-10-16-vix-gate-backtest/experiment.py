@@ -98,8 +98,8 @@ def ratio_chart(cfg, sets, path):
     ax.plot(prev.index, prev.values, color="0.55", lw=0.6, label="VIX/VIX3M (prior close)")
     for i, k in enumerate(gated_labels(cfg, sets)):
         g = gate_days(sets[k][1.0])
-        ax.scatter(g, prev.reindex(g).values, s=6, color=report.color(i + 2, k),
-                   label=f"{k} blocked days", zorder=3)
+        ax.scatter(g, prev.reindex(g).values, s=6 if i else 22, color=report.color(i + 2, k),
+                   label=f"{k} blocked days", zorder=4 - i, marker="o" if i else "D")
         ax.axhline(sets[k][1.0]["cfg"]["backtest"]["short_gate"], color=report.color(i + 2, k),
                    lw=0.8, ls="--")
     ax.set(title="VIX/VIX3M the gate reads, with blocked days (1x)", ylabel="ratio")

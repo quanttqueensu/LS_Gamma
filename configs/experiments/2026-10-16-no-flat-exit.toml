@@ -1,0 +1,41 @@
+[experiment]
+name = "2026-10-16-no-flat-exit"
+topic = "Risk_Management"
+owner = "Gabe Soler (PM)"
+
+# reference: same config as 2026-10-16-short-only/short_only
+[variants.short_only.signal]
+long_band = -inf  # no long entries
+
+[variants.no_flat.signal]
+long_band = -inf
+[variants.no_flat.exit]
+flat_days = 999  # never exit on flat signals
+
+[variants.flat10.signal]
+long_band = -inf
+[variants.flat10.exit]
+flat_days = 10  # sensitivity: slower flat exit
+
+[pass]
+primary = "no_flat"
+against = "short_only"
+min_events = 20  # time exits the primary must reach
+event = "time"
+[[pass.check]]
+metric = "pnl"
+period = "all"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2014-2019"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2020-2024"
+rule = "higher"
+[[pass.check]]
+metric = "es_5"
+period = "all"
+rule = "abs_within"
+value = 1.10

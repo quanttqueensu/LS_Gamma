@@ -187,3 +187,33 @@ def test_forecast_skips_todays_partial_bar(env):
     runner.run(None, env, DAY1, dry=True)
     assert len(Fixed.fitted) == 499
     assert Fixed.fitted.index.max() < pd.Timestamp(DAY1.date())
+
+
+def test_flip_carries_hedge_shares(env):
+    ib = FakeIB()
+    Fixed.vol = 0.10
+    runner.run(ib, env, DAY1)
+    Fixed.vol = 0.25
+    runner.run(ib, env, DAY2)
+    pos = ledger.load_position()
+    assert pos["side"] == "long"
+    assert pos["hedges"] == [{"date": "2026-10-02", "ts": "2026-10-02T10:15:00-04:00",
+                              "shares": -50, "price": SPOT}]
+    assert len(ledger.read_log("hedges")) == 1
+
+
+def test_stop_cooloff_blocks_same_side_that_day(env, monkeypatch):
+    data, spiked = snapshot(), snapshot()
+    spiked["chain"]["mid"] = 15.0
+    pick = lambda name, asof=None: (spiked if f"{asof:%H%M}" == "1115" else data)[name]
+    monkeypatch.setattr(runner.store, "load", pick)
+    ib = FakeIB()
+    Fixed.vol = 0.10
+    runner.run(ib, env, DAY1)
+    runner.run(ib, env, at(1, "11:15"))
+    assert ledger.read_log("trades")["reason"].iloc[-1] == "stop"
+    assert ledger.load_position() is None
+    runner.run(ib, env, at(1, "12:15"))
+    assert ledger.load_position() is None
+    runner.run(ib, env, DAY2)
+    assert ledger.load_position()["side"] == "short"

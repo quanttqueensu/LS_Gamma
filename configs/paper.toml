@@ -20,6 +20,7 @@ flat_days = 3  # flat signal days before closing
 short_stop_mult = 1.0  # stop at credit times this
 long_stop_frac = 0.5  # stop after losing this premium fraction
 short_profit_frac = 0.5  # take profit at this credit fraction
+stop_cooloff_days = 1  # no same-side re-entry after a stop
 
 [schedule]
 signal = ["10:15"]  # ET; live runner allows one time

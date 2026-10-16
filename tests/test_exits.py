@@ -1,6 +1,6 @@
 from datetime import date
 
-from lsgamma.trading.exits import exit_reason
+from lsgamma.trading.exits import cooling, exit_reason
 
 CFG = {"exit": {"exit_dte": 7, "flat_days": 3, "short_stop_mult": 1.0,
                 "long_stop_frac": 0.5, "short_profit_frac": 0.5}}
@@ -63,3 +63,14 @@ def test_priority():
     assert reason(SHORT, pnl=300.0, signal="long") == "profit"
     assert reason(SHORT, signal="long", history=["flat", "flat", "long"]) == "flip"
     assert reason(LONG, signal="short", history=["flat", "flat", "short"]) == "flip"
+
+
+def test_cooling_after_stop():
+    stop = ("short", date(2026, 10, 1))  # a Thursday
+    assert cooling("short", stop, date(2026, 10, 1), 1)
+    assert not cooling("short", stop, date(2026, 10, 2), 1)
+    assert not cooling("short", stop, date(2026, 10, 1), 0)
+    assert cooling("short", stop, date(2026, 10, 7), 5)
+    assert not cooling("short", stop, date(2026, 10, 8), 5)
+    assert not cooling("long", stop, date(2026, 10, 1), 5)
+    assert not cooling("short", None, date(2026, 10, 1), 5)

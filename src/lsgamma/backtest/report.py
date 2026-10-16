@@ -28,13 +28,42 @@ def load(run):
 
 
 def registry():
-    return pd.read_parquet(experiments.ROOT / "registry.parquet")
+    path = experiments.ROOT / "registry.parquet"
+    return pd.read_parquet(path) if path.exists() else pd.DataFrame(
+        columns=["experiment", "run", "spread_mult", "holdout"])
 
 
-def runs(name):
+def same(saved, cur):
+    # keys added later count only if switched on
+    if isinstance(cur, dict):
+        saved = saved if isinstance(saved, dict) else {}
+        return all(same(saved.get(k), v) if k in saved else not v
+                   for k, v in cur.items() if k != "spread_mult")
+    return json.dumps(saved, default=str) == json.dumps(cur, default=str)
+
+
+def baseline(cfg, holdout=False):
+    # first baseline run per mult on the same config
+    reg = registry()
+    rows = reg[(reg["experiment"] == "baseline") & (reg["holdout"] == holdout)]
+    out = {}
+    for r in rows.itertuples():
+        run = load(r.run)
+        if float(r.spread_mult) not in out and same(run["cfg"], cfg):
+            out[float(r.spread_mult)] = run
+    return out
+
+
+def stale(cfg, holdout=False):
+    want = {cfg["backtest"]["spread_mult"], cfg["backtest"]["stress_mult"]}
+    return not want <= set(baseline(cfg, holdout))
+
+
+def runs(name, holdout=False):
     # latest run per spread multiple
     reg = registry()
-    last = reg[reg["experiment"] == name].groupby("spread_mult").tail(1)
+    last = reg[(reg["experiment"] == name) & (reg["holdout"] == holdout)]
+    last = last.groupby("spread_mult").tail(1)
     return {float(r.spread_mult): load(r.run) for r in last.itertuples()}
 
 

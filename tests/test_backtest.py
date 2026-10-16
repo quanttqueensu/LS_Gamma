@@ -1,3 +1,4 @@
+import copy
 import shutil
 from datetime import timedelta
 
@@ -500,3 +501,61 @@ def test_report_tables_and_charts(bt, tmp_path):
     assert np.isclose(whole["pnl"], reg["pnl"].iloc[0])
     for path in report.standard(sets, tmp_path / "figs"):
         assert path.exists() and path.stat().st_size > 0
+
+
+def test_baseline_matches_config_and_takes_first(bt):
+    from lsgamma.backtest import report
+    cfg, root = bt
+    d = days("2024-03-04", 3)
+    write(root, list(zip(d, [0.10] * 3)))
+    for _ in range(2):
+        for mult in (1.0, 2.0):
+            run.trial("baseline", cfg, d[0], d[-1], mult=mult, root=root)
+    reg = pd.read_parquet(experiments.ROOT / "registry.parquet")
+    first = report.baseline(cfg)
+    assert sorted(first) == [1.0, 2.0] and not report.stale(cfg)
+    assert first[1.0]["equity"].equals(report.load(reg["run"].iloc[0])["equity"])
+    changed = copy.deepcopy(cfg)
+    changed["hedge"]["min_shares"] = 10
+    assert report.stale(changed) and report.stale(cfg, holdout=True)
+
+
+def test_new_flag_off_keeps_baseline_current(bt):
+    from lsgamma.backtest import report
+    cfg, root = bt
+    saved = copy.deepcopy(cfg)
+    del saved["backtest"]["stop_reset"]
+    assert report.same(saved, cfg)
+    cfg["backtest"]["stop_reset"] = True
+    assert not report.same(saved, cfg)
+
+
+def holdout_setup(cfg, root):
+    cfg["backtest"]["holdout_start"] = "2024-03-04"
+    cfg["history"]["last_day"] = "2024-03-15"
+    write(root, list(zip(days("2024-03-04", 10), PARITY)))
+    return {**cfg, "variants": {"a": {"hedge": {"min_shares": 5}}}}
+
+
+def test_holdout_runs_once_with_baseline(bt):
+    cfg, root = bt
+    exp = holdout_setup(cfg, root)
+    out = run.holdout("demo", "a", exp, cfg, root=root)
+    assert set(out) == {"a", "baseline"}
+    reg = pd.read_parquet(experiments.ROOT / "registry.parquet")
+    assert reg["holdout"].all() and len(reg) == 4
+    assert reg["experiment"].tolist() == ["demo/a"] * 2 + ["baseline"] * 2
+    assert set(reg["start"]) == {"2024-03-04"} and set(reg["end"]) == {"2024-03-15"}
+    with pytest.raises(SystemExit, match="already has a hold-out run"):
+        run.holdout("demo", "a", exp, cfg, root=root)
+
+
+def test_holdout_reuses_existing_baseline(bt):
+    cfg, root = bt
+    exp = holdout_setup(cfg, root)
+    run.holdout("demo", "a", exp, cfg, root=root)
+    exp["variants"]["b"] = {"hedge": {"min_shares": 20}}
+    out = run.holdout("demo", "b", exp, cfg, root=root)
+    assert set(out) == {"b"}
+    reg = pd.read_parquet(experiments.ROOT / "registry.parquet")
+    assert (reg["experiment"] == "baseline").sum() == 2

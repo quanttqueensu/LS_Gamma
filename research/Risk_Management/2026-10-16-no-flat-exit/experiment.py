@@ -76,8 +76,9 @@ def turnover(cfg, sets, path):
     axes[0].set(title="Round trips, 2014-2024", ylabel="count")
     axes[1].bar(labels, spread, color="tab:blue", label="spreads (1x)")
     axes[1].bar(labels, fees, bottom=spread, color="tab:orange", label="commissions")
-    axes[1].set(title="Trading costs at 1x", ylabel="USD")
-    axes[1].legend(fontsize=7, frameon=False)
+    axes[1].set(title="Trading costs at 1x", ylabel="USD",
+                ylim=(0, max(map(sum, zip(spread, fees))) * 1.3))
+    axes[1].legend(fontsize=7, frameon=False, ncol=2, loc="upper left")
     for ax in axes:
         ax.tick_params(axis="x", labelsize=7)
     return report.save(fig, path)
@@ -86,7 +87,7 @@ def turnover(cfg, sets, path):
 def hold_dist(cfg, sets, path):
     labels = list(sets)
     fig, ax = plt.subplots(figsize=(7, 2.8))
-    ax.boxplot([holds(sets[k][1.0]) for k in labels], labels=labels, showfliers=False,
+    ax.boxplot([holds(sets[k][1.0]) for k in labels], tick_labels=labels, showfliers=False,
                whis=(5, 95))
     ax.set(title="Holding period per round trip (calendar days, 1x)", ylabel="days")
     return report.save(fig, path)

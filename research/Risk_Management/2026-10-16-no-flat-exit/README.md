@@ -8,7 +8,7 @@
 | **Experiment** | `2026-10-16-no-flat-exit` (config: `configs/experiments/2026-10-16-no-flat-exit.toml`) |
 | **Topic** | Risk_Management |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed |
 | **Started** | 2026-10-16 |
 
 ## Hypothesis
@@ -46,4 +46,5 @@ Primary `no_flat` against reference `short_only` at the same spread multiple. Ev
 Combine it with the other passing rules (short-only, hedge band) into one candidate. Run the hold-out once on that combination, then shadow mode, then a decision record, then the one-line change `[exit] flat_days` in `configs/paper.toml`.
 
 ## Changes
-- (dated notes, if the plan had to change)
+- 2026-10-16: run once (6 trials, commit dbf1d11). The pass bar above was not changed. Verdict: failed (2x full window and the 2014-2019 half). See `summary.md` and `2026-10-16-no-flat-exit.pdf`.
+- 2026-10-16 (after the run): chart-only edits to `experiment.py` (turnover legend headroom, `tick_labels` for the holding box plot). Figures rebuilt with `--report-only`; no new trials.

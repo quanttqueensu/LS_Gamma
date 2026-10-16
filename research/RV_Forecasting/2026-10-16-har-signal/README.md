@@ -8,7 +8,7 @@
 | **Experiment** | `2026-10-16-har-signal` (config: `configs/experiments/2026-10-16-har-signal.toml`) |
 | **Topic** | RV_Forecasting |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed |
 | **Started** | 2026-10-16 |
 
 ## Hypothesis
@@ -49,3 +49,5 @@ Primary `har` against reference `short_only` at the same spread multiple. Every 
 Run the hold-out once, then run HAR in shadow mode next to GARCH for a few weeks, then a decision record and the one-line change `[signal] forecaster = "har"` in `configs/paper.toml`.
 
 ## Changes
+- 2026-10-16: run once (2 trials, commit 671df4e; reference reused, not rerun). The pass bar above was not changed. Verdict: failed (full window and the 2020-2024 half, at 1x and 2x). See `summary.md` and `2026-10-16-har-signal.pdf`.
+- 2026-10-16 (after the run): chart-only edit to `experiment.py` (the forecast chart's y-axis is capped at 70 and the March 2020 HAR peak is labelled). Figures rebuilt with `--report-only`; no new trials.

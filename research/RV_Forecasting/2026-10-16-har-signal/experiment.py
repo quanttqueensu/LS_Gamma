@@ -82,7 +82,12 @@ def rv_path(cfg, sets, path):
         ax.plot(m.index, m.values, color=report.COLORS[i], lw=1.1, label=name)
     iv = signals(sets, "short_only")["iv"].resample("ME").mean() * 100
     ax.plot(iv.index, iv.values, color=report.BASE, lw=0.9, ls="--", label="ATM IV")
-    ax.set(title="RV forecast vs ATM IV, monthly mean", ylabel="vol points")
+    top = signals(sets, "har")["rv_forecast"].resample("ME").mean() * 100
+    if top.max() > 70:  # label the clipped peak
+        ax.annotate(f"HAR {top.idxmax():%b %Y}: {top.max():.0f}", (top.idxmax(), 70),
+                    xytext=(10, -12), textcoords="offset points", fontsize=7)
+    ax.set(title="RV forecast vs ATM IV, monthly mean (axis capped at 70)",
+           ylabel="vol points", ylim=(0, 70))
     ax.legend(fontsize=7, frameon=False)
     return report.save(fig, path)
 

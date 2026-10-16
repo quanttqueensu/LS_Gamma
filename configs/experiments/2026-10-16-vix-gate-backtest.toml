@@ -1,0 +1,40 @@
+[experiment]
+name = "2026-10-16-vix-gate-backtest"
+topic = "Agentic_Routing"
+owner = "Gabe Soler (PM)"
+
+# reference: registered 2026-10-16-short-only/short_only runs (not rerun)
+[variants.gate1.signal]
+long_band = -inf  # no long entries
+[variants.gate1.backtest]
+short_gate = 1.0  # no short entry if yesterday's VIX/VIX3M >= 1
+
+[variants.gate095.signal]
+long_band = -inf
+[variants.gate095.backtest]
+short_gate = 0.95  # sensitivity: earlier gate
+
+[pass]
+primary = "gate1"
+against = "short_only"
+min_events = 10  # distinct days the gate blocks a short
+event = "gate"
+event_label = "gate1"
+[[pass.check]]
+metric = "es_5"
+period = "all"
+rule = "abs_within"
+value = 0.80
+[[pass.check]]
+metric = "es_5"
+period = "2014-2019"
+rule = "less_severe"
+[[pass.check]]
+metric = "es_5"
+period = "2020-2024"
+rule = "less_severe"
+[[pass.check]]
+metric = "pnl"
+period = "all"
+rule = "not_below"
+value = 0.0

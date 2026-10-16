@@ -5,9 +5,9 @@
 
 **Decision:**
 - **Timing:** decide on data up to 15 min before the decision time (paper IBKR data is 15 min delayed); fill on trades in the 15 min after it. Snapshot grid every 30 min, 10:15 to 15:45 ET. Stops are checked at every scheduled run.
-- **Window:** 2014-06 to 2026-07-31, never later (R2 ends there; no other source is used to extend it). Hold-out 2025-01-01 to 2026-07-31.
+- **Window:** 2014-06 to 2026-07-10, never later (R2 ends there; no other source is used to extend it). Hold-out 2025-01-01 to 2026-07-10.
 - **Daily data:** forecasts use completed days only (up to yesterday's close), live and backtest. SPY daily from CRSP; 2026 closes from R2 put-call parity. VIX from CBOE, rf from Fama-French; VIX9D, VIX3M and VVIX from a one-time frozen yfinance download.
-- **Costs:** bid/ask from a spread model fit on live IBKR quotes, run at 1× and 2× (`spread_mult`). Commissions $0.65 per contract and $0.005 per share.
+- **Costs:** bid/ask from a spread model fit on live IBKR quotes, run at 1× and 2× (`spread_mult`). It fits the mean cost (least squares) per delta tier (≤0.8, 0.8–0.9, >0.9), because expected P&L needs expected cost. Commissions $0.65 per contract and $0.005 per share, with a $1 minimum per order (0003).
 - **Ownership:** Claude builds the replay pipeline and engine; analysts use them.
 
 **Evidence:**

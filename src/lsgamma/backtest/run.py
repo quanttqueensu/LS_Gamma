@@ -1,0 +1,83 @@
+import argparse
+import copy
+import json
+import time
+
+import pandas as pd
+
+from lsgamma import experiments
+from lsgamma.backtest import config, engine, metrics
+
+
+def start_run(name, cfg):
+    # run folders are named to the second
+    while True:
+        try:
+            return experiments.start_run(name, cfg)
+        except FileExistsError:
+            time.sleep(0.2)
+
+
+def register(row):
+    path = experiments.ROOT / "registry.parquet"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    df = pd.DataFrame([row])
+    if path.exists():
+        df = pd.concat([pd.read_parquet(path), df], ignore_index=True)
+    df.to_parquet(path)
+
+
+def trial(name, cfg, start, end, holdout=False, mult=None, root=None, cache=None):
+    cfg = copy.deepcopy(cfg)
+    if mult is not None:
+        cfg["backtest"]["spread_mult"] = mult
+    out = engine.backtest(cfg, start, end, holdout, root, cache)
+    run = start_run(name, cfg)
+    for k, df in out.items():
+        experiments.save(run, df, k)
+    m = metrics.summary(out, cfg)
+    span = out["span"].iloc[0]
+    register({"experiment": name, "run": str(run.relative_to(experiments.ROOT)),
+              "commit": experiments.commit(), "version": cfg["history"]["version"],
+              **engine.manifest(engine.snapshots(cfg, root)),
+              "start": str(start), "end": str(end), "last_day_used": span["last_day"],
+              "holdout": holdout, "spread_mult": cfg["backtest"]["spread_mult"],
+              "schedule": json.dumps(cfg["schedule"]), **m})
+    return {"spread_mult": cfg["backtest"]["spread_mult"], **m, "run": str(run),
+            "last_day_used": span["last_day"]}
+
+
+def table(rows):
+    df = pd.DataFrame(rows).set_index("spread_mult").drop(columns=["run", "last_day_used"])
+    df = df.round(3)
+    gaps = [c for c in df.columns if c.split("_share")[0] in metrics.GAPS] + ["decide_smile"]
+    return (df.drop(columns=gaps).to_string() + "\n\ndata gaps (counts, share of scheduled times)\n"
+            + df[gaps].to_string())
+
+
+def main():
+    p = argparse.ArgumentParser(description="Backtest the paper rules on R2 replay snapshots")
+    p.add_argument("--exp", default=None, help="configs/experiments/<exp>.toml")
+    p.add_argument("--holdout", action="store_true", help="final run only: allow 2025-01-01+")
+    p.add_argument("--start", default=None)
+    p.add_argument("--end", default=None)
+    a = p.parse_args()
+    cfg = config.load(a.exp)
+    bt = cfg["backtest"]
+    start = a.start or (bt["holdout_start"] if a.holdout else bt["start"])
+    end = a.end or (cfg["history"]["last_day"] if a.holdout else bt["end"])
+    start, end = engine.day(start), engine.day(end)
+    engine.check_window(cfg, start, end, a.holdout)
+    cache = {}
+    mults = sorted({bt["spread_mult"], bt["stress_mult"]})
+    rows = [trial(a.exp or "baseline", cfg, start, end, a.holdout, m, cache=cache) for m in mults]
+    used = rows[0]["last_day_used"]
+    print(f"{a.exp or 'baseline'}  {start} to {end}{'  HOLD-OUT' if a.holdout else ''}"
+          f"  (last trading day used: {used})")
+    print(table(rows))
+    for r in rows:
+        print(f"  {r['spread_mult']}x: {r['run']}")
+
+
+if __name__ == "__main__":
+    main()

@@ -6,7 +6,7 @@ owner = "TBD"
 [data]
 symbol = "SPY"
 years = 10
-holdout_start = "YYYY-MM-DD"  # never touched until the final run
+holdout_start = "YYYY-MM-DD"  # proxy scripts only; backtest: configs/backtest.toml
 
 [walk_forward]
 train_years = 3  # minimum training window (expanding)
@@ -15,3 +15,16 @@ embargo_days = 30  # gap between train and test
 
 [model]
 # experiment-specific parameters go here
+
+[backtest]
+# python -m lsgamma.backtest.run --exp <name>
+# Override any paper.toml section and [backtest] costs/dates, e.g.
+# Fixed in configs/backtest.toml: holdout_start, first_day, [history] (except version).
+# spread_mult = 1.0  # every run also repeats at stress_mult (2.0)
+# start = "2014-06-02"
+# end = "2024-12-31"  # hold-out starts 2025-01-01
+# [signal]
+# short_band = 0.03
+# [schedule]
+# signal = ["10:15", "12:15", "14:15"]  # any [history].grid times
+# hedge = ["10:15", "11:15", "12:15", "13:15", "14:15", "15:15"]

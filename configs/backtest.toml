@@ -1,4 +1,5 @@
 # Backtest settings. Merged over paper.toml, then the experiment TOML.
+# Experiments may not set [history] (except version), holdout_start or first_day.
 
 [history]
 version = "v1"  # snapshot folder: data/backtest/<version>/
@@ -6,13 +7,33 @@ lag = "15min"  # decide on data this stale
 fill_window = "15min"  # fill on trades after deciding
 grid = ["10:15", "10:45", "11:15", "11:45", "12:15", "12:45",
         "13:15", "13:45", "14:15", "14:45", "15:15", "15:45"]  # ET
-last_day = "2026-07-31"  # R2 ends; never later
-conditions = [209, 219, 227, 228, 229, 230, 231]  # single-leg OPRA codes
+last_day = "2026-07-10"  # R2 ends; never later
+conditions = [0, 209, 219, 227, 228, 229, 230, 231]  # 0 = regular, pre-2019-11
+min_price = 0.10  # drop prints below this (USD)
+lookback = "30min"  # smile trades before the decide cutoff
+pair_secs = 5  # max gap between parity call and put
+fwd_pairs = 20  # rolling parity pairs per forward median
+min_pairs = 5  # fewest pairs for a forward
+fwd_band = 0.02  # parity strikes within this of forward
+smile_k = 0.15  # fit trades with |ln(K/F)| up to this
+hold_k = 0.5  # list seen contracts this far out
+fill_min_pairs = 3  # fewest fill-window pairs for its forward
+smile_min_trades = 10  # else that expiry is missing
+smile_min_strikes = 4  # else that expiry is missing
+smile_trim = 3.0  # drop residuals beyond this many MADs
+itm_k = 0.02  # fit ITM prints only this near ATM
+min_dte = 1  # chain expiries, as live
+max_dte = 60  # chain expiries, as live
 
 [backtest]
+first_day = "2014-06-02"  # R2 starts; never earlier
 start = "2014-06-02"
 end = "2024-12-31"
 holdout_start = "2025-01-01"  # needs --holdout
-spread_mult = 1.0  # stress run at 2.0
+spread_mult = 1.0  # option and share half-spread multiple
+stress_mult = 2.0  # every run repeats at this
 commission_contract = 0.65  # USD per option contract
 commission_share = 0.005  # USD per share
+min_per_order = 1.0  # USD per order, IBKR Pro Fixed
+share_half_spread = 0.005  # hedge fills this far from spot, 1x
+fit_years = 5  # forecast window, same as live yfinance

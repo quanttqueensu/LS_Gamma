@@ -1,0 +1,60 @@
+# Half-spread fit on live IBKR quotes (lsgamma.history.spread).
+# half = max(floor, a + b * mid), USD/share, by DTE.
+# Each tier replaces bucket when |delta| > min_delta.
+# Market hours only; at 1x, engine applies spread_mult.
+floor = 0.005
+method = "ols"
+n_quotes = 14162
+snapshots = 9
+first = "2026-09-29"
+last = "2026-10-15"
+
+[[bucket]]
+max_dte = 14
+a = 0.001717
+b = 0.009749
+n = 2309
+
+[[bucket]]
+max_dte = 30
+a = -0.008531
+b = 0.008484
+n = 3655
+
+[[bucket]]
+max_dte = 60
+a = -0.037120
+b = 0.009982
+n = 3444
+
+[[tier]]
+min_delta = 0.8
+method = "ols"
+
+[[tier.bucket]]
+max_dte = 60
+a = 0.248469
+b = 0.009874
+n = 1350
+
+[[tier]]
+min_delta = 0.9
+method = "ols"
+
+[[tier.bucket]]
+max_dte = 14
+a = 0.619313
+b = 0.011962
+n = 1582
+
+[[tier.bucket]]
+max_dte = 30
+a = 1.399551
+b = 0.001715
+n = 1283
+
+[[tier.bucket]]
+max_dte = 60
+a = 1.879425
+b = -0.007388
+n = 539

@@ -25,4 +25,4 @@ Live hedgers are in `src/lsgamma/core/Algos/Hedging/`. A new hedger exposes `tar
 ## Experiments
 | Date | Hypothesis | Owner | Status | Summary |
 |---|---|---|---|---|
-| | | | | |
+| 2026-10-16 | [A 10-share hedge band beats hedging every share](2026-10-16-hedge-band/README.md) | Gabe Soler (PM) | passed (in-sample; hold-out not run) | [summary](2026-10-16-hedge-band/summary.md) · [report](2026-10-16-hedge-band/2026-10-16-hedge-band.pdf) |

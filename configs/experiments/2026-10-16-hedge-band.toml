@@ -1,0 +1,14 @@
+[experiment]
+name = "2026-10-16-hedge-band"
+topic = "Deep_Hedging"
+owner = "Gabe Soler (PM)"
+
+# baseline (min_shares = 1) is trial 1 of "baseline"
+[variants.band5.hedge]
+min_shares = 5  # sensitivity only
+
+[variants.band10.hedge]
+min_shares = 10  # primary: the pass bar uses this
+
+[variants.band20.hedge]
+min_shares = 20  # sensitivity only

@@ -1,0 +1,24 @@
+[experiment]
+name = "2026-10-16-stop-levels"
+topic = "Risk_Management"
+owner = "Gabe Soler (PM)"
+# stop_cooloff_days stays at the live 1
+
+[variants.tight.exit]
+short_stop_mult = 0.5  # H1 primary
+long_stop_frac = 0.25
+
+[variants.profit25.exit]
+short_profit_frac = 0.25  # H2
+
+[variants.both.exit]
+short_stop_mult = 0.5  # reported only, no bar
+long_stop_frac = 0.25
+short_profit_frac = 0.25
+
+[pass]
+h1_variant = "tight"
+h1_es_ratio = 0.80  # |ES| at most this x baseline
+h1_pnl_give = 300.0  # USD of full-window net P&L
+h2_variant = "profit25"
+h2_es_ratio = 1.10  # |ES| at most this x baseline

@@ -1,12 +1,14 @@
 import argparse
 import copy
+import fcntl
 import json
+import os
 import time
 
 import pandas as pd
 
 from lsgamma import experiments
-from lsgamma.backtest import config, engine, metrics
+from lsgamma.backtest import config, engine, metrics, report
 
 
 def start_run(name, cfg):
@@ -21,10 +23,15 @@ def start_run(name, cfg):
 def register(row):
     path = experiments.ROOT / "registry.parquet"
     path.parent.mkdir(parents=True, exist_ok=True)
-    df = pd.DataFrame([row])
-    if path.exists():
-        df = pd.concat([pd.read_parquet(path), df], ignore_index=True)
-    df.to_parquet(path)
+    with open(path.with_suffix(".lock"), "w") as lock:
+        # parallel runs must not drop rows
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        df = pd.DataFrame([row])
+        if path.exists():
+            df = pd.concat([pd.read_parquet(path), df], ignore_index=True)
+        tmp = path.with_suffix(".tmp")
+        df.to_parquet(tmp)
+        os.replace(tmp, path)  # readers never see half a file
 
 
 def trial(name, cfg, start, end, holdout=False, mult=None, root=None, cache=None):
@@ -45,6 +52,48 @@ def trial(name, cfg, start, end, holdout=False, mult=None, root=None, cache=None
               "schedule": json.dumps(cfg["schedule"]), **m})
     return {"spread_mult": cfg["backtest"]["spread_mult"], **m, "run": str(run),
             "last_day_used": span["last_day"]}
+
+
+def mults(cfg):
+    bt = cfg["backtest"]
+    return sorted({bt["spread_mult"], bt["stress_mult"]})
+
+
+def variants(name, cfg, table, root=None):
+    # development window only; one trial per variant and mult
+    base = {k: v for k, v in cfg.items() if k != "variants"}
+    start, end = engine.day(base["backtest"]["start"]), engine.day(base["backtest"]["end"])
+    caches, out = {}, {}
+    for v, over in table.items():
+        config.check_pins(over, f"{name}/{v}")
+        vcfg = config.merge(base, over)
+        key = (vcfg["signal"]["forecaster"], vcfg["backtest"]["fit_years"])
+        cache = caches.setdefault(key, {})
+        out[v] = [trial(f"{name}/{v}", vcfg, start, end, False, m, root, cache)
+                  for m in mults(vcfg)]
+    return out
+
+
+def held(name):
+    reg = report.registry()
+    return bool(((reg["experiment"] == name) & (reg["holdout"] == True)).any())
+
+
+def holdout(name, label, cfg, base, root=None):
+    # final run only: once per variant
+    exp = f"{name}/{label}"
+    if held(exp):
+        raise SystemExit(f"{exp} already has a hold-out run; refused")
+    over = cfg["variants"][label]
+    config.check_pins(over, exp)
+    vcfg = config.merge({k: v for k, v in cfg.items() if k != "variants"}, over)
+    start = engine.day(base["backtest"]["holdout_start"])
+    end = engine.day(base["history"]["last_day"])
+    out = {label: [trial(exp, vcfg, start, end, True, m, root, {}) for m in mults(vcfg)]}
+    if report.stale(base, holdout=True):
+        out["baseline"] = [trial("baseline", base, start, end, True, m, root, {})
+                           for m in mults(base)]
+    return out
 
 
 def table(rows):
@@ -69,8 +118,8 @@ def main():
     start, end = engine.day(start), engine.day(end)
     engine.check_window(cfg, start, end, a.holdout)
     cache = {}
-    mults = sorted({bt["spread_mult"], bt["stress_mult"]})
-    rows = [trial(a.exp or "baseline", cfg, start, end, a.holdout, m, cache=cache) for m in mults]
+    rows = [trial(a.exp or "baseline", cfg, start, end, a.holdout, m, cache=cache)
+            for m in mults(cfg)]
     used = rows[0]["last_day_used"]
     print(f"{a.exp or 'baseline'}  {start} to {end}{'  HOLD-OUT' if a.holdout else ''}"
           f"  (last trading day used: {used})")

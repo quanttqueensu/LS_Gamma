@@ -37,3 +37,4 @@ commission_share = 0.005  # USD per share
 min_per_order = 1.0  # USD per order, IBKR Pro Fixed
 share_half_spread = 0.005  # hedge fills this far from spot, 1x
 fit_years = 5  # forecast window, same as live yfinance
+stop_reset = false  # research only: re-enter after signal resets

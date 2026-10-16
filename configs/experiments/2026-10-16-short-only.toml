@@ -1,0 +1,7 @@
+[experiment]
+name = "2026-10-16-short-only"
+topic = "Agentic_Routing"
+owner = "Gabe Soler (PM)"
+
+[variants.short_only.signal]
+long_band = -inf  # vrp never below this: no long entries

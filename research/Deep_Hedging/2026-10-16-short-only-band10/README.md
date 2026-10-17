@@ -48,4 +48,4 @@ Primary `band10` against reference `short_only` at the same spread multiple. Eve
 Run `band10` once on the hold-out, then shadow mode on paper, then a decision record, then the two-line change in `configs/paper.toml` (`[signal] long_band` and `[hedge] min_shares`).
 
 ## Changes
-- 2026-10-16: run once (2 trials, pre-registration commit c2f7109). The pass bar above was not changed. Verdict: passed at 1x and 2x (hedge orders cut 49%, above the 20% floor). See `2026-10-16-short-only-band10.pdf`.
+- 2026-10-16: run once (2 trials, pre-registration commit c2f7109). The pass bar above was not changed. Verdict: passed at 1x and 2x (hedge orders cut 49%, above the 20% floor). See `summary.md` and `2026-10-16-short-only-band10.pdf`.

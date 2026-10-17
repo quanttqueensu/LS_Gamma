@@ -66,7 +66,7 @@ Event floor: days the gate blocked a short (1x) & 21 & \ensuremath{\geq} 10 &  &
 \end{tabularx}
 \end{center}
 
-\textbf{Verdict: failed.} The gate cuts the daily tail by about 11\% at both spreads, not the 20\% the hypothesis needs, and it costs net P\&L: \ensuremath{-}\$374 at 1x and \ensuremath{-}\$217 at 2x. Like the reference, the book loses money at both spreads.
+\textbf{Verdict: failed.} The gate cuts the daily tail by 11.6\% at 1x and 11.1\% at 2x, not the 20\% the hypothesis needs, and it costs net P\&L: \ensuremath{-}\$374 at 1x and \ensuremath{-}\$217 at 2x. Like the reference, the book loses money at both spreads.
 
 \subsection{Full-window numbers (not part of the bar)}
 
@@ -118,7 +118,7 @@ Fewer trades means slightly lower commissions: \$58 less for \texttt{gate1} (8 f
 
 \begin{figure}[H]\centering\includegraphics[width=0.92\linewidth]{figures/vix_ratio.png}\caption{VIX/\allowbreak{}VIX3M the gate reads (prior close), with blocked days marked; dashed lines are the two thresholds}\end{figure}
 
-The blocked days sit on the inversions of October 2014, early and late 2018, March-April 2020, October 2022 and August 2024. Of the 193 inverted days, a short was already open on 83 and the signal was flat on 82 (the realized-vol forecast jumps with the spike, so VRP falls below the short band). Seven had no snapshot, which leaves the 21 blocked days. In August 2015 and late 2018 a short was usually already open; in February 2018 the signal stayed flat. The gate cannot close a position it did not stop.
+The blocked days sit on the inversions of October 2014, early and late 2018, March-April and October-November 2020, October 2022 and August 2024. Of the 193 inverted days, a short was already open on 83 and the signal was flat on 82 (the realized-vol forecast jumps with the spike, so VRP falls below the short band). Seven had no snapshot, which leaves the 21 blocked days. In August 2015 and late 2018 a short was usually already open; in February 2018 the signal stayed flat. The gate only blocks new entries; it never closes a short that is already open.
 
 \begin{figure}[H]\centering\includegraphics[width=0.92\linewidth]{figures/ref_split.png}\caption{Net P\&L of the reference's round trips whose entry day would or would not be gated}\end{figure}
 
@@ -145,13 +145,13 @@ Net P\&L change (equity) & \ensuremath{-}374 & \ensuremath{-}217 \\
 \end{tabularx}
 \end{center}
 
-The residual is equity minus round-trip net P\&L. Round trips value the closing hedge at the decision-time spot, while the equity curve books the share unwind at the fill-window price 15 minutes later. Usually the gap is noise; here it matters. Most of the +\$741 is one event: the reference's March 2020 short shows +\$28 on the round-trip ledger, but its 81-share unwind on 2020-03-17 filled about \$440 worse than the decision spot in a fast market. In equity terms, that trade cost the reference about \$415. The rest of the residual change nets out over April, May and November 2020 and August 2024. So the round-trip view overstates the gate's cost and the equity view, which the bar uses, is the right one. On equity, the gate still loses money because the April 2020 and August 2024 post-spike shorts it skips were profitable.
+The residual is equity P\&L minus round-trip gross P\&L net of all commissions (the same definition as the other batch reports). Round trips value the closing hedge at the decision-time spot, while the equity curve books the share unwind at the fill-window price 15 minutes later. Usually the gap is noise; here it matters. Most of the +\$741 is one event: the reference's March 2020 short shows +\$28 on the round-trip ledger, but its 81-share unwind on 2020-03-17 filled about \$440 worse in total than the decision spot in a fast market. In equity terms, that trade cost the reference about \$415. The rest of the residual change nets out over April, May and November 2020 and August 2024. So the round-trip view overstates the gate's cost and the equity view, which the bar uses, is the right one. On equity, the gate still loses money because the April 2020 and August 2024 post-spike shorts it skips were profitable.
 
 \textbf{Sensitivity.} \texttt{gate095} blocks 83 days, gets closer to the tail target (17.6\% at 1x, 17.7\% at 2x), and still misses 20\%. It costs about 2.6 times as much P\&L (\ensuremath{-}\$962 at 1x, \ensuremath{-}\$561 at 2x). At 1x it is worse than \texttt{gate1} in 2014, 2015 and 2020-2023, and better in 2018, 2019 and 2024. A lower threshold mostly removes more profitable post-spike shorts.
 
 \section{Verdict}
 
-\textbf{Failed} on the pre-registered bar: the tail cut is about 11\% (bar 20\%) at both spreads, and net P\&L falls at both spreads. The event floor was met (21 blocked days), so this is a real result, not an inconclusive one. On option P\&L with the live stops and exits, the gate does what the proxy cards suggested in one crash (March 2020). Everywhere else it removes the post-spike shorts that earn the most. Archive the gate as an entry filter for the short-only book. A follow-up idea that would need its own card: gate on the \emph{speed} of the inversion (for example, the first day the curve inverts, rather than any inverted day). The one loss avoided came at the start of a spike, while the gains given up came after it. That idea comes from these results, so it would be in-sample on this window.
+\textbf{Failed} on the pre-registered bar: the tail cut is about 11-12\% (bar 20\%) at both spreads, and net P\&L falls at both spreads. The event floor was met (21 blocked days), so this is a real result, not an inconclusive one. On option P\&L with the live stops and exits, the gate does what the proxy cards suggested in one crash (March 2020). Everywhere else it removes the post-spike shorts that earn the most. Archive the gate as an entry filter for the short-only book. A follow-up idea that would need its own card: gate on the \emph{speed} of the inversion (for example, the first day the curve inverts, rather than any inverted day). The one loss avoided came at the start of a spike, while the gains given up came after it. That idea comes from these results, so it would be in-sample on this window.
 
 \section{Caveats}
 

@@ -258,6 +258,15 @@ def room(s, side):
             and all(p["side"] == side for p in held))
 
 
+def gated(s, side, asof):
+    # research only: skip shorts on inverted VIX curve
+    gate = s["cfg"]["backtest"].get("short_gate", 0.0)
+    if side != "short" or gate <= 0:
+        return None
+    ratio = float(runner.completed(s["feats"], asof)["vix_vix3m"].iloc[-1])
+    return ratio if ratio >= gate else None
+
+
 def act(s, chain, fill, asof, d, hist):
     # decisions read chain; fill only prices them
     if fill is None:
@@ -273,6 +282,8 @@ def act(s, chain, fill, asof, d, hist):
             log(s, asof, "cooloff", f"no {d['signal']} entry after stop")
         elif waiting(s, d["signal"]):
             log(s, asof, "reset_wait", f"no {d['signal']} entry until signal resets")
+        elif (ratio := gated(s, d["signal"], asof)) is not None:
+            log(s, asof, "gate", f"no short entry, VIX/VIX3M {ratio:.3f}")
         else:
             enter(s, d["signal"], chain, fill, asof)
     hedge(s, chain, fill, asof)

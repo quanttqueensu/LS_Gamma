@@ -26,3 +26,4 @@ Live forecasters are in `src/lsgamma/forecasting/` (`GARCH.py`, `HAR.py`, `FOREC
 |---|---|---|---|---|
 | 2026-10-05 | [HAR beats GARCH on 20-day RV](2026-10-05-har-vs-garch/README.md) (worked example) | setup example | failed | [summary](2026-10-05-har-vs-garch/summary.md) |
 | 2026-10-07 | [Bias-corrected GARCH makes the VRP band pick better days](2026-10-07-garch-bias-correction/README.md) | Gabe Soler (PM) | failed | [summary](2026-10-07-garch-bias-correction/summary.md) |
+| 2026-10-16 | [On the short-only book, signalling with HAR beats GARCH on net P&L](2026-10-16-har-signal/README.md) | Gabe Soler (PM) | failed | [summary](2026-10-16-har-signal/summary.md) · [report](2026-10-16-har-signal/2026-10-16-har-signal.pdf) |

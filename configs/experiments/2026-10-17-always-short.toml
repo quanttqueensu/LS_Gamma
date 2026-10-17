@@ -1,0 +1,46 @@
+[experiment]
+name = "2026-10-17-always-short"
+topic = "Agentic_Routing"
+owner = "Gabe Soler (PM)"
+
+# reference: registered 2026-10-17-otm-put/put25 runs
+[variants.always25.signal]
+long_band = -inf  # no long entries
+short_band = -inf  # always short: signal ignored
+[variants.always25.exit]
+flat_days = 999  # flat exit off (cannot fire anyway)
+[variants.always25.hedge]
+min_shares = 10
+[variants.always25.backtest]
+put_delta = 0.25  # primary: 25-delta short put
+
+[variants.always_atm.signal]
+long_band = -inf
+short_band = -inf
+[variants.always_atm.exit]
+flat_days = 999
+[variants.always_atm.hedge]
+min_shares = 10  # sensitivity: ATM put, closest to the archive
+
+[pass]
+primary = "always25"
+against = "put25"
+min_events = 30  # round trips the primary must reach
+event = "round_trip"
+[[pass.check]]
+metric = "pnl"
+period = "all"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2014-2019"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2020-2024"
+rule = "higher"
+[[pass.check]]
+metric = "es_5"
+period = "all"
+rule = "abs_within"
+value = 1.10

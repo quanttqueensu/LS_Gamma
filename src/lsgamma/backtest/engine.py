@@ -148,12 +148,23 @@ def close(s, pos, reason, chain, fill, asof):
                         "entry_ts": pos["entry_ts"]})
 
 
+def put_strike(s, t, chain):
+    # research only: put strike by delta target
+    target = s["cfg"]["backtest"].get("put_delta", 0.0)
+    if not target or t["right"] != "P":
+        return t["strike"]
+    rows = chain[(chain["expiry"] == selection.to_date(t["expiry"])) & (chain["right"] == "P")]
+    rows = rows.dropna(subset=["mid", "delta"])
+    return float(rows.loc[(rows["delta"].abs() - target).abs().idxmin(), "strike"])
+
+
 def enter(s, signal, chain, fill, asof):
     cfg, bt = s["cfg"], s["cfg"]["backtest"]
     try:
         t = selection.trade_for(signal, chain, cfg)
     except ValueError as e:
         return log(s, asof, "no_entry", str(e))
+    t = {**t, "strike": put_strike(s, t, chain)}
     price, src = sim.option_fill(fill, signal, t["expiry"], t["strike"], t["right"], "open",
                                  bt["spread_mult"])
     if math.isnan(price):

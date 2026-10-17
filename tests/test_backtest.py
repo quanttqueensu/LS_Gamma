@@ -667,3 +667,40 @@ def test_short_gate_off_by_default(bt):
     out = engine.backtest(cfg, plan[0][0], plan[-1][0], root=root)
     for k in engine.OUTPUTS:
         pd.testing.assert_frame_equal(out[k], plain[k])
+
+
+def skewed(asof):
+    c = chain(asof)
+    put = c["right"] == "P"
+    return c.assign(delta=np.where(put, c["strike"].map({595.0: -0.25, 600.0: -0.5, 605.0: -0.7}),
+                                   c["delta"]))
+
+
+def test_put_delta_picks_otm_strike(bt):
+    cfg, root = bt
+    cfg["backtest"]["put_delta"] = 0.25
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])), make=skewed)
+    out = engine.backtest(cfg, d[0], d[-1], root=root)
+    t = out["trades"]
+    assert t["action"].iloc[0] == "open" and t["right"].iloc[0] == "P"
+    assert t["strike"].iloc[0] == 595.0
+    assert out["hedges"]["shares"].iloc[0] == -25
+
+
+def test_put_delta_off_keeps_atm(bt):
+    cfg, root = bt
+    assert cfg["backtest"]["put_delta"] == 0.0
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])), make=skewed)
+    t = engine.backtest(cfg, d[0], d[-1], root=root)["trades"]
+    assert t["strike"].iloc[0] == 600.0
+
+
+def test_put_delta_leaves_long_calls(bt):
+    cfg, root = bt
+    cfg["backtest"]["put_delta"] = 0.25
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.25, 0.25])), make=skewed)
+    t = engine.backtest(cfg, d[0], d[-1], root=root)["trades"]
+    assert t["right"].iloc[0] == "C" and t["strike"].iloc[0] == 600.0

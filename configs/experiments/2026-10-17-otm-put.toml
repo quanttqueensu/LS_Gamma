@@ -1,0 +1,42 @@
+[experiment]
+name = "2026-10-17-otm-put"
+topic = "Agentic_Routing"
+owner = "Gabe Soler (PM)"
+
+# reference: registered 2026-10-16-short-only-band10/band10 runs
+[variants.put25.signal]
+long_band = -inf  # no long entries
+[variants.put25.hedge]
+min_shares = 10
+[variants.put25.backtest]
+put_delta = 0.25  # primary: 25-delta short put
+
+[variants.put35.signal]
+long_band = -inf
+[variants.put35.hedge]
+min_shares = 10
+[variants.put35.backtest]
+put_delta = 0.35  # sensitivity: 35-delta short put
+
+[pass]
+primary = "put25"
+against = "band10"
+min_events = 30  # round trips the primary must reach
+event = "round_trip"
+[[pass.check]]
+metric = "pnl"
+period = "all"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2014-2019"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2020-2024"
+rule = "higher"
+[[pass.check]]
+metric = "es_5"
+period = "all"
+rule = "abs_within"
+value = 1.10

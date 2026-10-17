@@ -39,3 +39,4 @@ share_half_spread = 0.005  # hedge fills this far from spot, 1x
 fit_years = 5  # forecast window, same as live yfinance
 stop_reset = false  # research only: re-enter after signal resets
 short_gate = 0.0  # research only: no shorts if VIX/VIX3M >= this; 0 = off
+put_delta = 0.0  # research only: short put |delta| target; 0 = ATM

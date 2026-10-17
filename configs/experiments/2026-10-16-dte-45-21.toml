@@ -1,0 +1,47 @@
+[experiment]
+name = "2026-10-16-dte-45-21"
+topic = "Risk_Management"
+owner = "Gabe Soler (PM)"
+
+# reference: registered 2026-10-16-short-only/short_only runs
+
+[variants.dte45.signal]
+long_band = -inf  # no long entries
+[variants.dte45.entry]
+target_dte = 45
+min_dte = 35
+max_dte = 60  # chain lists expiries up to 60
+[variants.dte45.exit]
+exit_dte = 21
+
+[variants.dte45_exit14.signal]
+long_band = -inf
+[variants.dte45_exit14.entry]
+target_dte = 45
+min_dte = 35
+max_dte = 60
+[variants.dte45_exit14.exit]
+exit_dte = 14  # sensitivity: later time exit
+
+[pass]
+primary = "dte45"
+against = "short_only"
+min_events = 30  # round trips the primary must reach
+event = "round_trips"  # counted by experiment.py, not a reason
+[[pass.check]]
+metric = "pnl"
+period = "all"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2014-2019"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2020-2024"
+rule = "higher"
+[[pass.check]]
+metric = "es_5"
+period = "all"
+rule = "abs_within"
+value = 1.10

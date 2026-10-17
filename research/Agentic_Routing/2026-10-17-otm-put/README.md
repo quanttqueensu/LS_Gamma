@@ -8,7 +8,7 @@
 | **Experiment** | `2026-10-17-otm-put` (config: `configs/experiments/2026-10-17-otm-put.toml`) |
 | **Topic** | Agentic_Routing |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed (one of eight checks) |
 | **Started** | 2026-10-17 |
 
 ## Hypothesis
@@ -47,4 +47,5 @@ Reported, not part of the bar: whether the book is profitable outright, credit p
 Run the hold-out once. If it holds: shadow mode next to the live rules, a decision record, then a live change. Strike selection is live code (`trading/selection.py`), so promotion also needs a code change there, reviewed by the PM.
 
 ## Changes
-- (dated notes, if the plan had to change)
+- 2026-10-17: run once (4 trials, commit 06dbdc8). The pass bar above was not changed. Verdict: failed on one of eight checks (2020-2024 at 1x, +$460 vs +$521); positive full-window net P&L at 1x (+$180). See `summary.md` and `2026-10-17-otm-put.pdf`.
+- 2026-10-17 (after the run): chart-only edits to `experiment.py` (per-round-trip bar colours, exit-chart legend). Figures rebuilt with `--report-only`; no new trials.

@@ -84,8 +84,8 @@ def exits(sets, path):
     df = pd.DataFrame(rows).fillna(0).T
     fig, ax = plt.subplots(figsize=(7, 2.8))
     df.plot.bar(ax=ax, stacked=True, rot=0)
-    ax.set(title="Round trips by exit reason (1x)", ylabel="count")
-    ax.legend(fontsize=7, frameon=False)
+    ax.set(title="Round trips by exit reason (1x)", ylabel="count", ylim=(0, df.sum(axis=1).max() * 1.3))
+    ax.legend(fontsize=7, frameon=False, ncol=4, loc="upper center")
     return report.save(fig, path)
 
 
@@ -95,7 +95,7 @@ def per_trade(sets, path):
     for ax, m in zip(axes, MULTS):
         net = [report.stats(sets[k][m])["pnl"] / max(len(report.round_trips(sets[k][m])), 1)
                for k in labels]
-        ax.bar(labels, net, color=[report.COLORS[i] for i in range(len(labels))])
+        ax.bar(labels, net, color=[report.color(i + 1, k) for i, k in enumerate(labels)])
         ax.axhline(0, color="k", lw=0.6)
         ax.set(title=f"Net P&L per round trip, {m:g}x", ylabel="USD")
     return report.save(fig, path)

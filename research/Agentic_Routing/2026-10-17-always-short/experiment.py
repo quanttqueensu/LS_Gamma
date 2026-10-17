@@ -91,7 +91,8 @@ def exposure(sets, path):
     for i, k in enumerate(labels):
         e = sets[k][1.0]["equity"].drop_duplicates("date", keep="last")
         held = (e["option"] != 0).groupby(pd.to_datetime(e["date"]).dt.year).mean()
-        ax.plot(held.index, held.values * 100, "o-", color=report.color(i + 1, k), label=k)
+        ax.plot(held.index, held.values * 100, ["o-", "s--", "^:"][i % 3],
+                color=report.color(i + 1, k), label=k)
     ax.set(title="Share of trading days holding a short put (1x)", ylabel="% of days")
     ax.legend(fontsize=7, frameon=False)
     return report.save(fig, path)

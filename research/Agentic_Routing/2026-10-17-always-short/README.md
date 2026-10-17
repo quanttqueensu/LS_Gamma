@@ -8,7 +8,7 @@
 | **Experiment** | `2026-10-17-always-short` (config: `configs/experiments/2026-10-17-always-short.toml`) |
 | **Topic** | Agentic_Routing |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed (tail guard only) |
 | **Started** | 2026-10-17 |
 
 ## Hypothesis
@@ -50,4 +50,6 @@ Primary `always25` against reference `put25` at the same spread multiple. Every 
 Run the hold-out once. If it holds: shadow mode, a decision record, then live changes. `short_band` is a `configs/paper.toml` value, but the 25-delta strike needs a change to live strike selection (`trading/selection.py`), reviewed by the PM.
 
 ## Changes
-- (dated notes, if the plan had to change)
+- 2026-10-17 (before the run): the PM confirmed the ES limit stays at 1.10x and that every other rule stays as live.
+- 2026-10-17: run once (4 trials, commit 4e3e599). The pass bar above was not changed. Verdict: failed on the tail guard (ES 1.68x the reference at 1x, 1.69x at 2x); all P&L checks passed at 1x and 2x (+$1,316 / +$862). See `summary.md` and `2026-10-17-always-short.pdf`.
+- 2026-10-17 (after the run): chart-only edit to `experiment.py` (exposure chart line styles). Figures rebuilt with `--report-only`; no new trials.

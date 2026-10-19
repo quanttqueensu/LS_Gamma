@@ -137,7 +137,7 @@ def verdicts(chk, cfg):
 
 
 def yearly(df, cfg, path):
-    fig, ax = plt.subplots(2, 1, figsize=(8, 6), sharex=True)
+    fig, ax = plt.subplots(2, 1, figsize=(8, 4.6), sharex=True)
     for m in models(cfg):
         q = qlike(df["true"], df[m]).groupby(df.index.year).mean()
         ax[0].plot(q.index, q, marker="o", ms=3, color=COLORS[m], label=m)

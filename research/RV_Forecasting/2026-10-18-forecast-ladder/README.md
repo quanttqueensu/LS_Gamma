@@ -8,7 +8,7 @@
 | **Experiment** | `2026-10-18-forecast-ladder` (config: `configs/experiments/2026-10-18-forecast-ladder.toml`) |
 | **Topic** | RV_Forecasting |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed (all three candidates) |
 | **Started** | 2026-10-18 |
 
 ## Hypothesis
@@ -57,3 +57,5 @@ Card 2: the passing forecaster(s) replace GARCH in the signal on the 25-delta sh
 
 ## Changes
 - 2026-10-18 (before the run): the PM confirmed the calm threshold (VIX < 20) and that every check must hold in each of the three periods.
+- 2026-10-18: run once (commit b5f5413, 3 trials). The pass bar above was not changed. Verdict: failed for all three candidates (all fail both checks in 2020-2024). A bad Garman-Klass print on 2006-01-26 distorts har_gk in 2000-2013; on clean data every candidate still fails that period, so the verdict does not depend on it. See `summary.md` and `2026-10-18-forecast-ladder.pdf`.
+- 2026-10-18 (after the run): chart-only edit to `experiment.py` (smaller QLIKE/bias figure, for page layout). Figures rebuilt with `--report-only`; no new trials.

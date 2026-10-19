@@ -19,7 +19,7 @@
   - `Time-Series-Embedding-and-Combination-of-Forecasts-A-Reinforcement-Learning-Approach.pdf`
 
 ## Code
-Live forecasters are in `src/lsgamma/forecasting/` (`GARCH.py`, `HAR.py`, `FORECASTERS` registry). A new model must implement `fit(returns)`, `predict(horizon)` and `params()`.
+Live forecasters are in `src/lsgamma/forecasting/` (`GARCH.py`, `HAR.py`, `FORECASTERS` registry). A new model must implement `fit(returns)`, `predict(horizon)` and `params()`. Research-only forecasters that fit on the features table (`HARX.py`, `RF.py`) are in `FEATURE_FORECASTERS`, not used live.
 
 ## Experiments
 | Date | Hypothesis | Owner | Status | Summary |
@@ -27,3 +27,4 @@ Live forecasters are in `src/lsgamma/forecasting/` (`GARCH.py`, `HAR.py`, `FOREC
 | 2026-10-05 | [HAR beats GARCH on 20-day RV](2026-10-05-har-vs-garch/README.md) (worked example) | setup example | failed | [summary](2026-10-05-har-vs-garch/summary.md) |
 | 2026-10-07 | [Bias-corrected GARCH makes the VRP band pick better days](2026-10-07-garch-bias-correction/README.md) | Gabe Soler (PM) | failed | [summary](2026-10-07-garch-bias-correction/summary.md) |
 | 2026-10-16 | [On the short-only book, signalling with HAR beats GARCH on net P&L](2026-10-16-har-signal/README.md) | Gabe Soler (PM) | failed | [summary](2026-10-16-har-signal/summary.md) · [report](2026-10-16-har-signal/2026-10-16-har-signal.pdf) |
+| 2026-10-18 | [HAR-GK, HAR-X and a random forest each beat GARCH on 22-day RV and calm-day bias](2026-10-18-forecast-ladder/README.md) | Gabe Soler (PM) | failed (all three) | [summary](2026-10-18-forecast-ladder/summary.md) · [report](2026-10-18-forecast-ladder/2026-10-18-forecast-ladder.pdf) |

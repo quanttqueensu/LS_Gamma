@@ -1,0 +1,22 @@
+[experiment]
+name = "2026-10-18-forecast-ladder"
+topic = "RV_Forecasting"
+owner = "Gabe Soler (PM)"
+
+[data]
+features = "data/backtest/v1/features.parquet"  # completed-day SPY + VIX
+start = "2000-01-01"  # first forecast date
+holdout_start = "2025-01-01"  # no target window reaches it
+fit_years = 5  # trailing window, as live
+
+[model]
+reference = "garch"  # live model, refit daily as live
+candidates = ["har_gk", "harx", "rf"]  # refit monthly
+horizon = 22  # trading days ahead
+
+[pass]
+periods = [["2000", "2013"], ["2014", "2019"], ["2020", "2024"]]
+calm_vix = 20.0  # calm day: completed-day VIX below this
+min_calm_days = 250  # per period; fewer = INCONCLUSIVE
+# per candidate, in every period, against garch:
+# qlike lower; abs median calm-day bias (vol pts) lower

@@ -25,8 +25,9 @@ It is the first book in the desk's backtests with positive net P&L at 2x spreads
 
 ## What surprised you
 - **Sitting out cost more than it saved.** Before costs the rolling book earns about +$2,750 against +$1,183. In 2014-2017, when the signal was mostly flat (all of 2017), the rolling book made +$1,597 against −$66, more than the whole net gap (+$1,136); from 2018 to 2024 it is $527 behind. The archived v1 backtest pointed the same way, but it inspired this test, so that agreement is weak evidence.
-- **The bigger tail is real.** On the same 800 days the timed book was exposed, the rolling book's ES is −$167 against −$136, and it lost $1,089 where the timed book made $180. All its profit (+$2,405) came on the timed book's flat days. The signal's short days were bad days to be short.
-- **2022 roughly broke even** (+$16 at 1x) where the timed book lost $1,039: −$942 on the timed book's short days, +$958 on the rest.
+- **The bigger tail is real.** Over the 798 intervals in which the timed book held a position, the rolling book's ES is −$158 against −$135, and it lost $431 where the timed book made $319 (the timed book's other −$139 is the cost of its 87 entries from flat). The rolling book made +$1,742 while the timed book was flat.
+- **The signal fires after the move (corrected 2026-10-18).** The rolling book lost $2,879 in the 143 intervals just before the signal turned short: IV jumps, then the signal says short. After a short signal both books made money (+$506 rolling, +$1,034 timed). The timed book also took 58 of those IV jumps while still holding after an earlier signal: it lost $1,065 on them. Apart from those jumps, its holding after the signal ended made money. So the signal's short days were not bad days to be short. The first version of this summary said they were, because it lined each day's P&L up one day early. The timed book's weakness is sitting out calm stretches.
+- **2022 roughly broke even** (+$16 at 1x) where the timed book lost $1,039: −$1,143 in the intervals where the timed book held a position (timed: −$1,102), +$1,117 in the rest.
 - **The tail is spread over the stress years:** the worst 5% of days fall mostly in 2022 and 2020, then 2024, 2018 and 2023. The losing years are 2018 (February and December), 2019 and 2024; the worst day is −$677 on 2024-08-02 and the drawdown trough is the March 2020 crash.
 - **The strike still matters:** the same rolling rule with the ATM put loses at both spreads.
 
@@ -38,5 +39,5 @@ It is the first book in the desk's backtests with positive net P&L at 2x spreads
 ## Next step
 Not promoted: the pre-registered tail guard failed. The PM's risk call is whether a rolling book's tail is acceptable. Possible follow-ups, each with its own card:
 - a risk-adjusted bar (e.g. P&L per unit of ES);
-- a rolling book that skips the signal's short days (they were the worst days to be short), which needs a small backtest switch;
+- a forecast that tracks calm regimes better, since the timed book's loss is the calm stretches it sits out. The trailing bias correction (`2026-10-07-garch-bias-correction`) and HAR on daily returns (`2026-10-16-har-signal`) already failed; HAR on intraday realized variance from the parity spot is untried (skipping the signal's short days is not supported: shorting after them made money);
 - a 15-20 delta rolling put.

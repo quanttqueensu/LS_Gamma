@@ -4,7 +4,7 @@ How the desk tests ideas. Work is organized **by topic**. Each topic's README li
 
 | Folder | What's in it |
 |---|---|
-| `RV_Forecasting/`, `Deep_Hedging/`, `Agentic_Routing/` | Topic sandboxes: one folder per hypothesis |
+| `RV_Forecasting/`, `Deep_Hedging/`, `Agentic_Routing/`, `Risk_Management/` | Topic sandboxes: one folder per hypothesis |
 | `_template/` | Copy this to start a new experiment |
 | `strategy_research/` | Literature reports (LaTeX + PDF) |
 | `Misc_Research_Notes/` | Deep research reports and notes (LaTeX + PDF) |
@@ -28,7 +28,7 @@ To test a rule change on real option trades (R2, 2014-06-02 to 2026-07-10) with 
 4. **The hold-out is 2025-01-01 to 2026-07-10.** It needs `--holdout` and is run once, at the end. Development runs make no entries in the last `[entry] max_dte` (45) days before it.
 5. **A result that only passes at 1x spreads does not pass.**
 6. **Variants and reports:** list variants as `[variants.<label>]` in the TOML and run them with `lsgamma.backtest.run.variants`. Charts and the two-halves table come from `lsgamma.backtest.report`. Example: `Risk_Management/2026-10-16-stop-levels/`.
-7. **PM-run experiments:** the PM can run a whole experiment end to end with Claude (`/run-experiment-with-report`, PM only). It follows this same process: card committed before the run, development window only, a labelled summary and a report PDF. Analysts keep the manual workflow above.
+7. **PM-run experiments:** the PM can run a whole experiment end to end with Claude (`/run-experiment-with-report`, a PM-only skill kept on the PM's machine, not in this repo). It follows this same process: card committed before the run, development window only, a labelled summary and a report PDF. Analysts keep the manual workflow above.
 
 Commands and data build steps: `docs/scripts.md` section 8. Rules: `docs/decisions/0002-backtest-data-and-timing-rules.md`.
 

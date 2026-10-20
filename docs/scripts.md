@@ -83,8 +83,9 @@ Replays R2 option trades into snapshots like the live ones (`data/backtest/v1/`,
 PYTHONPATH=src python -m lsgamma.history.r2 sync                  # copy raw R2 + daily files to data/r2/
 PYTHONPATH=src python -m lsgamma.history.spread                   # refit configs/backtest_spread.toml from live quotes
 PYTHONPATH=src python -m lsgamma.history.build [--start --end]    # write the snapshots
-PYTHONPATH=src python -m lsgamma.history.validate                 # sanity checks on spot and IV
+PYTHONPATH=src python -m lsgamma.history.validate                 # sanity checks on spot, high-low prints and IV
 ```
+- Garman-Klass RV (`rv_gk`, the HAR-GK/HAR-X/RF input) treats a day whose high-low range is over 20× the median of the previous 22 days as a bad print and uses that day's squared close-to-close return instead. `validate` lists every day it caught.
 Then run a backtest (no `--exp` = `paper.toml` + `backtest.toml`):
 ```bash
 PYTHONPATH=src python -m lsgamma.backtest.run --exp <name> [--start --end]

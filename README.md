@@ -13,17 +13,19 @@ src/lsgamma/
 │   ├── SG_*/              # short gamma structures (5)
 │   └── Hedging/           # hedging policies (delta hedge)
 ├── pipeline/              # daily data snapshot: yfinance + IBKR option chain
-├── forecasting/           # RV forecasters: GARCH, HAR
+├── forecasting/           # RV forecasters: GARCH, HAR (live-eligible); HAR-GK, HAR-X, RF (research only)
 ├── signals/               # signal models: VRP band
 ├── trading/               # contract selection, exits, P&L, ledger, daily runner, smoke test
 ├── experiments.py         # research run logger (results/research/)
-└── backtest/              # (not built yet)
+├── history/               # replays R2 option trades into backtest snapshots (data/backtest/)
+└── backtest/              # runs the paper rules over the snapshots: engine, fills, metrics, reports
 research/                  # Research notes (AI), papers (Written by Analysts or PM), etc.
 ├── README.md              # how research works: workflow, rules, path to live
 ├── _template/             # copy to start an experiment (hypothesis card, script, summary)
 ├── Agentic_Routing/       # topic sandboxes: README (who's on it, experiments) + one folder per hypothesis
 ├── Deep_Hedging/
 ├── RV_Forecasting/
+├── Risk_Management/
 ├── strategy_research/     # research reports (LaTeX + PDF)
 └── Misc_Research_Notes/   # deep research reports and notes (LaTeX + PDF)
 work-logs/                 # analyst session logs: run /log-work (see work-logs/README.md)
@@ -36,6 +38,8 @@ docs/
 └── repo-architecture.png  # architecture diagram
 configs/
 ├── paper.toml             # every strategy number for paper trading
+├── backtest.toml          # backtest settings: replay grid, data window, hold-out, costs
+├── backtest_spread.toml   # bid/ask spread model fit on live IBKR quotes
 └── experiments/           # one TOML per research experiment (+ TEMPLATE.toml)
 tests/                     # offline tests (pytest, fake IBKR)
 ```
@@ -47,6 +51,7 @@ tests/                     # offline tests (pytest, fake IBKR)
 - Agentic Routing
 - Deep Hedging
 - RV Forecasting
+- Risk Management
 
 ---
 
@@ -72,7 +77,9 @@ cd LS_Gamma
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+PYTHONPATH=src python -m pytest tests -q   # all should pass
 ```
+How to run the pipeline, paper trading, experiments and backtests: [docs/scripts.md](docs/scripts.md).
 
 
 

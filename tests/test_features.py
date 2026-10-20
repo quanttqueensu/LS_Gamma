@@ -1,9 +1,37 @@
 import math
 from datetime import date
 
+import numpy as np
 import pandas as pd
 
-from lsgamma.pipeline.features import atm_iv
+from lsgamma.pipeline.features import atm_iv, bad_range, log_returns, rv_gk
+
+
+def bars(n=40, bad=None, shock=None):
+    # 1% daily range, closes drifting up 0.1% a day
+    close = pd.Series(100 * 1.001 ** np.arange(n),
+                      index=pd.bdate_range("2006-01-02", periods=n))
+    spy = pd.DataFrame({"open": close / 1.001, "high": close * 1.005,
+                        "low": close * 0.995, "close": close})
+    if bad is not None:
+        spy.iloc[bad, spy.columns.get_loc("low")] = close.iloc[bad] * 0.45  # ln(H/L) ~ 0.8
+    if shock is not None:
+        spy.iloc[shock, spy.columns.get_loc("low")] = close.iloc[shock] * 0.90  # 11x the range
+    return spy
+
+
+def test_bad_low_falls_back_to_squared_return():
+    spy = bars(bad=30)
+    gk, flags = rv_gk(spy), bad_range(spy)
+    assert flags.sum() == 1 and flags.iloc[30]
+    assert gk.iloc[30] == log_returns(spy).iloc[30] ** 2
+    assert np.allclose(gk.drop(gk.index[30]), rv_gk(bars()).drop(gk.index[30]))
+
+
+def test_genuine_shock_is_kept():
+    spy = bars(shock=30)
+    assert not bad_range(spy).any()
+    assert rv_gk(spy).iloc[30] > 0.005  # the wide range is used, not the 0.1% return
 
 
 def chain(ivs):

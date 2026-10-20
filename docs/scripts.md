@@ -3,20 +3,23 @@
 Run everything from the repo root with the venv active:
 ```bash
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -e ".[dev]"
 ```
+- `pip install -e` installs `lsgamma` from `src/` in editable mode: edits apply at once, and no `PYTHONPATH=src` is needed. Run it once per venv, and again when `pyproject.toml` changes. Older notes that still say `PYTHONPATH=src` work either way.
+- Install editable only. A regular `pip install .` breaks the paths to `configs/`, `data/` and `results/`.
+- Dependencies are pinned in `pyproject.toml` (`requirements.txt` is gone).
 
 ## 1. Offline tests
 No IB Gateway needed. Every test should pass.
 ```bash
-PYTHONPATH=src python -m pytest tests -q
+python -m pytest -q
 ```
 
 ## 2. Data pipeline
 Saves a snapshot to `data/live/<date>/<HHMM>/` (US Eastern run time).
 ```bash
-PYTHONPATH=src python -m lsgamma.pipeline.build --no-chain    # yfinance only, no Gateway
-PYTHONPATH=src python -m lsgamma.pipeline.build --gateway     # full run with the IBKR chain (~3.5 min)
+python -m lsgamma.pipeline.build --no-chain    # yfinance only, no Gateway
+python -m lsgamma.pipeline.build --gateway     # full run with the IBKR chain (~3.5 min)
 ```
 - Add `--all-expiries` to include non-Friday expiries.
 - `Error 200 (No security definition)` and `Error 10091` are expected and harmless.
@@ -24,8 +27,8 @@ PYTHONPATH=src python -m lsgamma.pipeline.build --gateway     # full run with th
 ## 3. Dry run (no orders)
 Prints the forecast, IV, VRP (IV − forecast), signal, and any trade it would make.
 ```bash
-PYTHONPATH=src python -m lsgamma.trading.runner --dry-run --skip-pipeline   # latest saved data, no Gateway
-PYTHONPATH=src python -m lsgamma.trading.runner --dry-run                   # fresh data, Gateway open
+python -m lsgamma.trading.runner --dry-run --skip-pipeline   # latest saved data, no Gateway
+python -m lsgamma.trading.runner --dry-run                   # fresh data, Gateway open
 ```
 
 ## 4. Smoke test (places paper orders)
@@ -37,14 +40,14 @@ Before running:
 - Run during market hours, after a pipeline run or dry run that day.
 
 ```bash
-PYTHONPATH=src python -m lsgamma.trading.smoke --yes
+python -m lsgamma.trading.smoke --yes
 ```
 Check that every line says `Filled` and the account ends flat.
 
 ## 5. Daily run (paper trading)
 Run at about 10:15 ET with IB Gateway open. It runs the pipeline, forecasts, gets the signal, applies exits, enters if needed, delta hedges, and logs.
 ```bash
-PYTHONPATH=src python -m lsgamma.trading.runner
+python -m lsgamma.trading.runner
 ```
 | Option | What it does |
 |---|---|
@@ -63,13 +66,13 @@ Saved in `results/paper/` (gitignored):
 
 To read a log:
 ```bash
-PYTHONPATH=src python -c "from lsgamma.trading import ledger; print(ledger.read_log('trades'))"
+python -c "from lsgamma.trading import ledger; print(ledger.read_log('trades'))"
 ```
 
 ## 7. Research experiments
 See `research/README.md` for the workflow. To run an experiment (every run is logged to `results/research/<name>/`, gitignored):
 ```bash
-PYTHONPATH=src python research/RV_Forecasting/2026-10-05-har-vs-garch/experiment.py
+python research/RV_Forecasting/2026-10-05-har-vs-garch/experiment.py
 ```
 To start a new one:
 ```bash
@@ -80,16 +83,16 @@ cp configs/experiments/TEMPLATE.toml configs/experiments/YYYY-MM-DD-short-slug.t
 ## 8. Backtesting
 Replays R2 option trades into snapshots like the live ones (`data/backtest/v1/`, gitignored), then runs the paper rules over them. Build the data once:
 ```bash
-PYTHONPATH=src python -m lsgamma.history.r2 sync                  # copy raw R2 + daily files to data/r2/
-PYTHONPATH=src python -m lsgamma.history.spread                   # refit configs/backtest_spread.toml from live quotes
-PYTHONPATH=src python -m lsgamma.history.build [--start --end]    # write the snapshots
-PYTHONPATH=src python -m lsgamma.history.validate                 # sanity checks on spot, high-low prints and IV
+python -m lsgamma.history.r2 sync                  # copy raw R2 + daily files to data/r2/
+python -m lsgamma.history.spread                   # refit configs/backtest_spread.toml from live quotes
+python -m lsgamma.history.build [--start --end]    # write the snapshots
+python -m lsgamma.history.validate                 # sanity checks on spot, high-low prints and IV
 ```
 - Garman-Klass RV (`rv_gk`, the HAR-GK/HAR-X/RF input) treats a day whose high-low range is over 20× the median of the previous 22 days as a bad print and uses that day's squared close-to-close return instead. `validate` lists every day it caught.
 Then run a backtest (no `--exp` = `paper.toml` + `backtest.toml`):
 ```bash
-PYTHONPATH=src python -m lsgamma.backtest.run --exp <name> [--start --end]
-PYTHONPATH=src python -m lsgamma.backtest.run --exp <name> --holdout   # final run only
+python -m lsgamma.backtest.run --exp <name> [--start --end]
+python -m lsgamma.backtest.run --exp <name> --holdout   # final run only
 ```
 - Every run repeats at 2x spreads (options and hedges) and prints P&L, Sharpe, max drawdown, 5% ES, trades, win rate (net of fees) and holding days.
 - It also prints the data gaps: skipped, unfilled, unhedged and unmarked times, and the share of fills priced from the decide-view smile. Read these before the P&L.

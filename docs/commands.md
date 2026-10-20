@@ -21,8 +21,8 @@ Quick reference for working in this repo with Claude Code. For the Python script
 ```bash
 git pull
 python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-PYTHONPATH=src python -m pytest tests -q   # all should pass
+pip install -e ".[dev]"
+python -m pytest -q   # all should pass
 ```
 Then read [research/README.md](../research/README.md), pick a topic, and end the session with `/log-work` and `git push`.
 

@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lsgamma"
+version = "0.1.0"
+description = "QUANTT long/short gamma desk: regime-dependent gamma scalping on SPY options"
+requires-python = ">=3.11"  # tomllib; pandas 3 and numpy 2.4 need 3.11+
+# exact pins: the desk runs one environment, and backtests must reproduce
+dependencies = [
+    "arch==8.0.0",
+    "boto3==1.43.61",
+    "duckdb==1.5.5",
+    "ib_async==2.1.0",
+    "matplotlib==3.11.2",
+    "numpy==2.4.6",
+    "pandas==3.0.3",
+    "pyarrow==25.0.0",
+    "scikit-learn==1.9.1",
+    "yfinance==1.3.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==9.1.1"]
+
+# Install editable only (pip install -e ".[dev]"): the code finds configs/, data/
+# and results/ relative to src/, so a regular install would look in site-packages.
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["lsgamma*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]  # tests also run without the install

@@ -42,6 +42,7 @@ configs/
 ├── backtest_spread.toml   # bid/ask spread model fit on live IBKR quotes
 └── experiments/           # one TOML per research experiment (+ TEMPLATE.toml)
 tests/                     # offline tests (pytest, fake IBKR)
+pyproject.toml             # package definition, pinned dependencies, pytest settings
 ```
 
 ---
@@ -76,8 +77,8 @@ git clone https://github.com/quanttqueensu/LS_Gamma.git
 cd LS_Gamma
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
-PYTHONPATH=src python -m pytest tests -q   # all should pass
+pip install -e ".[dev]"
+python -m pytest -q   # all should pass
 ```
 How to run the pipeline, paper trading, experiments and backtests: [docs/scripts.md](docs/scripts.md).
 

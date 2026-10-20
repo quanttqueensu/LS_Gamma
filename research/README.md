@@ -14,7 +14,7 @@ How the desk tests ideas. Work is organized **by topic**. Each topic's README li
 2. **Copy the template:** `cp -r research/_template research/<Topic>/YYYY-MM-DD-short-slug` and `cp configs/experiments/TEMPLATE.toml configs/experiments/YYYY-MM-DD-short-slug.toml`.
 3. **Write the hypothesis card first** (`README.md`): one falsifiable sentence, the data, the hold-out, the metric, and the **pass bar**, all before running anything.
 4. **Add a row** to the topic README's experiment table (status: planned).
-5. **Run it:** `PYTHONPATH=src python research/<Topic>/<experiment>/experiment.py`. Every run is logged automatically.
+5. **Run it:** `python research/<Topic>/<experiment>/experiment.py`. Every run is logged automatically.
 6. **Write `summary.md` yourself.** Summaries are written by the analyst who ran the experiment, in their own words. **No AI-written summaries.**
 7. **Update the status** in the topic README: passed, failed, inconclusive or promoted.
 
@@ -23,7 +23,7 @@ A finished example: `RV_Forecasting/2026-10-05-har-vs-garch/`.
 ## Backtesting
 To test a rule change on real option trades (R2, 2014-06-02 to 2026-07-10) with the live code:
 1. Copy `configs/experiments/TEMPLATE.toml` and set your overrides: any `paper.toml` section (bands, forecaster, DTE window, exits, schedule) plus `[backtest]` costs and dates. The hold-out, data window and `[history]` are fixed.
-2. Run `PYTHONPATH=src python -m lsgamma.backtest.run --exp <name>`. It prints P&L, Sharpe, drawdown and 5% ES at 1x and 2x spreads.
+2. Run `python -m lsgamma.backtest.run --exp <name>`. It prints P&L, Sharpe, drawdown and 5% ES at 1x and 2x spreads.
 3. **Every run is a trial.** Each one adds a row to `results/research/registry.parquet`, so report how many you ran.
 4. **The hold-out is 2025-01-01 to 2026-07-10.** It needs `--holdout` and is run once, at the end. Development runs make no entries in the last `[entry] max_dte` (45) days before it.
 5. **A result that only passes at 1x spreads does not pass.**

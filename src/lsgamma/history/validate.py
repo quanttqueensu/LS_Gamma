@@ -5,7 +5,8 @@ from datetime import date
 import numpy as np
 import pandas as pd
 
-from lsgamma.history import build, marks, r2, spot, trades
+from lsgamma.history import build, daily, marks, r2, spot, trades
+from lsgamma.pipeline import features
 
 CHECK_TIME = "10:15"
 CODES_TIME = "12:15"
@@ -50,6 +51,15 @@ def iv_check(root, days, idx):
     by = ratio.groupby([d.year for d in ratio.index]).agg(["count", "median", "min", "max"])
     print(f"\n{TARGET_DTE}-DTE ATM IV / VIX close at {CHECK_TIME}, by year")
     print(by.round(3).to_string())
+
+
+def range_check(crsp):
+    spy = daily.spy(crsp)
+    hl = np.log(spy["high"] / spy["low"])
+    bad = features.bad_range(spy)
+    print(f"\nBad high-low prints (Garman-Klass falls back to the squared return): {bad.sum()}")
+    for d in bad[bad].index:
+        print(f"  {d.date()}  range {hl[d]:.1%}  close-to-close {spy['close'].pct_change()[d]:+.2%}")
 
 
 def code_devs(day, idx, cfg):
@@ -112,6 +122,7 @@ def main(argv=None):
     raw = r2.daily_raw()
     idx = build.indices(raw, cfg)
     spot_check(root, days, raw["crsp"])
+    range_check(raw["crsp"])
     iv_check(root, days, idx)
     sample = [days[i] for i in np.unique(np.linspace(0, len(days) - 1, a.sample).astype(int))]
     code_check(sample, idx, cfg)

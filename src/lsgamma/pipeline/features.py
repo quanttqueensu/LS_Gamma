@@ -7,17 +7,34 @@ import numpy as np
 import pandas as pd
 
 TRADING_DAYS = 252
+MAX_RANGE = 20  # high-low range vs its trailing median; wider is a bad print
+RANGE_DAYS = 22
 
 
 def log_returns(spy):
     return np.log(spy["close"]).diff().rename("ret")
 
 
+def bad_range(spy):
+    """Days whose high-low range is implausibly wide: a bad high or low print.
+
+    Compared with the median range of the previous RANGE_DAYS days, so a
+    genuine shock (well under MAX_RANGE times) is kept.
+    """
+    hl = np.log(spy["high"] / spy["low"])
+    typical = hl.rolling(RANGE_DAYS, min_periods=5).median().shift(1)
+    return (hl > MAX_RANGE * typical).rename("bad_range")
+
+
 def rv_gk(spy):
-    """Garman-Klass daily realized variance from OHLC."""
+    """Garman-Klass daily realized variance from OHLC.
+
+    A day with a bad high or low falls back to its squared close-to-close return.
+    """
     hl = np.log(spy["high"] / spy["low"]) ** 2
     co = np.log(spy["close"] / spy["open"]) ** 2
-    return (0.5 * hl - (2 * np.log(2) - 1) * co).rename("rv_gk")
+    gk = 0.5 * hl - (2 * np.log(2) - 1) * co
+    return gk.mask(bad_range(spy), log_returns(spy) ** 2).rename("rv_gk")
 
 
 def har_lags(rv):

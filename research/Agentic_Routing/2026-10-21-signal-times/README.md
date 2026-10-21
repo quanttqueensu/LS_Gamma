@@ -8,7 +8,7 @@
 | **Experiment** | `2026-10-21-signal-times` (config: `configs/experiments/2026-10-21-signal-times.toml`) |
 | **Topic** | Agentic_Routing |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | passed (entries-only bar; net P&L worse, not promoted) |
 | **Started** | 2026-10-21 |
 
 ## Hypothesis
@@ -54,3 +54,4 @@ Reported, not part of the bar (the PM chose an entries-only bar): net P&L agains
 Run the hold-out once. If it holds: shadow mode next to the live rules, a decision record, then a live change. The live runner rejects more than one run a day (`runner.check_schedule`), so promotion needs a reviewed code change there and a scheduler, not only a `paper.toml` line.
 
 ## Changes
+- 2026-10-21: run once (6 trials, commit 2784f7c). The pass bar above was not changed. Verdict: passed (225 vs 131 round trips; ES inside the guard). Net P&L worse (−$3,848 vs −$2,060 at 1x). Secondary: `midday` and `close` failed. See `summary.md` and `2026-10-21-signal-times.pdf`.

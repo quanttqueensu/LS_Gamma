@@ -1,0 +1,75 @@
+[experiment]
+name = "2026-10-22-stress-sized-puts"
+topic = "Risk_Management"
+owner = "Gabe Soler (PM)"
+
+# reference: registered 2026-10-17-always-short/always25 runs (1 contract)
+# every variant: always-short 25-delta put, sized at entry so a
+# one-day 20% drop with IV at 60% costs at most 35% of capital
+[variants.hedged.signal]
+long_band = -inf  # no long entries
+short_band = -inf  # always short: signal ignored
+[variants.hedged.exit]
+flat_days = 999  # flat exit off (cannot fire anyway)
+[variants.hedged.hedge]
+min_shares = 10  # primary: always25's daily 10-share hedge
+[variants.hedged.backtest]
+put_delta = 0.25
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+
+[variants.banded.signal]
+long_band = -inf
+short_band = -inf
+[variants.banded.exit]
+flat_days = 999
+[variants.banded.hedge]
+min_shares = 1
+[variants.banded.backtest]
+put_delta = 0.25
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+ww_band = 30.0  # sensitivity: Whalley-Wilmott band, 30 x sqrt(book gamma)
+
+[variants.unhedged.signal]
+long_band = -inf
+short_band = -inf
+[variants.unhedged.exit]
+flat_days = 999
+[variants.unhedged.hedge]
+min_shares = 1e9  # sensitivity: never hedge
+[variants.unhedged.backtest]
+put_delta = 0.25
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+
+[pass]
+primary = "hedged"
+against = "always25"  # hold-out: the hold-out baseline
+min_events = 30  # round trips the primary must reach
+event = "round_trip"
+[[pass.check]]
+metric = "pnl"
+period = "all"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2014-2019"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2020-2024"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "all"
+rule = "above"
+value = 0.0  # absolute; binds on the hold-out
+[[pass.check]]
+metric = "max_dd"
+period = "all"
+rule = "at_most"
+value = 87500.0  # absolute: the 35% stress budget of $250k

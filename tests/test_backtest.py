@@ -704,3 +704,85 @@ def test_put_delta_leaves_long_calls(bt):
     write(root, list(zip(d, [0.25, 0.25])), make=skewed)
     t = engine.backtest(cfg, d[0], d[-1], root=root)["trades"]
     assert t["right"].iloc[0] == "C" and t["strike"].iloc[0] == 600.0
+
+
+def stressed(cfg, budget=0.35):
+    cfg["backtest"].update(stress_budget=budget, stress_drop=0.2, stress_vol=0.6)
+    return cfg
+
+
+def test_stress_budget_sizes_hedged_short_put(bt):
+    cfg, root = bt
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])))
+    out = engine.backtest(stressed(cfg), d[0], d[-1], root=root)
+    # crash put about 124.8: 14 x 5,981 + 1 x 120 <= 87,500
+    assert out["trades"]["qty"].iloc[0] == 14
+    assert out["hedges"]["shares"].iloc[0] == -700
+
+
+def test_stress_budget_unhedged_counts_whole_delta(bt):
+    cfg, root = bt
+    cfg["hedge"]["min_shares"] = 1e9
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])))
+    out = engine.backtest(stressed(cfg), d[0], d[-1], root=root)
+    assert out["trades"]["qty"].iloc[0] == 7 and out["hedges"].empty
+
+
+def test_stress_budget_counts_band_gap(bt):
+    cfg, root = bt
+    cfg["backtest"]["ww_band"] = 30.0
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])))
+    out = engine.backtest(stressed(cfg), d[0], d[-1], root=root)
+    # band 30 x sqrt(12) shares stays unhedged
+    assert out["trades"]["qty"].iloc[0] == 12
+
+
+def test_stress_budget_leaves_long_calls(bt):
+    cfg, root = bt
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.25, 0.25])))
+    t = engine.backtest(stressed(cfg), d[0], d[-1], root=root)["trades"]
+    assert t["right"].iloc[0] == "C" and t["qty"].iloc[0] == 1
+
+
+def test_stress_budget_below_one_contract_skips_entry(bt):
+    cfg, root = bt
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])))
+    out = engine.backtest(stressed(cfg, budget=0.01), d[0], d[-1], root=root)
+    assert out["trades"].empty
+    assert "stress budget below one contract" in out["events"]["detail"].tolist()
+
+
+def drifting(deltas):
+    def make(asof):
+        c = chain(asof)
+        return c.assign(delta=np.where(c["right"] == "P", -deltas[asof.date()], c["delta"]))
+    return make
+
+
+@pytest.mark.parametrize("k, shares", [(0.0, [-50, -25, -10]), (30.0, [-50, -35])])
+def test_ww_band_scales_with_gamma(bt, k, shares):
+    cfg, root = bt
+    cfg["backtest"]["ww_band"] = k  # gamma 1 share per $: band 30
+    d = days("2024-03-04", 3)
+    write(root, list(zip(d, [0.10] * 3)), make=drifting(dict(zip(d, [0.5, 0.75, 0.85]))))
+    assert engine.backtest(cfg, d[0], d[-1], root=root)["hedges"]["shares"].tolist() == shares
+
+
+def test_stress_and_band_off_by_default(bt):
+    cfg, root = bt
+    flags = ("stress_budget", "stress_drop", "stress_vol", "ww_band")
+    assert all(cfg["backtest"][k] == 0.0 for k in flags)
+    paper = config.read(config.CONFIGS / "paper.toml")
+    assert not any(k in paper[s] for k in flags for s in ("size", "hedge"))
+    saved = copy.deepcopy(cfg)
+    for k in flags:
+        del saved["backtest"][k]
+    assert report.same(saved, cfg)
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])))
+    assert engine.backtest(cfg, d[0], d[-1], root=root)["trades"]["qty"].iloc[0] == 1

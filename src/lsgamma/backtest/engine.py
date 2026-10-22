@@ -6,6 +6,8 @@ from pathlib import Path
 import pandas as pd
 
 from lsgamma.backtest import sim
+from lsgamma.core.Algos.broker import MULTIPLIER
+from lsgamma.history import marks
 from lsgamma.pipeline import store
 from lsgamma.trading import exits, pnl, runner, selection
 
@@ -158,6 +160,42 @@ def put_strike(s, t, chain):
     return float(rows.loc[(rows["delta"].abs() - target).abs().idxmin(), "strike"])
 
 
+def band(cfg, gamma):
+    # research only: Whalley-Wilmott band on book gamma
+    k, floor = cfg["backtest"].get("ww_band", 0.0), cfg["hedge"]["min_shares"]
+    return max(floor, k * math.sqrt(gamma)) if k and not math.isnan(gamma) else floor
+
+
+def book_gamma(b, chain):
+    rows = [(sim.row(chain, p["expiry"], p["strike"], p["right"]), p) for p in b["open"]]
+    return sum((abs(float(r["gamma"])) * p["qty"] * MULTIPLIER if r is not None else math.nan
+                for r, p in rows), 0.0)
+
+
+def stress_qty(cfg, r, spot, years, budget):
+    # research only: most puts within the stress budget
+    bt = cfg["backtest"]
+    drop, vol = bt["stress_drop"], max(bt["stress_vol"], float(r["iv"]))
+    crash = float(marks.price(spot * (1 - drop), r["strike"], years, 0.0, vol, False))
+    delta, gamma = abs(float(r["delta"])) * MULTIPLIER, abs(float(r["gamma"])) * MULTIPLIER
+    net = (crash - float(r["mid"])) * MULTIPLIER - delta * drop * spot
+    n = int(budget // net) if net > 0 else 0
+    while n and n * net + min(band(cfg, n * gamma), n * delta) * drop * spot > budget:
+        n -= 1
+    return n
+
+
+def size(s, signal, t, chain, asof):
+    # research only: short puts sized to stress budget
+    cfg = s["cfg"]
+    budget = cfg["backtest"].get("stress_budget", 0.0) * cfg["size"]["capital"]
+    if not budget or signal != "short":
+        return cfg["size"]["quantity"]
+    r = sim.row(chain, t["expiry"], t["strike"], t["right"])
+    years = float(marks.years(asof, [t["expiry"]])[0])
+    return 0 if r is None else stress_qty(cfg, r, runner.spot(chain), years, budget)
+
+
 def enter(s, signal, chain, fill, asof):
     cfg, bt = s["cfg"], s["cfg"]["backtest"]
     try:
@@ -169,7 +207,9 @@ def enter(s, signal, chain, fill, asof):
                                  bt["spread_mult"])
     if math.isnan(price):
         return log(s, asof, "no_fill", f"open {signal}")
-    qty = cfg["size"]["quantity"]
+    qty = size(s, signal, t, chain, asof)
+    if not qty:
+        return log(s, asof, "no_entry", "stress budget below one contract")
     pos = {"side": signal, "right": t["right"], "expiry": str(t["expiry"]),
            "strike": t["strike"], "qty": qty, "entry_price": price,
            "entry_date": str(asof.date()), "entry_ts": runner.stamp(asof),
@@ -206,7 +246,7 @@ def hedge(s, chain, fill, asof):
     attach(b, targets, chain, asof)
     gaps = [t - sim.held(p) for t, p in zip(targets, b["open"])]
     shares = round(sum(targets, 0.0) - b["shares"])
-    if abs(shares) < s["cfg"]["hedge"]["min_shares"]:
+    if abs(shares) < band(s["cfg"], book_gamma(b, chain)):
         return
     price = sim.share_price(fill, shares, bt["share_half_spread"] * bt["spread_mult"])
     if math.isnan(price):

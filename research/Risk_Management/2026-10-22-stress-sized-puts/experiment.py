@@ -5,10 +5,12 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
-from lsgamma.backtest import config, engine, report, run, sim
+from lsgamma.backtest import config, engine, metrics, report, run, sim
 from lsgamma.pipeline import store
+from lsgamma.trading import runner
 from lsgamma.trading.pnl import SIGN
 
 NAME = "2026-10-22-stress-sized-puts"  # matches configs/experiments/<NAME>.toml
@@ -26,6 +28,8 @@ RULES = {
 FIXED = (0.005, 1.00)  # IBKR Pro Fixed: per share, minimum
 TIERED = (0.0035, 0.35, 0.0032)  # Tiered: per share, minimum, exchange + clearing
 RECENT = ("2023-01-01", "2025-01-01")  # SPY nearest today's level
+BUCKETS = [0.0, 0.15, 0.20, 0.30, 0.45, 9.0]  # put IV at entry
+LABELS = ["<15%", "15-20%", "20-30%", "30-45%", ">45%"]
 
 
 def load_sets(cfg, holdout=False):
@@ -105,6 +109,22 @@ def drawdown(sets, path, limit):
         ax.axhline(-limit, color="tab:red", lw=0.8, ls=":")
         ax.set(title=f"Drawdown, {mult:g}x spreads (dotted: stress budget)", ylabel="USD")
     axes[0].legend(fontsize=7, frameon=False, ncol=3)
+    return report.save(fig, path)
+
+
+def yearly(sets, path):
+    # report.yearly, legend clear of the bars
+    fig, axes = plt.subplots(1, 2, figsize=(7.5, 3), sharey=True)
+    n = len(sets)
+    for ax, mult in zip(axes, MULTS):
+        for i, (label, by_mult) in enumerate(sets.items()):
+            if mult in by_mult:
+                y = report.daily(by_mult[mult]).groupby(lambda t: t.year).sum()
+                ax.bar(y.index + (i - (n - 1) / 2) * 0.8 / n, y.values, 0.8 / n,
+                       color=report.color(i, label), label=label)
+        ax.axhline(0, color="k", lw=0.6)
+        ax.set(title=f"Net P&L by year, {mult:g}x", ylabel="USD")
+    axes[0].legend(fontsize=7, frameon=False, loc="lower left")
     return report.save(fig, path)
 
 
@@ -222,20 +242,87 @@ def tails(sets):
     return pd.DataFrame(rows)
 
 
+def entries(out, root, hedged):
+    # per round trip: entry IV, notional, Reg-T estimate
+    o, c = metrics.pairs(out["trades"])
+    rows = []
+    for r, net in zip(o.itertuples(), c["pnl_net"]):
+        chain = pd.read_parquet(store.folder(pd.Timestamp(r.ts), root) / "chain.parquet")
+        spot, row = runner.spot(chain), sim.row(chain, r.expiry, r.strike, r.right)
+        put = max(0.2 * spot - max(spot - r.strike, 0), 0.1 * r.strike) + r.price
+        stock = 0.5 * abs(float(row["delta"])) * spot if hedged else 0.0
+        rows.append({"iv": float(row["iv"]), "qty": r.qty, "notional": r.qty * 100 * spot,
+                     "regt": r.qty * 100 * (put + stock), "pnl_net": net})
+    return pd.DataFrame(rows)
+
+
+def sizing(sets, folder, root, capital):
+    rows, by = [], {}
+    for k in books(sets):
+        e = entries(sets[k][1.0], root, k != "unhedged")
+        e["bucket"] = pd.cut(e["iv"], BUCKETS, labels=LABELS)
+        g = e.groupby("bucket", observed=False)
+        by[k] = pd.DataFrame({"entries": g.size(), "contracts": g["qty"].mean(),
+                              "notional": g["notional"].mean(), "pnl_net": g["pnl_net"].sum()})
+        top = e["qty"] > e["qty"].quantile(0.9)
+        rows.append({"book": k, "entries": len(e), "top_decile": int(top.sum()),
+                     "top_decile_pnl": float(e.loc[top, "pnl_net"].sum()),
+                     "all_pnl": float(e["pnl_net"].sum()),
+                     "notional_median": float(e["notional"].median()),
+                     "notional_max": float(e["notional"].max()),
+                     "regt_median": float(e["regt"].median()), "regt_max": float(e["regt"].max()),
+                     "regt_over_capital": int((e["regt"] > capital).sum()),
+                     "iv_notional_corr": float(np.corrcoef(e["iv"], e["notional"])[0, 1])})
+    fig, axes = plt.subplots(1, 2, figsize=(7.5, 3))
+    n = len(by)
+    for i, (k, df) in enumerate(by.items()):
+        x = np.arange(len(LABELS)) + (i - (n - 1) / 2) * 0.8 / n
+        for ax, col, scale in zip(axes, ("notional", "pnl_net"), (1e6, 1)):
+            ax.bar(x, df[col].fillna(0).values / scale, 0.8 / n, color=report.color(i + 2, k),
+                   label=k)
+    for ax, title, unit in zip(axes, ("Average notional at entry", "Round-trip net P&L"),
+                               ("USD millions", "USD")):
+        ax.set_xticks(range(len(LABELS)), LABELS, fontsize=7)
+        ax.axhline(0, color="k", lw=0.6)
+        ax.set(title=f"{title} by put IV (1x)", ylabel=unit)
+    axes[0].legend(fontsize=7, frameon=False)
+    table = pd.concat(by, names=["book", "bucket"]).reset_index()
+    return pd.DataFrame(rows), table, report.save(fig, folder / "iv_buckets.png")
+
+
+def reconcile(sets):
+    # net P&L vs cash flows vs round trips
+    rows = []
+    for k in books(sets):
+        out = sets[k][1.0]
+        t, h = out["trades"], out["hedges"]
+        sign = np.where(t["side"] == "short", 1, -1) * np.where(t["action"] == "open", 1, -1)
+        cash = float((sign * t["price"] * 100 * t["qty"]).sum() - t["commission"].sum())
+        if len(h):
+            cash += float(-(h["shares"] * h["price"]).sum() - h["commission"].sum()
+                          + h["shares"].sum() * out["equity"]["spot"].iloc[-1])
+        rows.append({"book": k, "net": float(report.daily(out).sum()), "cash_flows": cash,
+                     "round_trips_net": float(report.round_trips(out)["pnl_net"].sum())})
+    return pd.DataFrame(rows)
+
+
 def extra(cfg, sets, folder):
     # sizing, Tiered re-pricing, beta split, tails
     root = engine.snapshots(config.load())
-    p, t = plans(sets), tails(sets)
+    p, t, r = plans(sets), tails(sets), reconcile(sets)
     split, beta_png = beta(sets, folder, root)
-    for name, df in (("plans", p), ("tails", t), ("beta", split)):
+    size, buckets, iv_png = sizing(sets, folder, root, cfg["size"]["capital"])
+    for name, df in (("plans", p), ("tails", t), ("beta", split), ("sizing", size),
+                     ("iv_buckets", buckets), ("reconcile", r)):
         df.to_csv(folder / f"{name}.csv", index=False)
         print(f"\n{name}\n{df.round(2).to_string(index=False)}")
-    return [contracts(sets, folder / "contracts.png"), tiered(sets, folder / "tiered.png"), beta_png]
+    return [contracts(sets, folder / "contracts.png"), tiered(sets, folder / "tiered.png"), beta_png,
+            iv_png]
 
 
 def standard(sets, folder, limit):
     return [cum_pnl(sets, folder / "cum_pnl.png"), drawdown(sets, folder / "drawdown.png", limit),
-            report.yearly(sets, folder / "yearly.png"), report.by_reason(sets, folder / "by_reason.png"),
+            yearly(sets, folder / "yearly.png"), report.by_reason(sets, folder / "by_reason.png"),
             report.fees(sets, folder / "fees.png")]
 
 

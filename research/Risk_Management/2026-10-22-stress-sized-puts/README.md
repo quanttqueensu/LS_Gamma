@@ -8,7 +8,7 @@
 | **Experiment** | `2026-10-22-stress-sized-puts` (config: `configs/experiments/2026-10-22-stress-sized-puts.toml`) |
 | **Topic** | Risk_Management |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | passed (in-sample; hold-out not run) |
 | **Started** | 2026-10-22 |
 
 ## Hypothesis
@@ -67,3 +67,5 @@ Tiered pricing, if chosen, is an IBKR account setting. `configs/backtest.toml` w
 
 ## Changes
 - 2026-10-22 (before the run): the PM confirmed `hedged` as the primary, the pass bar and the hold-out bar above, and asked for 15% and 25% budgets as a follow-up card on the winning mode.
+- 2026-10-22: run once (6 trials, commit a515c6d). The pass bar above was not changed. Verdict: passed at 1x and 2x (`hedged` +$121,482 / +$101,172; max drawdown $70,362 / $75,488). Two March 2020 entries made 54% of the hedged book's round-trip net. See `summary.md` and `2026-10-22-stress-sized-puts.pdf`.
+- 2026-10-22 (after the run): reporting-only additions to `experiment.py`: sizing, margin and IV-bucket tables, a reconciliation table and the IV-bucket chart. After the independent check, two chart-only fixes: the yearly chart's legend moved clear of the bars, and the IV-bucket notional shown in USD millions. Figures rebuilt with `--report-only` each time; no new trials.

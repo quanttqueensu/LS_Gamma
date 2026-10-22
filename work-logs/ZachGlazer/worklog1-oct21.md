@@ -1,0 +1,1 @@
+Attended first meeting @ 7 pm

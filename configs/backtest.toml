@@ -40,3 +40,7 @@ fit_years = 5  # forecast window, same as live yfinance
 stop_reset = false  # research only: re-enter after signal resets
 short_gate = 0.0  # research only: no shorts if VIX/VIX3M >= this; 0 = off
 put_delta = 0.0  # research only: short put |delta| target; 0 = ATM
+stress_budget = 0.0  # research only: size short puts to this capital share; 0 = off
+stress_drop = 0.0  # research only: stress-day SPY drop, with stress_budget
+stress_vol = 0.0  # research only: stress-day IV floor, with stress_budget
+ww_band = 0.0  # research only: hedge band k * sqrt(book gamma); 0 = min_shares

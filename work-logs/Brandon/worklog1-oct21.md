@@ -1,0 +1,1 @@
+Had the first L/S Gamma meeting and attended the trading day games

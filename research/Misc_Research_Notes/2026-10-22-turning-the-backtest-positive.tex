@@ -1,0 +1,542 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{float}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Sell OTM puts all the time, cut fixed costs, size to a stress budget}
+\author{Deep research \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-22}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Question:} How can the desk turn its net-negative SPY backtest positive after costs, and start paper trades with positive expected value as soon as possible? Every lever was open: structure and strike, sizing and costs, signal and forecaster, other underlyings, and hedged or unhedged books. A fatter tail was allowed if position size keeps the worst case within a set share of capital.
+
+\textbf{Method:} A deep-research run.
+
+\begin{itemize}
+
+\item \textbf{Search:} five parallel web-search angles (structures, hedging costs, tail risk and sizing, timing, cross-asset), 21 sources fetched and 102 claims extracted.
+
+\item \textbf{Verification:} three independent verifiers checked each of the 25 most important claims; 18 were confirmed and 7 refuted. Two more papers that bear directly on the answer were checked by hand against their full text: Dew-Becker \& Giglio (2026) and Yang (2024).
+
+\item \textbf{Desk evidence:} the findings are set against the desk's 70 registered backtest trials. They all use the development window, 2014-06-02 to 2024-12-31; the hold-out has never been run.
+
+\item \textbf{Desk calculations:} figures marked \emph{desk calculation} are Black-Scholes estimates from the 2026-10-21 IBKR chain. They are not results from a source or from the backtest.
+
+\end{itemize}
+
+The desk does not need a new signal to get a positive book: it already has one. The research explains why that book works and how to make it pay more. Three changes do most of the work, and the first two are config edits on the existing backtest.
+
+\begin{enumerate}
+
+\item \textbf{Sell all the time,} instead of waiting for the VRP band.
+
+\item \textbf{Sell a front-month put at about 15-25 delta,} not ATM.
+
+\item \textbf{Cut the fixed per-order costs that eat a one-contract book.} Trade two or more contracts, hedge in wide bands or not at all, and look at IBKR Tiered pricing for share hedges.
+
+\end{enumerate}
+
+Always-on selling brings a fatter tail. That tail should be handled by \textbf{sizing to a stress-loss budget} set by the PM, not by tighter stops.
+
+The always-on 25-delta put with a 10-share hedge band (\texttt{always25}) is the first desk book that is positive at both spread levels: +\$1,316 at 1x and +\$862 at 2x over 2014-2024.
+
+Expectations should stay modest. A 2026 paper finds that S\&P 500 option-selling premia largely disappeared after 2012, which covers the desk's whole backtest window. Only moderately OTM puts kept an edge, and it is small and not statistically significant. That matches the desk's results closely: ATM selling loses and 25-delta selling barely wins. Costs, not timing, decide whether the P\&L is positive.
+
+The quickest credible route to paper trades has three steps: one new pre-registered card on the development window, a single hold-out run, and a small code change so the live runner can pick a strike by delta.
+
+\section{The backtest loses because a thin edge pays heavy costs}
+
+Every short book in the registry makes money before costs. The ATM books earn the most before costs and lose the most after them. ATM puts carry the largest dollar spreads and often end deep in the money, where buying them back is expensive. The 25-delta books earn less but keep more of it.
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X l l l l}
+\toprule
+\textbf{Book (1 contract, 2014-06 to 2024-12)} & \textbf{Before costs} & \textbf{Costs at 1x} & \textbf{Net 1x} & \textbf{Net 2x} & \textbf{Sharpe 1x} \\
+\midrule
+Baseline: ATM, both sides, hedge every share & not split & not split & \ensuremath{-}\$2,060 & \ensuremath{-}\$4,122 & \ensuremath{-}0.36 \\
+Short-only ATM, 10-share band & +\$2,102 & \$2,272 & \ensuremath{-}\$170 & \ensuremath{-}\$1,847 & \ensuremath{-}0.03 \\
+Short-only 25-delta, 10-share band & +\$1,183 & \$1,003 & +\$180 & \ensuremath{-}\$273 & 0.04 \\
+Always-on ATM, 10-share band & +\$3,328 & \$4,173 & \ensuremath{-}\$845 & \ensuremath{-}\$3,812 & \ensuremath{-}0.10 \\
+Always-on 25-delta, 10-share band & about +\$2,750 & about \$1,434 & \textbf{+\$1,316} & \textbf{+\$862} & 0.19 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+All rows are registered trials. The ``before costs'' and ``costs'' figures come from the experiment summaries. The split for the always-on 25-delta book is approximate.
+
+Two facts explain why the edge is so small.
+
+\begin{itemize}
+
+\item \textbf{The premium shrank after 2012.} Dew-Becker \& Giglio study S\&P 500 options from 1987 to 2025. They find ``a structural break in risk premia around 2012. After 2012 ... standard options strategies no longer have statistically significant alphas or information ratios'' (baseline break date: August 2012).
+
+\begin{itemize}
+
+\item After the break, the buyer's alpha turned \emph{positive} for the straddle, the delta-hedged straddle and the variance swap. Selling ATM or variance exposure therefore had a negative point estimate.
+
+\item For 5\% OTM puts, hedged or unhedged, the buyer's alpha stayed negative ``but no longer statistically significant''. Selling them kept a small edge.
+
+\item The long ATM straddle's Sharpe went from \ensuremath{-}0.74 (1987-2001) to \ensuremath{-}0.09 after 2001 and +0.12 after 2012.
+
+\item While the premium was large, ``the VIX's average value was about 3 points above average realized volatility''. Since then it has ``nearly converged'' (\href{https://www.dew-becker.org/documents/option_decline.pdf}{Dew-Becker \& Giglio 2026}).
+
+\end{itemize}
+
+\item \textbf{The desk's numbers fit that picture.}
+
+\begin{itemize}
+
+\item IV is above realized vol on about 68\% of days (the 2026-10-07 proxy test). The gap is small on calm days, and on spike days it runs hard against the seller.
+
+\item In-sample, \texttt{always25} has a Sharpe of 0.19 at 1x after 70 trials. On its own, that is not significant.
+
+\item So the case that an edge exists rests mostly on the literature and on the mechanism. The backtest mainly tests costs and the implementation.
+
+\end{itemize}
+
+\end{itemize}
+
+\section{Sell a front-month put at 15-25 delta}
+
+Three independent studies agree on where the index VRP pays best after costs and per unit of crash risk: options about one month out, struck moderately out of the money.
+
+\begin{itemize}
+
+\item \textbf{AQR} (Israelov \& Tummala 2017; delta-hedged S\&P 500 options, 1996-2015, gross of costs). The options best paid to sell per unit of stress-test loss are front-month options near the money or moderately below it. The stress test is a one-day 20\% drop, as on 19 October 1987. Shorter maturities mostly beat longer ones, and puts mostly beat calls. Ranked by return volatility instead, nearest-month deep-OTM puts win, so the answer depends on the risk metric. (Verified 2-1.)
+
+\item \textbf{Santa-Clara \& Saretto} (2004 working paper, SPX quotes 1996-2002). Trading at the bid and ask instead of mid cut short-put returns by 4.0-6.9 points a month.
+
+\begin{itemize}
+
+\item After costs, the near-maturity 10\%-OTM short put kept a monthly Sharpe of 0.425, against 0.125 for the ATM put.
+
+\item Every 180-day short straddle and strangle turned negative.
+
+\item (Verified 3-0.)
+
+\end{itemize}
+
+\item \textbf{Sepp} (2016 slides; SPY 2005-2016, hedged daily, 2x fund notional, option costs excluded). A one-standard-deviation short strangle, whose put is about 15-delta, returned 8.55\% a year at 7\% vol (Sharpe 1.21). The ATM straddle returned 7.43\% at 8\% vol (Sharpe 0.88). Both had the same \ensuremath{-}19\% maximum drawdown. (Verified 3-0.)
+
+\end{itemize}
+
+The desk's own runs agree. The always-on ATM put lost \$845 at 1x while \texttt{always25} made \$1,316, mostly because ATM spreads cost \$2,967 against \$453. The 35-delta put also did worse than the 25-delta put.
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X l l l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Put, Nov-20 expiry (30 DTE)} & \textbf{Strike} & \textbf{IV} & \textbf{Premium} & \textbf{Loss, one-day \ensuremath{-}10\% (unhedged /\allowbreak{} hedged)} & \textbf{Loss, one-day \ensuremath{-}20\% (unhedged /\allowbreak{} hedged)} & \textbf{\ensuremath{-}20\% loss per \$1 of premium} \\
+\midrule
+ATM (50-delta) & 772 & 13.4\% & \$1,120 & 3.1\% /\allowbreak{} 1.5\% & 5.9\% /\allowbreak{} 2.8\% & 13x \\
+25-delta & 748 & 16.5\% & \$501 & 2.6\% /\allowbreak{} 1.8\% & 5.3\% /\allowbreak{} 3.8\% & 26x \\
+20-delta & 741 & 17.4\% & \$406 & 2.4\% /\allowbreak{} 1.8\% & 5.1\% /\allowbreak{} 3.9\% & 31x \\
+15-delta & 731 & 18.8\% & \$308 & 2.2\% /\allowbreak{} 1.7\% & 4.8\% /\allowbreak{} 3.9\% & 39x \\
+10-delta & 715 & 21.2\% & \$208 & 1.8\% /\allowbreak{} 1.5\% & 4.3\% /\allowbreak{} 3.7\% & 51x \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\emph{Desk calculation.} The table uses the 2026-10-21 IBKR chain with spot at \$769.14.
+
+\begin{itemize}
+
+\item \textbf{Losses} are per contract, as a share of \$250k.
+
+\item \textbf{Scenarios:} IV jumps to 45\% after a 10\% drop and to 60\% after a 20\% drop.
+
+\item \textbf{Hedged} means delta-neutral before the gap, with no trading during it.
+
+\end{itemize}
+
+Going further out cuts the premium faster than it cuts the crash loss. A 10-delta put collects a fifth of the ATM premium but still loses 72\% as much in a one-day 20\% drop, about 51 times its premium. That is why deep OTM can raise the Sharpe without raising P\&L per unit of stress loss, and why AQR's stress metric points to moderate strikes. A strangle would add a call leg, which AQR finds less well paid and which pays its own \$1 order minimum at one lot.
+
+\textbf{Test:} a 15-, 20- and 25-delta grid is a config run (\texttt{[backtest] put\_\allowbreak{}delta}).
+
+\section{Sell all the time, and time with size instead of on/\allowbreak{}off}
+
+\begin{itemize}
+
+\item \textbf{Always-on index selling has a 30-year record.} Cboe's PutWrite index (PUT) sells a one-month ATM SPX put every month and holds it to expiry, with no signal and no hedge. It returned 10.13\% a year from mid-1986 to 2015, and the 30-delta BuyWrite (BXMD) returned 10.66\%.
+
+\begin{itemize}
+
+\item The verifier recomputed the later period from Cboe's index files. From 2016 to 21 October 2026, PUT returned 8.45\% a year against 13.14\% for the S\&P 500 price index. The iron condor (CNDR, 0.89\%) and butterfly (BFLY, \ensuremath{-}2.21\%) indexes returned about nothing.
+
+\item These index returns are hypothetical, gross of costs and partly back-filled. They include T-bill interest on the collateral, and because they are unhedged they include equity returns. (Cboe study, verified 3-0.)
+
+\end{itemize}
+
+\item \textbf{The desk's band adds little through timing.}
+
+\begin{itemize}
+
+\item \texttt{always25} beat the signal-timed 25-delta book on every P\&L check, in both halves and at both spread levels.
+
+\item The band's short-day precision (73\%) is close to the 68\% base rate.
+
+\item The timed book falls behind because it sits out calm stretches: it is flat about 73\% of the time. The signal also turns short only after IV has already jumped.
+
+\end{itemize}
+
+\item \textbf{Sizing by volatility beat on/\allowbreak{}off timing.} Yang (2024; checked by hand) sold one-month ATM S\&P 500 straddles every month from 1996 to 2022, with margin requirements included.
+
+\begin{itemize}
+
+\item Held at a constant weight, the book had a Sharpe of 0.51, skewness of \ensuremath{-}4.07 and a maximum drawdown of \ensuremath{-}39\%.
+
+\item Scaling the weight each month by 1/\allowbreak{}VIX raised the Sharpe to 0.62 and cut the drawdown to \ensuremath{-}34\%. Scaling by 1/\allowbreak{}GARCH gave 0.58 and \ensuremath{-}35\%; by 1/\allowbreak{}RV, 0.55 and \ensuremath{-}28\%.
+
+\item An explicit VRP model (weight proportional to 1 \ensuremath{-} E[RV]/\allowbreak{}VIX) did worse, at 0.55.
+
+\item The gain came almost entirely from high-volatility months, with RV above about 20. In calm months the managed books sold \emph{more} volatility. That is the opposite of the desk's band, which goes flat in calm months (\href{https://english.phbs.pku.edu.cn/uploadfile/2024/0530/20240530092144610.pdf}{Yang 2024}).
+
+\end{itemize}
+
+\end{itemize}
+
+\textbf{For the desk:} the band's on/\allowbreak{}off decision can be replaced by a size rule on an always-on book, for example contracts = round(k \ensuremath{\times} target vol /\allowbreak{} VIX), capped by the stress budget in the tail-risk section below. That needs a small research switch in the engine to set size from a vol measure.
+
+\section{Execution and fixed costs decide the sign}
+
+\begin{itemize}
+
+\item \textbf{Patient execution pays less than the quoted spread.} Muravyev \& Pearson (RFS 2020) studied options on S\&P 500 stocks from 2004 to 2015.
+
+\begin{itemize}
+
+\item Traders who time their executions paid an effective half-spread of 2.5\% of the option price, 37.4\% of the conventional 6.8\%.
+
+\item In proportion, the saving is largest for ATM options (1.5\% vs 5.3\%) and ITM options (0.7\% vs 3.7\%). The ITM case matters for the desk's deep-ITM buy-backs.
+
+\item Selling one-month straddles with the Goyal-Saretto IV-minus-HV signal earned 7.4\% a month before costs. After conventional spreads it earned an insignificant 1.5\%; after the timers' spreads, a significant 4.3\%.
+
+\item These are single-stock options, and the timers' spread comes from a model, so the size of the saving on SPY is unknown. (Verified 3-0.)
+
+\end{itemize}
+
+\item \textbf{IBKR order minimums bind at one contract.} Taken from IBKR's pricing pages, read 2026-10-21 (verified 3-0 and 2-1).
+
+\begin{itemize}
+
+\item \textbf{Options:} US options cost \$0.65 a contract with a \$1.00 minimum per order, and ``order minimums will be applied to the individual legs of a COMBO order''. One contract costs \$1.00 and two cost \$1.30.
+
+\item \textbf{Multi-leg structures:} a one-lot put spread pays at least \$2 and an iron condor \$4, so at one lot the single short put is the cheapest structure.
+
+\item \textbf{Fees not modelled:} OCC and regulatory fees come on top. The backtest does not model them, so it is slightly optimistic at one or two lots.
+
+\item \textbf{Shares:} under Fixed, shares cost \$0.005 each with a \$1.00 minimum. Under Tiered they cost \$0.0035 with a \$0.35 minimum, plus exchange and clearing fees. A 10-50 share hedge then costs about \$0.38-0.51, against \$1.00 under Fixed.
+
+\item \textbf{Eligibility:} SMART-routed API orders, which the desk sends, can use Tiered. Whether the paper account simulates Tiered was not checked.
+
+\end{itemize}
+
+\item \textbf{What that means for \texttt{always25}} (\emph{desk calculation}).
+
+\begin{itemize}
+
+\item Its \$981 of commissions were 36\% of its roughly \$2,750 before costs. About \$374 went on option orders (187 round trips at \$1 a side) and about \$607 on hedge orders.
+
+\item Tiered pricing would roughly halve the hedge part.
+
+\item Two contracts per trade would double the premium while each hedge order stays at the minimum; the verifier estimates hedges stay under 200 shares up to roughly 20-40 contracts. The hedge cost per contract would fall, although a fixed 10-share band would trade more often.
+
+\end{itemize}
+
+\end{itemize}
+
+\textbf{Test:} log the mid price at submit next to every paper fill, to calibrate \texttt{spread\_\allowbreak{}mult}. Add a 0.5x spread sensitivity run to the next card.
+
+\section{Hedging controls risk; at one contract, hedge rarely}
+
+\begin{itemize}
+
+\item \textbf{Hedging buys Sharpe, not return.} Sepp (2016) sold one-month ATM SPY straddles monthly at 1x fund notional, 2005-2016.
+
+\begin{itemize}
+
+\item \textbf{Unhedged:} Sharpe 0.51, maximum drawdown \ensuremath{-}24\%, about 6.4\% a year.
+
+\item \textbf{Hedged at the close, 3bp cost:} Sharpe 1.06, drawdown \ensuremath{-}10\%, about 4.5\% a year.
+
+\item \textbf{Frequency:} in his model, expected gross P\&L does not depend on hedge frequency, but costs grow with its square root. Sharpe therefore peaks around daily hedging and turns negative at eight times a day.
+
+\item \textbf{Bands:} hedging on spot or delta bands beat hedging at fixed times (about 1.12 against 0.88-0.91). (Verified 3-0.)
+
+\end{itemize}
+
+\item \textbf{With a fixed fee per order, the best band is wide and you re-hedge to the centre.} Whalley \& Wilmott (1999) give the band for a fixed cost $k_1$ per trade and risk aversion $g$:
+
+\[\text{half-width} = \left(\frac{12\,k_1}{g}\right)^{1/4} |\Gamma|^{1/2}\]
+
+\end{itemize}
+
+When the band is breached, the hedge goes fully back to Black-Scholes delta: ``since costs are fixed one might as well hedge to maximise the expected time to the next hedge''. Proportional costs give a different band, and there you trade only to the band edge.
+
+The engine's \texttt{hedge()} already re-centres fully, which is the right rule for fixed costs. Its band, however, is a fixed share count, not scaled by gamma.
+
+Zakamouline (2006) adds that with a fixed fee, the target delta can jump to zero at low deltas, so dropping the hedge on a far-OTM short put can be optimal. (Verified 3-0.)
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Put} & \textbf{Own delta (shares)} & \textbf{Gamma per contract (shares per \$1)} & \textbf{Best band half-width (shares)} \\
+\midrule
+ATM & 50 & 1.42 & 28-50 \\
+25-delta & 25 & 0.88 & 22-39 \\
+20-delta & 20 & 0.74 & 20-36 \\
+15-delta & 15 & 0.57 & 18-31 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\emph{Desk calculation:} $k_1$ = \$1 and $g$ = R /\allowbreak{} \$250k, with relative risk aversion R running from 10 down to 1. Gamma per contract comes from the 2026-10-21 chain.
+
+At one contract, the theoretical band is wider than any band the desk has tested (5, 10 and 20 shares), and about as wide as an OTM put's whole delta. For one OTM contract, the theory says to hedge rarely or not at all. With more contracts, the band per contract shrinks as $n^{-1/3}$.
+
+\begin{itemize}
+
+\item \textbf{Unhedged results will flatter the strategy.} Dew-Becker \& Giglio note that the unhedged 95\% put gives the weakest evidence of the decline because ``market returns accelerated post-2012 -- from 5.9 to 13.2\%'', and the put picks up that return through its beta.
+
+\begin{itemize}
+
+\item The desk's window was a strong bull market. As a rough \emph{desk calculation}, 25 SPY shares held from June 2014 (about \$193) to December 2024 (about \$586) gained about \$9,800, seven times \texttt{always25}'s net.
+
+\item Unhedged runs are allowed, but they should be reported with the equity part split out, for example against simply holding the position's delta in SPY. Then the desk knows whether it is earning VRP or beta.
+
+\end{itemize}
+
+\end{itemize}
+
+\section{Control the tail with size, not stops}
+
+\begin{itemize}
+
+\item \textbf{Stops lower expected return unless losses persist.} Kaminski \& Lo (2014) show that with IID returns, a stop-loss always lowers expected return, by the stop-out probability times the strategy's premium. A stop helps only when past losses predict further losses.
+
+\begin{itemize}
+
+\item The desk's pattern is the opposite: the always-on book loses as IV jumps, then earns after the jump. That is mean reversion, where a stop exits at the worst time. This is an inference, not a result in the paper.
+
+\item Tighter stops already failed in the desk's own tests. (Verified 3-0.)
+
+\end{itemize}
+
+\item \textbf{Full Kelly is far too big for short vol.} In-sample on SPXW from 2018 to 2023, all 15 full-Kelly-sized 5-DTE ATM short-put configurations drew down 60-86\%, and 7 of the 15 lost money (arXiv 2508.16598, Table 4; verified 3-0).
+
+\item \textbf{Build the budget from scenarios, not from the backtest's worst day.} LJM's short-vol funds disclosed a worst-case daily loss of 20\%. According to the SEC, that figure came from doubling their worst historical day, not from stress tests. The funds lost about 80\% in February 2018. (Secondary source; not put through the three-vote check.)
+
+\end{itemize}
+
+Sizing follows from the strike table (\emph{desk calculation}). In a one-day 20\% drop with IV jumping to 60\%, one 25-delta put loses about 5.3\% of \$250k unhedged and 3.8\% hedged. In a one-day 10\% drop it loses 2.6\% and 1.8\%; SPY's worst day in the window, 16 March 2020, was about \ensuremath{-}11\%. A stress budget of B\% of capital in the 20\% scenario therefore allows about B /\allowbreak{} 5.3 unhedged contracts, or B /\allowbreak{} 3.8 hedged ones.
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Stress budget, one-day \ensuremath{-}20\%} & \textbf{25-delta unhedged} & \textbf{25-delta hedged} & \textbf{15-delta unhedged} & \textbf{15-delta hedged} \\
+\midrule
+10\% of capital (\$25k) & 1 & 2 & 2 & 2 \\
+15\% of capital (\$37.5k) & 2 & 3 & 3 & 3 \\
+20\% of capital (\$50k) & 3 & 5 & 4 & 5 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Margin is not the constraint at these sizes: Reg-T margin on one 25-delta put is about \$13.8k (\emph{desk calculation}). The budget B is a PM decision.
+
+\section{What the research could not settle}
+
+No claim on the following survived verification, so they stay open.
+
+\begin{itemize}
+
+\item \textbf{Other underlyings.} There are only unverified leads:
+
+\begin{itemize}
+
+\item Average Russell 2000 implied vol (RVX) ran about 3.3 points above later realized vol over about 16 years. The Cboe Russell 2000 PutWrite index had the best Sharpe in a Wilshire study (2001-2019, gross).
+
+\item Across 19 CME futures option markets, the priced risk is realized volatility and short gamma paid, Treasury futures options included. An equal-weighted book had a lower Sharpe than the S\&P alone (NBER w26323).
+
+\item The R2 bucket holds QQQ, IWM, GLD, SLV and TLT option trades, so this can be tested later. The risks are wider spreads and per-leg minimums.
+
+\end{itemize}
+
+\item \textbf{Timing measures.} In VIX futures, shorting only when the estimated premium is positive beat always-short: Sharpe 0.87 vs 0.57 over 2004-2015. Going long vol when the premium turned negative did worse than holding cash (Cheng, RFS 2019; unverified lead). That supports keeping long gamma off. IV minus trailing RV has not been tested as a gate on SPY.
+
+\item \textbf{Weekly and 0DTE options.} Most static 0DTE rules on S\&P 500 options have insignificant mean returns because the return distribution is so wide (Vilkov, via Hull Tactical; unverified lead). This is not an established edge.
+
+\item \textbf{Overlays.} No evidence was found that VIX calls or long wings beat simply sizing down. The condor and butterfly indexes since 2016 argue against wings at one lot.
+
+\end{itemize}
+
+Refuted in verification and not used:
+
+\begin{itemize}
+
+\item Santa-Clara \& Saretto's gross Sharpe-by-strike, spread-level and margin-call results.
+
+\item Cboe's attribution of the returns to ``richly priced'' options.
+
+\item Zakamouline's Monte Carlo ranking of band rules.
+
+\item The AR(1) stop-loss hurdle.
+
+\item The best strike and DTE in the SPXW paper.
+
+\end{itemize}
+
+\section{The quickest credible route to paper trades}
+
+\begin{enumerate}
+
+\item \textbf{Card A: config only, development window.} An always-on short put with the 10-share band.
+
+\begin{itemize}
+
+\item \textbf{Variants:} 15-, 20- and 25-delta (the 25-delta reference is already registered); 25-delta unhedged (\texttt{min\_\allowbreak{}shares} set very large); and 25-delta at 2 contracts.
+
+\item \textbf{Pass bar,} set before the run:
+
+\begin{itemize}
+
+\item net P\&L above zero at 1x and 2x, in both halves;
+
+\item a stress loss within the PM's budget. This is an absolute test, not the 1.10x relative ES guard that \texttt{always25} failed;
+
+\item for the unhedged variant, P\&L net of the delta-equivalent SPY P\&L.
+
+\end{itemize}
+
+\item \textbf{Trials:} about 8-10 new ones, so keep the grid small.
+
+\end{itemize}
+
+\item \textbf{Card B: small research switch.} The same book, with size set by 1/\allowbreak{}VIX or 1/\allowbreak{}GARCH and capped by the budget.
+
+\item \textbf{Card C: small research switch.} A gamma-scaled Whalley-Wilmott band against the fixed 10-share band.
+
+\item \textbf{Hold-out, run once.} Run the winning variant on 2025-01-01 to 2026-07-10. This period has never been used.
+
+\item \textbf{Live change.}
+
+\begin{itemize}
+
+\item Add a delta target to \texttt{selection.\allowbreak{}pick\_\allowbreak{}strike}, with tests. The backtest already has one in \texttt{engine.\allowbreak{}put\_\allowbreak{}strike}.
+
+\item Then set \texttt{paper.\allowbreak{}toml}: \texttt{short\_\allowbreak{}band = -\allowbreak{}inf}, \texttt{long\_\allowbreak{}band = -\allowbreak{}inf}, \texttt{flat\_\allowbreak{}days = 999}, the hedge band, and \texttt{quantity}.
+
+\item Record the decision in \texttt{docs/\allowbreak{}decisions/\allowbreak{}}.
+
+\end{itemize}
+
+\item \textbf{Measure fills.} Log the mid price at submit next to every paper fill, so the spread model the whole result rests on gets real data.
+
+\end{enumerate}
+
+\textbf{Timing:} steps 1, 4 and 5 are about a day of work each, so paper trades could start within a week once the PM sets the budget. Today the live signal is flat (VRP +0.6 points). An always-on book would hold a 25-delta Nov-20 put (strike 748, about \$500 of premium).
+
+\textbf{PM decisions needed:}
+
+\begin{itemize}
+
+\item the stress budget;
+
+\item hedged, banded or unhedged, and whether equity beta counts toward the result;
+
+\item contracts per trade;
+
+\item whether to run cards A-C before the hold-out;
+
+\item whether to move share hedges to Tiered pricing.
+
+\end{itemize}
+
+\textbf{What to expect:} hedged, \texttt{always25} earned about \$125 per contract per year net at 1x (about \$80 at 2x). Even at three contracts that is well under 1\% a year on \$250k. After 2012, the hedged SPY VRP is a thin edge that costs a lot to harvest. Most of the dollars an unhedged book would show come from the equity market.
+
+\section{Caveats}
+
+\begin{itemize}
+
+\item \textbf{Costs:} most of the evidence on strikes, structures and hedging is gross of option costs (AQR, Sepp, Cboe). Santa-Clara \& Saretto use 1996-2002 quotes far wider than today's SPY market, and Muravyev \& Pearson cover single-stock options.
+
+\item \textbf{Dates:} most sources end by 2016, before the 2018, 2020 and 2022 shocks. The exceptions are Dew-Becker \& Giglio (to 2025), Yang (to 2022-2023) and the Kelly paper (2018-2023).
+
+\item \textbf{Instruments:} the sources use SPX, SPX futures options, single stocks and SPXW. SPY options are American-style and physically settled.
+
+\item \textbf{Source quality:} Sepp's work is non-peer-reviewed slides. AQR's is a working paper from a firm with a commercial interest in VRP products. The Cboe study was commissioned by the index owner.
+
+\item \textbf{Theory:} the hedge-band results are small-cost asymptotics under CARA utility and constant-vol GBM, with a risk aversion that cannot be observed.
+
+\item \textbf{Desk results:} they are in-sample after 70 trials and rest on a spread model fitted to two weeks of calm 2026 quotes. The hold-out has not been run, and IBKR paper fills are simulated.
+
+\item \textbf{Desk calculations:} they assume a flat 60\% (or 45\%) IV after the shock, no early exercise, and a hedge at full delta before the gap.
+
+\end{itemize}
+
+\section{Sources}
+
+\begin{itemize}
+
+\item \href{https://www.aqr.com/Insights/Research/Working-Paper/Which-Index-Options-Should-You-Sell}{Israelov \& Tummala, Which Index Options Should You Sell? (AQR working paper, 2017)}: verified 2-1.
+
+\item \href{https://papers.ssrn.com/abstract=681643}{Santa-Clara \& Saretto, Option Strategies: Good Deals and Margin Calls (SSRN 681643)}: Table 10 verified 3-0; other claims refuted.
+
+\item \href{https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2810768}{Sepp, Volatility Modelling and Trading, workshop slides (SSRN 2810768, 2016)}: verified 3-0.
+
+\item \href{https://ir.cboe.com/news/news-details/2016/Study-Analyzes-Performance-of-CBOE-SP-500-SPX-Options-Selling-Indexes-02-23-2016/default.aspx}{Cboe press release on the Black \& Szado study of option-selling indexes (2016)}: return figures verified 3-0.
+
+\item \href{https://ideas.repec.org/a/oup/rfinst/v33y2020i11p4973-5014..html}{Muravyev \& Pearson, Options Trading Costs Are Lower Than You Think (RFS 2020)}: verified 3-0.
+
+\item \href{https://users.ox.ac.uk/~ofrcinfo/pages_mfpapers/1999mf09.htm}{Whalley \& Wilmott (1999, European Journal of Applied Mathematics)}: verified 3-0.
+
+\item \href{https://www.efmaefm.org/0efmameetings/EFMA\%20ANNUAL\%20MEETINGS/2005-Milan/papers/284-zakamouline_paper.pdf}{Zakamouline (EFMA 2005)}: verified 3-0; its Monte Carlo ranking refuted.
+
+\item \href{https://www.interactivebrokers.com/en/pricing/commissions-options.php}{IBKR option commissions} and \href{https://www.interactivebrokers.com/en/pricing/commissions-stocks.php}{stock commissions}, read 2026-10-21: verified 3-0 and 2-1.
+
+\item \href{https://dspace.mit.edu/handle/1721.1/114876}{Kaminski \& Lo, When Do Stop-Loss Rules Stop Losses? (2014)}: verified 3-0; AR(1) claim refuted.
+
+\item \href{https://arxiv.org/abs/2508.16598}{Kelly-sized SPXW put writing (arXiv 2508.16598)}: Kelly drawdowns verified 3-0; best strike and DTE refuted.
+
+\item \href{https://www.dew-becker.org/documents/option_decline.pdf}{Dew-Becker \& Giglio, The decline of the S\&P 500 variance risk premium (2026)}: checked by hand against the full text.
+
+\item \href{https://english.phbs.pku.edu.cn/uploadfile/2024/0530/20240530092144610.pdf}{Yang, Volatility-Managed Volatility Trading (PHBS working paper, 2024)}: checked by hand against the full text.
+
+\item Unverified leads:
+
+\begin{itemize}
+
+\item \href{https://utoronto.scholaris.ca/bitstreams/682f3c99-5d7d-4dee-b4b4-dafa83785523/download}{Cheng, The VIX Premium (RFS 2019)}
+
+\item \href{https://www.nber.org/papers/w26323}{NBER w26323}
+
+\item \href{https://www.cboe.com/insights/posts/new-wilshire-paper-uncovers-where-to-find-enhanced-risk-adjusted-returns}{Cboe on the Wilshire Russell 2000 study}
+
+\item \href{https://hulltactical.com/2026/07/08/0dte-options-tiny-edge-huge-distribution/}{Hull Tactical on 0DTE}
+
+\item \href{https://www.wealthmanagement.com/regulation-compliance/sec-charges-portfolio-managers-misleading-investors-over-funds-risks}{SEC charges against the LJM managers}
+
+\end{itemize}
+
+\item Desk evidence:
+
+\begin{itemize}
+
+\item experiment folders: \texttt{research/\allowbreak{}Agentic\_\allowbreak{}Routing/\allowbreak{}2026-\allowbreak{}10-\allowbreak{}17-\allowbreak{}always-\allowbreak{}short/\allowbreak{}}, \texttt{research/\allowbreak{}Agentic\_\allowbreak{}Routing/\allowbreak{}2026-\allowbreak{}10-\allowbreak{}17-\allowbreak{}otm-\allowbreak{}put/\allowbreak{}}, \texttt{research/\allowbreak{}Deep\_\allowbreak{}Hedging/\allowbreak{}2026-\allowbreak{}10-\allowbreak{}16-\allowbreak{}short-\allowbreak{}only-\allowbreak{}band10/\allowbreak{}}, \texttt{research/\allowbreak{}Risk\_\allowbreak{}Management/\allowbreak{}2026-\allowbreak{}10-\allowbreak{}16-\allowbreak{}stop-\allowbreak{}levels/\allowbreak{}} and \texttt{research/\allowbreak{}RV\_\allowbreak{}Forecasting/\allowbreak{}2026-\allowbreak{}10-\allowbreak{}07-\allowbreak{}garch-\allowbreak{}bias-\allowbreak{}correction/\allowbreak{}};
+
+\item the trial registry;
+
+\item the 2026-10-21 IBKR chain snapshot.
+
+\end{itemize}
+
+\end{itemize}
+
+\end{document}

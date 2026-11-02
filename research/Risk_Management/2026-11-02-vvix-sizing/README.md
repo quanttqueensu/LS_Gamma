@@ -8,7 +8,7 @@
 | **Experiment** | `2026-11-02-vvix-sizing` (config: `configs/experiments/2026-11-02-vvix-sizing.toml`) |
 | **Topic** | Risk_Management |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed (drawdown $106.6k > $87.5k; ES 1.19x; 2014-19 at 1x) |
 | **Started** | 2026-11-02 |
 
 ## Hypothesis
@@ -53,3 +53,5 @@ Primary `vvix` against reference `hedged` at the same spread multiple. Every che
 Run the hold-out once, together with the PM's hold-out decision for `2026-10-22-stress-sized-puts`. If it holds: shadow mode, a decision record, then live changes reviewed by the PM. Live needs the VVIX percentile and the tilt in the runner's sizing.
 
 ## Changes
+- 2026-11-02: run once (6 trials, commit 954824c). The pass bar above was not changed. Verdict: failed at 1x and 2x. `vvix` made +$145,183 / +$130,641 against +$121,482 / +$101,172, but its maximum drawdown was $106,599 / $110,464 (limit $87,500), its ES 1.19x / 1.17x (limit 1.10x), and 2014-2019 at 1x was $2,135 lower. Five entries in February to April 2020, all sized at 1.39x-1.5x, gave 45% of the lead. The two `vvix_reverse` rows are tagged `-dirty` because other experiments' new figure folders were in the shared working tree; code and configs were unchanged. See `summary.md` and `2026-11-02-vvix-sizing.pdf`.
+- 2026-11-02 (after the run): chart-only fix in `experiment.py`. The yearly chart's legend moved to the upper left, clear of the bars. Figures rebuilt with `--report-only`; no new trials.

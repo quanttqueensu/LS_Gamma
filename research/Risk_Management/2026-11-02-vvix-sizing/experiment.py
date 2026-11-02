@@ -110,7 +110,7 @@ def yearly(sets, path):
                        color=report.color(i, label), label=label)
         ax.axhline(0, color="k", lw=0.6)
         ax.set(title=f"Net P&L by year, {mult:g}x", ylabel="USD")
-    axes[0].legend(fontsize=7, frameon=False, loc="lower left")
+    axes[0].legend(fontsize=7, frameon=False, loc="upper left")
     return report.save(fig, path)
 
 

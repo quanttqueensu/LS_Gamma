@@ -8,7 +8,7 @@
 | **Experiment** | `2026-11-02-slope-sizing` (config: `configs/experiments/2026-11-02-slope-sizing.toml`) |
 | **Topic** | Risk_Management |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed (P&L lower at 1x and 2x; risk lower) |
 | **Started** | 2026-11-02 |
 
 ## Hypothesis
@@ -53,3 +53,4 @@ Primary `slope` against reference `hedged` at the same spread multiple. Every ch
 Run the hold-out once, together with the PM's hold-out decision for `2026-10-22-stress-sized-puts`. If it holds: shadow mode, a decision record, then live changes reviewed by the PM. Live needs the VIX/VIX3M percentile and the tilt in the runner's sizing.
 
 ## Changes
+- 2026-11-02: run once: 6 trials, at branch head 954824c. That commit adds only another card's pre-registration after c74f769. The two `slope_reverse` rows are tagged `-dirty` because a parallel experiment's reporting script was being edited during the run; the engine, configs and this card's files were unchanged. The pass bar above was not changed. Verdict: failed on all six P&L checks (`slope` $100,574 / $78,318 against `hedged` $121,482 / $101,172 at 1x / 2x); the ES and drawdown checks passed (maximum drawdown $42,017 / $46,035). Average contracts per entry were unchanged (24.7 against 25.4), but the early-2020 entries were cut to 0.5-0.67x, which cut the March 2020 winners by about 40%. See `summary.md` and `2026-11-02-slope-sizing.pdf`.

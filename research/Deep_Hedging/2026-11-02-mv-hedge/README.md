@@ -8,7 +8,7 @@
 | **Experiment** | `2026-11-02-mv-hedge` (config: `configs/experiments/2026-11-02-mv-hedge.toml`) |
 | **Topic** | Deep_Hedging |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed (P&L $104,049 / $79,425 vs $121,482 / $101,172; tail and drawdown passed) |
 | **Started** | 2026-11-02 |
 
 ## Hypothesis
@@ -65,3 +65,4 @@ The tail and the drawdown are the targets. The P&L check allows a small cost, ab
 Run the hold-out once, together with the PM's hold-out decision for `2026-10-22-stress-sized-puts`. If it holds: shadow mode, a decision record, then a new hedger in `core/Algos/Hedging/` with its own `target_shares()` (the `new-hedger` skill), reviewed by the PM.
 
 ## Changes
+- 2026-11-02: run once (4 trials, pre-registration commit 3ab834b). The registry tags the `mv` 1x row 79b09a1-dirty and the other three 3568520-dirty: other cards of the same batch were pre-registered, and had uncommitted files in the shared working tree, during the run. The engine, `configs/backtest.toml` and this card's config, card and script are unchanged between 3ab834b and both tags. The pass bar above was not changed. Verdict: failed at 1x and 2x. ES 5% (−$2,828 / −$2,871 vs −$3,016 / −$3,094) and max drawdown ($41,112 / $41,119 vs $70,362 / $75,488) passed; net P&L ($104,049 / $79,425 vs $121,482 / $101,172) fell more than the $5,000 allowed. See `summary.md` and `2026-11-02-mv-hedge.pdf`.

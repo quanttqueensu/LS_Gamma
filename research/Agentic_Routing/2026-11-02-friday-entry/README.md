@@ -8,7 +8,7 @@
 | **Experiment** | `2026-11-02-friday-entry` (config: `configs/experiments/2026-11-02-friday-entry.toml`) |
 | **Topic** | Agentic_Routing |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed (full-window and 2020-2024 net P&L; +$111k vs +$121k at 1x) |
 | **Started** | 2026-11-02 |
 
 ## Hypothesis
@@ -52,3 +52,5 @@ Primary `friday` against reference `hedged` at the same spread multiple. Every c
 Run the hold-out once, together with the PM's hold-out decision for `2026-10-22-stress-sized-puts`. If it holds: shadow mode, a decision record, then live changes reviewed by the PM. Live needs the entry-day rule in the runner.
 
 ## Changes
+- 2026-11-02: run once (4 trials, registry commit 954824c, which contains this card's pre-registration bc742fd). The pass bar above was not changed. Verdict: failed at 1x and 2x (`friday` +$111,315 / +$90,120 vs `hedged` +$121,482 / +$101,172; 2014-2019 higher, 2020-2024 and full window lower; ES and drawdown checks pass, max drawdown $32,301 / $38,232). 28 midweek exits met the floor of 25. See `summary.md` and `2026-11-02-friday-entry.pdf`.
+- 2026-11-02 (correction found by the independent check): "Why it matters" says 44 of the `hedged` book's 182 entries were midweek after a profit-take or stop. 44 entries were midweek, but only 29 followed a profit-take or stop; 12 followed Monday or Tuesday time exits, 2 followed expiries and 1 was the first entry. The pass bar is not affected.

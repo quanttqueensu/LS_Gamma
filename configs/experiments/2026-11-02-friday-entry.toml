@@ -1,0 +1,64 @@
+[experiment]
+name = "2026-11-02-friday-entry"
+topic = "Agentic_Routing"
+owner = "Gabe Soler (PM)"
+
+# reference: registered 2026-10-22-stress-sized-puts/hedged (reused, not rerun)
+# every variant: that book (always-short 25-delta put, 35% stress budget,
+# 10-share daily hedge) plus one entry-timing change
+[variants.friday.signal]
+long_band = -inf  # no long entries
+short_band = -inf  # always short: signal ignored
+[variants.friday.exit]
+flat_days = 999  # flat exit off (cannot fire anyway)
+[variants.friday.hedge]
+min_shares = 10  # hedged book's 10-share hedge
+[variants.friday.backtest]
+put_delta = 0.25
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+entry_weekdays = [4]  # primary: new puts only on Fridays
+
+[variants.tuesday_roll.signal]
+long_band = -inf  # no long entries
+short_band = -inf  # always short: signal ignored
+[variants.tuesday_roll.exit]
+flat_days = 999  # flat exit off (cannot fire anyway)
+exit_dte = 3  # sensitivity: roll on Tuesday of expiry week
+[variants.tuesday_roll.hedge]
+min_shares = 10  # hedged book's 10-share hedge
+[variants.tuesday_roll.backtest]
+put_delta = 0.25
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+
+[pass]
+primary = "friday"
+against = "hedged"  # registered reference; hold-out: its hold-out run
+min_events = 25
+event = "midweek_exit"
+# floor: Mon-Thu profit or stop exits, each followed by a wait
+[[pass.check]]
+metric = "pnl"
+period = "all"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2014-2019"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2020-2024"
+rule = "higher"
+[[pass.check]]
+metric = "es_5"
+period = "all"
+rule = "abs_within"
+value = 1.1  # tail guard
+[[pass.check]]
+metric = "max_dd"
+period = "all"
+rule = "at_most"
+value = 87500.0  # absolute: the 35% stress budget of $250k

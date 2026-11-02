@@ -112,10 +112,28 @@ def yearly(sets, path):
     return report.save(fig, path)
 
 
+def fees(sets, path):
+    # report.fees, x labels clear of each other
+    labels, opt, hed = [], [], []
+    for label, by_mult in sets.items():
+        for mult, out in sorted(by_mult.items()):
+            s = report.stats(out)
+            labels.append(f"{label} {mult:g}x")
+            opt.append(s["option_fees"])
+            hed.append(s["hedge_fees"])
+    fig, ax = plt.subplots(figsize=(7, 3.2))
+    ax.bar(labels, opt, color="tab:blue", label="option commissions")
+    ax.bar(labels, hed, bottom=opt, color="tab:orange", label="hedge commissions")
+    ax.set(title="Commissions paid", ylabel="USD", ylim=(0, max(map(sum, zip(opt, hed))) * 1.3))
+    ax.tick_params(axis="x", labelsize=7, rotation=30)
+    ax.legend(fontsize=7, frameon=False, ncol=2, loc="upper left")
+    return report.save(fig, path)
+
+
 def standard(sets, folder):
     return [cum_pnl(sets, folder / "cum_pnl.png"), drawdown(sets, folder / "drawdown.png"),
             yearly(sets, folder / "yearly.png"), report.by_reason(sets, folder / "by_reason.png"),
-            report.fees(sets, folder / "fees.png")]
+            fees(sets, folder / "fees.png")]
 
 
 def show(folder, name, df):

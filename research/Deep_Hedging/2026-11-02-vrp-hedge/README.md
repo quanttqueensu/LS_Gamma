@@ -8,7 +8,7 @@
 | **Experiment** | `2026-11-02-vrp-hedge` (config: `configs/experiments/2026-11-02-vrp-hedge.toml`) |
 | **Topic** | Deep_Hedging |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed (+$114,100 / +$87,924 vs +$121,482 / +$101,172) |
 | **Started** | 2026-11-02 |
 
 ## Hypothesis
@@ -54,3 +54,5 @@ Primary `vrp2` against reference `hedged` at the same spread multiple. Every che
 Run the hold-out once, together with the PM's hold-out decision for `2026-10-22-stress-sized-puts`. If it holds: shadow mode, a decision record, then live changes reviewed by the PM. Live needs the VRP check at entry and a per-position hedge flag.
 
 ## Changes
+- 2026-11-02: run once (6 trials, commit 954824c; the `vrp4` rows are tagged `-dirty` because the other three experiments of the batch were writing files in the same working tree, with no change to this experiment's code, config or engine). The pass bar above was not changed. Verdict: failed at 1x and 2x (`vrp2` net P&L $114,100 / $87,924 vs $121,482 / $101,172; Sharpe 0.51 / 0.39 vs 0.52 / 0.43). The sensitivity `vrp1` beat the reference on every check, but sensitivities cannot pass this card. See `summary.md` and `2026-11-02-vrp-hedge.pdf`.
+- 2026-11-02 (after the run): chart-only fix in `experiment.py`: the commissions chart's x labels rotated so they don't overlap. Figures rebuilt with `--report-only`; no new trials.

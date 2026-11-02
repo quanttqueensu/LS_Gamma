@@ -786,3 +786,57 @@ def test_stress_and_band_off_by_default(bt):
     d = days("2024-03-04", 2)
     write(root, list(zip(d, [0.10, 0.10])))
     assert engine.backtest(cfg, d[0], d[-1], root=root)["trades"]["qty"].iloc[0] == 1
+
+
+def test_entry_weekdays_waits_for_friday(bt):
+    cfg, root = bt
+    cfg["backtest"]["entry_weekdays"] = [4]
+    d = days("2024-03-04", 5)
+    write(root, list(zip(d, [0.10] * 5)))
+    out = engine.backtest(cfg, d[0], d[-1], root=root)
+    assert out["trades"]["date"].tolist() == ["2024-03-08"]
+    assert (out["events"]["event"] == "weekday").sum() == 4
+
+
+def tilted(root, rising):
+    f = pd.read_parquet(root / "features.parquet")
+    f["vvix"] = np.arange(len(f), dtype=float) * (1 if rising else -1)
+    f.loc["2024-03-04", "vvix"] = -1e9 if rising else 1e9  # today's value unused
+    f.to_parquet(root / "features.parquet")
+
+
+@pytest.mark.parametrize("rising, k, qty", [(True, 0.5, 21), (False, 0.5, 7), (True, -0.5, 7),
+                                            (True, 0.0, 14)])
+def test_size_tilt_scales_budget_by_percentile(bt, rising, k, qty):
+    cfg, root = bt
+    cfg["backtest"].update(size_by="vvix", size_tilt=k)
+    tilted(root, rising)
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])))
+    # 1y top: 35% x 1.5 = 52.5%; bottom: about 17.6%
+    assert engine.backtest(stressed(cfg), d[0], d[-1], root=root)["trades"]["qty"].iloc[0] == qty
+
+
+@pytest.mark.parametrize("cut, qty, hedged", [(0.02, 7, False), (0.06, 14, True), (0.0, 14, True)])
+def test_vrp_unhedge_sizes_and_skips_hedge(bt, cut, qty, hedged):
+    cfg, root = bt
+    cfg["backtest"]["vrp_unhedge"] = cut  # entry vrp 0.15 - 0.10 = 0.05
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])))
+    out = engine.backtest(stressed(cfg), d[0], d[-1], root=root)
+    assert out["trades"]["qty"].iloc[0] == qty
+    assert out["hedges"].empty != hedged
+
+
+def test_signal_flags_off_by_default(bt):
+    cfg, root = bt
+    flags = ("entry_weekdays", "size_by", "size_tilt", "vrp_unhedge")
+    assert not any(cfg["backtest"][k] for k in flags)
+    saved = copy.deepcopy(cfg)
+    for k in flags:
+        del saved["backtest"][k]
+    assert report.same(saved, cfg)
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])))
+    out = engine.backtest(cfg, d[0], d[-1], root=root)
+    assert out["trades"]["date"].iloc[0] == "2024-03-04" and "unhedged" not in out["trades"]

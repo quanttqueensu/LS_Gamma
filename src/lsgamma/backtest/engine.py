@@ -172,7 +172,7 @@ def book_gamma(b, chain):
                 for r, p in rows), 0.0)
 
 
-def stress_qty(cfg, r, spot, years, budget):
+def stress_qty(cfg, r, spot, years, budget, hedged=True):
     # research only: most puts within the stress budget
     bt = cfg["backtest"]
     drop, vol = bt["stress_drop"], max(bt["stress_vol"], float(r["iv"]))
@@ -180,23 +180,41 @@ def stress_qty(cfg, r, spot, years, budget):
     delta, gamma = abs(float(r["delta"])) * MULTIPLIER, abs(float(r["gamma"])) * MULTIPLIER
     net = (crash - float(r["mid"])) * MULTIPLIER - delta * drop * spot
     n = int(budget // net) if net > 0 else 0
-    while n and n * net + min(band(cfg, n * gamma), n * delta) * drop * spot > budget:
+    def gap(n):
+        return min(band(cfg, n * gamma), n * delta) if hedged else n * delta
+    while n and n * net + gap(n) * drop * spot > budget:
         n -= 1
     return n
 
 
-def size(s, signal, t, chain, asof):
+def tilt(s, asof):
+    # research only: budget scale from 1y percentile
+    bt = s["cfg"]["backtest"]
+    col, k = bt.get("size_by", ""), bt.get("size_tilt", 0.0)
+    if not col or not k:
+        return 1.0
+    x = runner.completed(s["feats"], asof)[col].dropna().iloc[-252:]
+    return 1.0 if x.empty else 1.0 + k * (2 * float(x.rank(pct=True).iloc[-1]) - 1)
+
+
+def unhedge(s, vrp):
+    # research only: no hedge above this VRP
+    cut = s["cfg"]["backtest"].get("vrp_unhedge", 0.0)
+    return bool(cut) and not math.isnan(vrp) and vrp > cut
+
+
+def size(s, signal, t, chain, asof, hedged=True):
     # research only: short puts sized to stress budget
     cfg = s["cfg"]
-    budget = cfg["backtest"].get("stress_budget", 0.0) * cfg["size"]["capital"]
+    budget = cfg["backtest"].get("stress_budget", 0.0) * cfg["size"]["capital"] * tilt(s, asof)
     if not budget or signal != "short":
         return cfg["size"]["quantity"]
     r = sim.row(chain, t["expiry"], t["strike"], t["right"])
     years = float(marks.years(asof, [t["expiry"]])[0])
-    return 0 if r is None else stress_qty(cfg, r, runner.spot(chain), years, budget)
+    return 0 if r is None else stress_qty(cfg, r, runner.spot(chain), years, budget, hedged)
 
 
-def enter(s, signal, chain, fill, asof):
+def enter(s, signal, chain, fill, asof, vrp=math.nan):
     cfg, bt = s["cfg"], s["cfg"]["backtest"]
     try:
         t = selection.trade_for(signal, chain, cfg)
@@ -207,12 +225,14 @@ def enter(s, signal, chain, fill, asof):
                                  bt["spread_mult"])
     if math.isnan(price):
         return log(s, asof, "no_fill", f"open {signal}")
-    qty = size(s, signal, t, chain, asof)
+    bare = unhedge(s, vrp)
+    qty = size(s, signal, t, chain, asof, not bare)
     if not qty:
         return log(s, asof, "no_entry", "stress budget below one contract")
     pos = {"side": signal, "right": t["right"], "expiry": str(t["expiry"]),
            "strike": t["strike"], "qty": qty, "entry_price": price,
            "entry_date": str(asof.date()), "entry_ts": runner.stamp(asof),
+           **({"unhedged": True} if bare else {}),
            "hedges": carry(s["book"], chain, asof)}
     cost = sim.open_option(s["book"], pos, sim.fee(bt["commission_contract"], qty,
                                                    bt["min_per_order"]))
@@ -240,7 +260,7 @@ def attach(b, targets, chain, asof):
 
 def hedge(s, chain, fill, asof):
     b, bt = s["book"], s["cfg"]["backtest"]
-    targets = [sim.target_shares(p, chain) for p in b["open"]]
+    targets = [0.0 if p.get("unhedged") else sim.target_shares(p, chain) for p in b["open"]]
     if any(math.isnan(t) for t in targets):
         return log(s, asof, "no_delta", "hedge skipped")
     attach(b, targets, chain, asof)
@@ -318,6 +338,12 @@ def gated(s, side, asof):
     return ratio if ratio >= gate else None
 
 
+def off_day(s, asof):
+    # research only: entries on these weekdays only
+    days = s["cfg"]["backtest"].get("entry_weekdays", [])
+    return bool(days) and asof.weekday() not in days
+
+
 def act(s, chain, fill, asof, d, hist):
     # decisions read chain; fill only prices them
     if fill is None:
@@ -335,8 +361,10 @@ def act(s, chain, fill, asof, d, hist):
             log(s, asof, "reset_wait", f"no {d['signal']} entry until signal resets")
         elif (ratio := gated(s, d["signal"], asof)) is not None:
             log(s, asof, "gate", f"no short entry, VIX/VIX3M {ratio:.3f}")
+        elif off_day(s, asof):
+            log(s, asof, "weekday", f"no {d['signal']} entry on {asof:%A}")
         else:
-            enter(s, d["signal"], chain, fill, asof)
+            enter(s, d["signal"], chain, fill, asof, d["vrp"])
     hedge(s, chain, fill, asof)
     mark(s, chain, asof)
 

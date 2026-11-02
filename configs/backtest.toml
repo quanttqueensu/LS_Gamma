@@ -44,3 +44,7 @@ stress_budget = 0.0  # research only: size short puts to this capital share; 0 =
 stress_drop = 0.0  # research only: stress-day SPY drop, with stress_budget
 stress_vol = 0.0  # research only: stress-day IV floor, with stress_budget
 ww_band = 0.0  # research only: hedge band k * sqrt(book gamma); 0 = min_shares
+entry_weekdays = []  # research only: entry weekdays, Monday = 0; [] = any
+size_by = ""  # research only: feature column that tilts the stress budget
+size_tilt = 0.0  # research only: budget x (1 + tilt x (2 x 1y pct - 1)); 0 = off
+vrp_unhedge = 0.0  # research only: no hedge for puts entered above this VRP; 0 = off

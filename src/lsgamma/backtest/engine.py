@@ -106,8 +106,17 @@ def exit_for(s, pos, chain, asof, d, hist):
         return "expired"
     total = pnl.combined_pnl(pos, held_mark(s, pos, chain, asof, note=True), runner.spot(chain))
     signal, hist = (d["signal"], hist) if d else (None, [])
-    reason = exits.exit_reason(pos, asof.date(), total, signal, hist, s["cfg"])
+    if pos.get("crash"):
+        reason = crash_exit(s, pos, asof)
+    else:
+        reason = exits.exit_reason(pos, asof.date(), total, signal, hist, s["cfg"])
     return reason or ("embargo" if embargo_close(s, asof) else None)
+
+
+def crash_exit(s, pos, asof):
+    # research only: crash calls exit on holding days
+    held = pd.bdate_range(pos["entry_date"], asof.date()).size - 1
+    return "crash_time" if held >= s["cfg"]["backtest"]["crash_days"] else None
 
 
 def expiry_spot(s, expiry):
@@ -172,10 +181,15 @@ def book_gamma(b, chain):
                 for r, p in rows), 0.0)
 
 
+def shock_vol(bt, iv):
+    # research only: stress IV floor or IV multiple
+    return max(bt["stress_vol"], max(bt.get("stress_vol_mult", 0.0), 1.0) * iv)
+
+
 def stress_qty(cfg, r, spot, years, budget, hedged=True):
     # research only: most puts within the stress budget
     bt = cfg["backtest"]
-    drop, vol = bt["stress_drop"], max(bt["stress_vol"], float(r["iv"]))
+    drop, vol = bt["stress_drop"], shock_vol(bt, float(r["iv"]))
     crash = float(marks.price(spot * (1 - drop), r["strike"], years, 0.0, vol, False))
     delta, gamma = abs(float(r["delta"])) * MULTIPLIER, abs(float(r["gamma"])) * MULTIPLIER
     net = (crash - float(r["mid"])) * MULTIPLIER - delta * drop * spot
@@ -194,13 +208,69 @@ def tilt(s, asof):
     if not col or not k:
         return 1.0
     x = runner.completed(s["feats"], asof)[col].dropna().iloc[-252:]
-    return 1.0 if x.empty else 1.0 + k * (2 * float(x.rank(pct=True).iloc[-1]) - 1)
+    t = 1.0 if x.empty else 1.0 + k * (2 * float(x.rank(pct=True).iloc[-1]) - 1)
+    cap = bt.get("size_cap", 0.0)
+    return min(t, cap) if cap else t
 
 
 def unhedge(s, vrp):
     # research only: no hedge above this VRP
     cut = s["cfg"]["backtest"].get("vrp_unhedge", 0.0)
     return bool(cut) and not math.isnan(vrp) and vrp > cut
+
+
+def hedge_ratio(s, vrp):
+    # research only: partial hedge above this VRP
+    bt = s["cfg"]["backtest"]
+    cut = bt.get("vrp_hedge_cut", 0.0)
+    if cut and not math.isnan(vrp) and vrp > cut:
+        return bt.get("vrp_hedge_ratio", 0.0)
+    return None
+
+
+def beta(s, asof):
+    # research only: VIX points per unit return, 1y
+    cache = s.setdefault("beta", {})
+    if asof.date() not in cache:
+        f = runner.completed(s["feats"], asof)[["ret", "vix"]].iloc[-253:]
+        f = f.assign(dv=f["vix"].diff()).dropna()
+        cache[asof.date()] = float(f["ret"].cov(f["dv"]) / f["ret"].var()) if len(f) > 20 else 0.0
+    return cache[asof.date()]
+
+
+def mv_shares(s, p, chain, asof):
+    # research only: Hull-White vega term, spot-vol beta
+    k = s["cfg"]["backtest"].get("mv_hedge", 0.0)
+    if not k:
+        return 0.0
+    r = sim.row(chain, p["expiry"], p["strike"], p["right"])
+    vega = math.nan if r is None else float(r["vega"])
+    return -k * vega * beta(s, asof) / runner.spot(chain) * p["qty"] * MULTIPLIER * pnl.SIGN[p["side"]]
+
+
+def target(s, p, chain, asof):
+    if p.get("unhedged"):
+        return 0.0
+    return p.get("hedge_ratio", 1.0) * (sim.target_shares(p, chain) + mv_shares(s, p, chain, asof))
+
+
+def crash_cfg(cfg):
+    lo, mid, hi = cfg["backtest"]["crash_dte"]
+    return {**cfg, "entry": {**cfg["entry"], "min_dte": lo, "target_dte": mid, "max_dte": hi}}
+
+
+def crash_qty(s, price):
+    # research only: calls bought with a premium budget
+    cfg = s["cfg"]
+    return int(cfg["backtest"]["crash_premium"] * cfg["size"]["capital"] // (price * MULTIPLIER))
+
+
+def crash_due(s, asof):
+    # research only: long call when VIX/VIX3M >= gate
+    gate = s["cfg"]["backtest"].get("crash_gate", 0.0)
+    if not gate or any(p.get("crash") for p in s["book"]["open"]) or embargoed(s, asof):
+        return False
+    return float(runner.completed(s["feats"], asof)["vix_vix3m"].iloc[-1]) >= gate
 
 
 def size(s, signal, t, chain, asof, hedged=True):
@@ -214,10 +284,10 @@ def size(s, signal, t, chain, asof, hedged=True):
     return 0 if r is None else stress_qty(cfg, r, runner.spot(chain), years, budget, hedged)
 
 
-def enter(s, signal, chain, fill, asof, vrp=math.nan):
+def enter(s, signal, chain, fill, asof, vrp=math.nan, crash=False):
     cfg, bt = s["cfg"], s["cfg"]["backtest"]
     try:
-        t = selection.trade_for(signal, chain, cfg)
+        t = selection.trade_for(signal, chain, crash_cfg(cfg) if crash else cfg)
     except ValueError as e:
         return log(s, asof, "no_entry", str(e))
     t = {**t, "strike": put_strike(s, t, chain)}
@@ -225,14 +295,17 @@ def enter(s, signal, chain, fill, asof, vrp=math.nan):
                                  bt["spread_mult"])
     if math.isnan(price):
         return log(s, asof, "no_fill", f"open {signal}")
-    bare = unhedge(s, vrp)
-    qty = size(s, signal, t, chain, asof, not bare)
+    bare, ratio = unhedge(s, vrp), hedge_ratio(s, vrp)
+    qty = crash_qty(s, price) if crash else size(s, signal, t, chain, asof, not bare)
     if not qty:
-        return log(s, asof, "no_entry", "stress budget below one contract")
+        return log(s, asof, "no_entry", "crash premium below one contract" if crash
+                   else "stress budget below one contract")
     pos = {"side": signal, "right": t["right"], "expiry": str(t["expiry"]),
            "strike": t["strike"], "qty": qty, "entry_price": price,
            "entry_date": str(asof.date()), "entry_ts": runner.stamp(asof),
            **({"unhedged": True} if bare else {}),
+           **({"hedge_ratio": ratio} if ratio is not None else {}),
+           **({"crash": True} if crash else {}),
            "hedges": carry(s["book"], chain, asof)}
     cost = sim.open_option(s["book"], pos, sim.fee(bt["commission_contract"], qty,
                                                    bt["min_per_order"]))
@@ -260,7 +333,7 @@ def attach(b, targets, chain, asof):
 
 def hedge(s, chain, fill, asof):
     b, bt = s["book"], s["cfg"]["backtest"]
-    targets = [0.0 if p.get("unhedged") else sim.target_shares(p, chain) for p in b["open"]]
+    targets = [target(s, p, chain, asof) for p in b["open"]]
     if any(math.isnan(t) for t in targets):
         return log(s, asof, "no_delta", "hedge skipped")
     attach(b, targets, chain, asof)
@@ -324,7 +397,7 @@ def waiting(s, side):
 
 def room(s, side):
     # research only: ladder same-side positions
-    held = s["book"]["open"]
+    held = [p for p in s["book"]["open"] if not p.get("crash")]
     return (len(held) < s["cfg"]["backtest"].get("max_positions", 1)
             and all(p["side"] == side for p in held))
 
@@ -365,6 +438,8 @@ def act(s, chain, fill, asof, d, hist):
             log(s, asof, "weekday", f"no {d['signal']} entry on {asof:%A}")
         else:
             enter(s, d["signal"], chain, fill, asof, d["vrp"])
+    if d and crash_due(s, asof):
+        enter(s, "long", chain, fill, asof, crash=True)
     hedge(s, chain, fill, asof)
     mark(s, chain, asof)
 

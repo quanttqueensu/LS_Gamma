@@ -1,0 +1,75 @@
+[experiment]
+name = "2026-11-02-inverse-vol"
+topic = "Risk_Management"
+owner = "Gabe Soler (PM)"
+
+# reference: registered 2026-10-22-stress-sized-puts/hedged (reused, not rerun)
+# every variant: that book (always-short put, stress budget, 10-share daily hedge)
+
+[variants.vix_inv.signal]
+long_band = -inf  # no long entries
+short_band = -inf  # always short: signal ignored
+[variants.vix_inv.exit]
+flat_days = 999  # flat exit off (cannot fire anyway)
+[variants.vix_inv.hedge]
+min_shares = 10  # hedged book's 10-share hedge
+[variants.vix_inv.backtest]
+put_delta = 0.25
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+size_by = "vix"
+size_tilt = -0.5  # primary: 0.5x-1.5x, smaller when VIX is high
+
+[variants.vix_inv_cap.signal]
+long_band = -inf  # no long entries
+short_band = -inf  # always short: signal ignored
+[variants.vix_inv_cap.exit]
+flat_days = 999  # flat exit off (cannot fire anyway)
+[variants.vix_inv_cap.hedge]
+min_shares = 10  # hedged book's 10-share hedge
+[variants.vix_inv_cap.backtest]
+put_delta = 0.25
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+size_by = "vix"
+size_tilt = -0.5
+size_cap = 1.0  # sensitivity: never above the budget
+
+[variants.rv_inv.signal]
+long_band = -inf  # no long entries
+short_band = -inf  # always short: signal ignored
+[variants.rv_inv.exit]
+flat_days = 999  # flat exit off (cannot fire anyway)
+[variants.rv_inv.hedge]
+min_shares = 10  # hedged book's 10-share hedge
+[variants.rv_inv.backtest]
+put_delta = 0.25
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+size_by = "rv_m"
+size_tilt = -0.5  # sensitivity: monthly realized vol
+
+[pass]
+primary = "vix_inv"
+against = "hedged"  # registered reference; hold-out: its hold-out run
+min_events = 30
+event = "round_trip"
+[[pass.check]]
+metric = "sharpe"
+period = "all"
+rule = "higher"
+[[pass.check]]
+metric = "sharpe"
+period = "2014-2019"
+rule = "higher"
+[[pass.check]]
+metric = "sharpe"
+period = "2020-2024"
+rule = "higher"
+[[pass.check]]
+metric = "max_dd"
+period = "all"
+rule = "less_severe"

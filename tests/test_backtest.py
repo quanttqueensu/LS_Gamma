@@ -840,3 +840,93 @@ def test_signal_flags_off_by_default(bt):
     write(root, list(zip(d, [0.10, 0.10])))
     out = engine.backtest(cfg, d[0], d[-1], root=root)
     assert out["trades"]["date"].iloc[0] == "2024-03-04" and "unhedged" not in out["trades"]
+
+
+@pytest.mark.parametrize("mult, qty", [(0.0, 14), (2.0, 14), (5.0, 13)])
+def test_stress_vol_mult_raises_shock_iv(bt, mult, qty):
+    cfg, root = bt
+    cfg["backtest"]["stress_vol_mult"] = mult  # IV 0.15: x5 beats the 0.6 floor
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])))
+    out = engine.backtest(stressed(cfg), d[0], d[-1], root=root)
+    assert out["trades"]["qty"].iloc[0] == qty
+
+
+def test_size_cap_limits_tilt(bt):
+    cfg, root = bt
+    cfg["backtest"].update(size_by="vvix", size_tilt=0.5, size_cap=1.0)
+    tilted(root, True)
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])))
+    assert engine.backtest(stressed(cfg), d[0], d[-1], root=root)["trades"]["qty"].iloc[0] == 14
+
+
+@pytest.mark.parametrize("cut, ratio, shares", [(0.02, 0.5, [-350]), (0.02, 0.0, []),
+                                                 (0.06, 0.5, [-700])])
+def test_vrp_hedge_ratio_keeps_size(bt, cut, ratio, shares):
+    cfg, root = bt
+    cfg["backtest"].update(vrp_hedge_cut=cut, vrp_hedge_ratio=ratio)  # entry vrp 0.05
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])))
+    out = engine.backtest(stressed(cfg), d[0], d[-1], root=root)
+    assert out["trades"]["qty"].iloc[0] == 14
+    hedges = out["hedges"]
+    assert (hedges["shares"].tolist()[:1] if not hedges.empty else []) == shares
+
+
+def with_vix(root, ratio=1.0):
+    f = pd.read_parquet(root / "features.parquet")
+    f["vix"] = 20 - 100 * f["ret"].cumsum()  # beta exactly -100
+    f["vix_vix3m"] = ratio
+    f.to_parquet(root / "features.parquet")
+
+
+@pytest.mark.parametrize("k, shares", [(0.0, -50), (1.0, -58)])
+def test_mv_hedge_adds_vega_term(bt, k, shares):
+    cfg, root = bt
+    cfg["backtest"]["mv_hedge"] = k  # 0.5 x -100 / 600 x 100 = 8.3 more
+    with_vix(root)
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])))
+    assert engine.backtest(cfg, d[0], d[-1], root=root)["hedges"]["shares"].iloc[0] == shares
+
+
+def crashing(cfg, gate=1.1):
+    cfg["backtest"].update(crash_gate=gate, crash_dte=[1, 10, 20], crash_days=2,
+                           crash_premium=0.01)
+    return cfg
+
+
+def test_crash_call_opens_beside_put_and_times_out(bt):
+    cfg, root = bt
+    with_vix(root, ratio=1.2)
+    d = days("2024-03-04", 4)
+    write(root, list(zip(d, [0.10] * 4)))
+    t = engine.backtest(crashing(cfg), d[0], d[-1], root=root)["trades"]
+    calls = t[t["right"] == "C"]
+    assert calls["crash"].all() and calls["side"].eq("long").all()
+    assert calls["qty"].iloc[0] == int(2500 // (calls["price"].iloc[0] * 100))
+    assert calls[calls["action"] == "close"]["reason"].iloc[0] == "crash_time"
+    assert calls[calls["action"] == "close"]["date"].iloc[0] == str(d[2])
+    puts = t[t["right"] == "P"]
+    assert puts["action"].tolist() == ["open"]
+
+
+def test_crash_gate_below_ratio_stays_off(bt):
+    cfg, root = bt
+    with_vix(root, ratio=1.05)
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])))
+    t = engine.backtest(crashing(cfg), d[0], d[-1], root=root)["trades"]
+    assert t["right"].tolist() == ["P"]
+
+
+def test_batch_flags_off_by_default(bt):
+    cfg, root = bt
+    flags = ("stress_vol_mult", "size_cap", "vrp_hedge_cut", "vrp_hedge_ratio", "mv_hedge",
+             "crash_gate", "crash_dte", "crash_days", "crash_premium")
+    assert not any(cfg["backtest"][k] for k in flags)
+    saved = copy.deepcopy(cfg)
+    for k in flags:
+        del saved["backtest"][k]
+    assert report.same(saved, cfg)

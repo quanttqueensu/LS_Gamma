@@ -48,3 +48,12 @@ entry_weekdays = []  # research only: entry weekdays, Monday = 0; [] = any
 size_by = ""  # research only: feature column that tilts the stress budget
 size_tilt = 0.0  # research only: budget x (1 + tilt x (2 x 1y pct - 1)); 0 = off
 vrp_unhedge = 0.0  # research only: no hedge for puts entered above this VRP; 0 = off
+stress_vol_mult = 0.0  # research only: stress IV also >= this x IV; 0 = off
+size_cap = 0.0  # research only: cap on the size_tilt multiple; 0 = none
+vrp_hedge_cut = 0.0  # research only: partial hedge above this entry VRP; 0 = off
+vrp_hedge_ratio = 0.0  # research only: hedge share above vrp_hedge_cut
+mv_hedge = 0.0  # research only: hedge += k x vega x spot-vol beta; 0 = off
+crash_gate = 0.0  # research only: long call when VIX/VIX3M >= this; 0 = off
+crash_dte = []  # research only: crash call [min, target, max] DTE
+crash_days = 0  # research only: crash call holding days
+crash_premium = 0.0  # research only: crash call premium, capital share

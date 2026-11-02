@@ -1,0 +1,54 @@
+[experiment]
+name = "2026-11-02-mv-hedge"
+topic = "Deep_Hedging"
+owner = "Gabe Soler (PM)"
+
+# reference: registered 2026-10-22-stress-sized-puts/hedged (reused, not rerun)
+# every variant: that book (always-short put, stress budget, 10-share daily hedge)
+
+[variants.mv.signal]
+long_band = -inf  # no long entries
+short_band = -inf  # always short: signal ignored
+[variants.mv.exit]
+flat_days = 999  # flat exit off (cannot fire anyway)
+[variants.mv.hedge]
+min_shares = 10  # hedged book's 10-share hedge
+[variants.mv.backtest]
+put_delta = 0.25
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+mv_hedge = 1.0  # primary: full vega x spot-vol beta term
+
+[variants.mv_half.signal]
+long_band = -inf  # no long entries
+short_band = -inf  # always short: signal ignored
+[variants.mv_half.exit]
+flat_days = 999  # flat exit off (cannot fire anyway)
+[variants.mv_half.hedge]
+min_shares = 10  # hedged book's 10-share hedge
+[variants.mv_half.backtest]
+put_delta = 0.25
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+mv_hedge = 0.5  # sensitivity: half the term
+
+[pass]
+primary = "mv"
+against = "hedged"  # registered reference; hold-out: its hold-out run
+min_events = 30
+event = "round_trip"
+[[pass.check]]
+metric = "es_5"
+period = "all"
+rule = "less_severe"
+[[pass.check]]
+metric = "max_dd"
+period = "all"
+rule = "less_severe"
+[[pass.check]]
+metric = "pnl"
+period = "all"
+rule = "not_below"
+value = 5000.0  # allowed shortfall vs hedged

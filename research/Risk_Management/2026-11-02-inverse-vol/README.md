@@ -8,7 +8,7 @@
 | **Experiment** | `2026-11-02-inverse-vol` (config: `configs/experiments/2026-11-02-inverse-vol.toml`) |
 | **Topic** | Risk_Management |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed (Sharpe lower in 2014-19 at 1x and 2x; drawdown $41k vs $70k) |
 | **Started** | 2026-11-02 |
 
 ## Hypothesis
@@ -53,3 +53,4 @@ Primary `vix_inv` against reference `hedged` at the same spread multiple. Every 
 Run the hold-out once, together with the PM's hold-out decision for `2026-10-22-stress-sized-puts`. If it holds: shadow mode, a decision record, then live changes reviewed by the PM. Live needs VIX's one-year percentile and the tilt in the runner's sizing.
 
 ## Changes
+- 2026-11-02: run once: 6 trials. All rows are tagged `-dirty`, with commit tags 3ab834b, af47198, 79b09a1 and 3568520, because other cards of the same batch committed their pre-registrations and wrote files in the shared working tree during the run. Each tagged commit contains this card's pre-registration (e31b598) and changes no engine code, `backtest.toml`, or this card's config or files. The pass bar above was not changed. Verdict: failed. Sharpe was higher over the full window (0.62 / 0.48 against 0.52 / 0.43 at 1x / 2x) and in 2020-2024, and the maximum drawdown was less severe ($41,489 / $45,307 against $70,362 / $75,488). But Sharpe was lower in 2014-2019 (0.78 / 0.61 against 0.84 / 0.72). The gain comes from the five early-2020 entries, sized at 0.50-0.61x; outside 19 February to 30 April 2020, Sharpe was lower (0.75 against 0.81 at 1x). See `summary.md` and `2026-11-02-inverse-vol.pdf`.

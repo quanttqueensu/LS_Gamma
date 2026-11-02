@@ -1,0 +1,80 @@
+[experiment]
+name = "2026-11-02-partial-hedge"
+topic = "Deep_Hedging"
+owner = "Gabe Soler (PM)"
+
+# reference: registered 2026-10-22-stress-sized-puts/hedged (reused, not rerun)
+# every variant: that book (always-short put, stress budget, 10-share daily hedge)
+
+[variants.half2.signal]
+long_band = -inf  # no long entries
+short_band = -inf  # always short: signal ignored
+[variants.half2.exit]
+flat_days = 999  # flat exit off (cannot fire anyway)
+[variants.half2.hedge]
+min_shares = 10  # hedged book's 10-share hedge
+[variants.half2.backtest]
+put_delta = 0.25
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+vrp_hedge_cut = 0.02  # primary: VRP above 2 vol points
+vrp_hedge_ratio = 0.5  # hedge half the delta, full size
+
+[variants.none2.signal]
+long_band = -inf  # no long entries
+short_band = -inf  # always short: signal ignored
+[variants.none2.exit]
+flat_days = 999  # flat exit off (cannot fire anyway)
+[variants.none2.hedge]
+min_shares = 10  # hedged book's 10-share hedge
+[variants.none2.backtest]
+put_delta = 0.25
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+vrp_hedge_cut = 0.02
+vrp_hedge_ratio = 0.0  # sensitivity: no hedge, full size
+
+[variants.half1.signal]
+long_band = -inf  # no long entries
+short_band = -inf  # always short: signal ignored
+[variants.half1.exit]
+flat_days = 999  # flat exit off (cannot fire anyway)
+[variants.half1.hedge]
+min_shares = 10  # hedged book's 10-share hedge
+[variants.half1.backtest]
+put_delta = 0.25
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+vrp_hedge_cut = 0.01  # sensitivity: 1-point cutoff
+vrp_hedge_ratio = 0.5
+
+[pass]
+primary = "half2"
+against = "hedged"  # registered reference; hold-out: its hold-out run
+min_events = 20
+event = "partial"
+# floor: round trips entered with a partial hedge
+[[pass.check]]
+metric = "pnl"
+period = "all"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2014-2019"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2020-2024"
+rule = "higher"
+[[pass.check]]
+metric = "sharpe"
+period = "all"
+rule = "higher"
+[[pass.check]]
+metric = "max_dd"
+period = "all"
+rule = "at_most"
+value = 87500.0  # absolute: the 35% stress budget of $250k

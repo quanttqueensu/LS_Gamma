@@ -27,3 +27,4 @@ Live hedgers are in `src/lsgamma/core/Algos/Hedging/`. A new hedger exposes `tar
 |---|---|---|---|---|
 | 2026-10-16 | [A 10-share hedge band beats hedging every share](2026-10-16-hedge-band/README.md) | Gabe Soler (PM) | passed (in-sample; hold-out not run) | [summary](2026-10-16-hedge-band/summary.md) · [report](2026-10-16-hedge-band/2026-10-16-hedge-band.pdf) |
 | 2026-10-16 | [Short-only plus the 10-share hedge band beats short-only alone](2026-10-16-short-only-band10/README.md) | Gabe Soler (PM) | passed (in-sample; hold-out not run) | [summary](2026-10-16-short-only-band10/summary.md) · [report](2026-10-16-short-only-band10/2026-10-16-short-only-band10.pdf) |
+| 2026-11-02 | [Leaving puts unhedged when VRP is high beats always hedging, at a better Sharpe](2026-11-02-vrp-hedge/README.md) | Gabe Soler (PM) | planned | |

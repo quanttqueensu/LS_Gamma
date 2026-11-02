@@ -8,7 +8,7 @@
 | **Experiment** | `2026-11-02-lower-delta` (config: `configs/experiments/2026-11-02-lower-delta.toml`) |
 | **Topic** | Agentic_Routing |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | passed (in-sample; hold-out not run). +$150k vs +$121k at 1x, but $26.5k of the lead is August 2015 |
 | **Started** | 2026-11-02 |
 
 ## Hypothesis
@@ -79,3 +79,9 @@ This needs a hold-out run of the 2026-10-22 `hedged` book, which is also that ca
 3. Then live changes, reviewed by the PM. Live needs a delta target in `selection.pick_strike`.
 
 ## Changes
+- 2026-11-02: run once. That gave 4 trials, tagged `af47198-dirty` and `3568520-dirty`: later pre-registration commits of other batch cards, which contain this card's pre-registration bc7506b. The engine, configs and this card's files did not change between those commits; the dirty flag comes from other cards' uncommitted files in the shared tree.
+  - The pass bar above was not changed.
+  - Verdict: passed at 1x and 2x. `put20` +$149,893 / +$133,123 against `hedged` +$121,482 / +$101,172. Both halves higher; ES −$2,457 / −$2,489; max drawdown $48,435 / $51,352. 192 round trips.
+  - Caveat: one month (August 2015) gives $26.5k of the $28.4k lead at 1x. On the 92 shared entry days, the per-contract net was the same.
+  - The cost chart's label was corrected and the figures rebuilt with `--report-only` (no trials).
+  - See `summary.md` and `2026-11-02-lower-delta.pdf`.

@@ -189,7 +189,7 @@ def cost_chart(df, path):
     fig, ax = plt.subplots(figsize=(6, 3))
     x = np.arange(len(df))
     ax.bar(x - 0.2, df["commissions"], 0.4, label="commissions, 1x", color="tab:gray")
-    ax.bar(x + 0.2, df["spread_1x"], 0.4, label="spread paid at 1x (2x minus 1x P&L)",
+    ax.bar(x + 0.2, df["spread_1x"], 0.4, label="gross P&L lost from 1x to 2x (rough; paths differ)",
            color="tab:orange")
     ax.set_xticks(x, df["book"])
     ax.set(title="Trading costs, 2014-06 to 2024-12", ylabel="USD")

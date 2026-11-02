@@ -8,7 +8,7 @@
 | **Experiment** | `2026-11-02-partial-hedge` (config: `configs/experiments/2026-11-02-partial-hedge.toml`) |
 | **Topic** | Deep_Hedging |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed (+$142,653 / +$117,002 vs +$121,482 / +$101,172, but Sharpe 0.50 / 0.41 vs 0.52 / 0.43 and drawdown $98,210 / $105,611 > $87,500) |
 | **Started** | 2026-11-02 |
 
 ## Hypothesis
@@ -76,3 +76,5 @@ Run the hold-out once, together with the PM's hold-out decision for `2026-10-22-
 3. live changes reviewed by the PM. Live needs the VRP check at entry and a per-position hedge ratio in the hedger.
 
 ## Changes
+- 2026-11-02: run once (6 trials). All six rows are tagged `3568520-dirty`: the tag names the batch's latest pre-registration commit at run time, which includes this card's 79b09a1. Other experiments of the same batch had uncommitted files in the shared working tree; this experiment's engine, config and script were unchanged. The pass bar above was not changed. Verdict: failed at 1x and 2x on Sharpe and maximum drawdown, while all three P&L checks passed. The sensitivities `none2` and `half1` cleared every check, but sensitivities cannot pass this card. See `summary.md` and `2026-11-02-partial-hedge.pdf`.
+- 2026-11-02 (written after the run): correction to the In-sample note above. Before pre-registration the report code was smoke-tested on the registered `hedged` run only, not on `vrp-hedge/vrp2` (counts of round trips and position-days in the delta-leg split; no P&L by VRP was viewed). No changes to `experiment.py` after pre-registration.

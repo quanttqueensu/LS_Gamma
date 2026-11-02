@@ -97,7 +97,7 @@ def drawdown(sets, path):
                         color=report.color(i, label), lw=1, label=label)
         ax.axhline(-LIMIT, color="tab:red", lw=0.8, ls=":")
         ax.set(title=f"Drawdown, {mult:g}x spreads (dotted: stress budget)", ylabel="USD")
-    axes[0].legend(fontsize=7, frameon=False, ncol=3)
+    axes[0].legend(fontsize=7, frameon=False, ncol=4, loc="lower left")
     return report.save(fig, path)
 
 
@@ -194,7 +194,7 @@ def contracts_chart(sets, folder):
 
 
 def crash_chart(win, folder):
-    fig, axes = plt.subplots(1, 2, figsize=(7.5, 3))
+    fig, axes = plt.subplots(1, 2, figsize=(8, 3.2))
     one = win[win["mult"] == 1.0]
     axes[0].bar(one["book"], one["contracts"], color=[report.color(i, k) for i, k in enumerate(one["book"])])
     axes[0].set(title="Contracts sold, 15 Feb-30 Apr 2020", ylabel="contracts")
@@ -205,7 +205,7 @@ def crash_chart(win, folder):
                     color=[report.color(i, k) for i, k in enumerate(w["book"])])
     axes[1].set_xticks(np.arange(len(one)), one["book"])
     axes[1].axhline(0, color="k", lw=0.6)
-    axes[1].set(title="Net P&L of those round trips (left 1x, right 2x)", ylabel="USD")
+    axes[1].set(title="Their net P&L (1x left, 2x right)", ylabel="USD")
     for ax in axes:
         ax.tick_params(axis="x", labelsize=7)
     return report.save(fig, folder / "march2020.png")

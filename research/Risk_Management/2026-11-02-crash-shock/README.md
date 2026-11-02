@@ -8,7 +8,7 @@
 | **Experiment** | `2026-11-02-crash-shock` (config: `configs/experiments/2026-11-02-crash-shock.toml`) |
 | **Topic** | Risk_Management |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed (Sharpe 0.51 vs 0.52 at 1x, 0.40 vs 0.43 at 2x; drawdown $60k vs $70k) |
 | **Started** | 2026-11-02 |
 
 ## Hypothesis
@@ -54,3 +54,5 @@ Raw P&L is not on the bar: a smaller crash-time size makes less money by constru
 Run the hold-out once, together with the PM's hold-out decision for `2026-10-22-stress-sized-puts`. If it holds: shadow mode, a decision record, then live changes reviewed by the PM. Live needs the stress sizing (with the IV multiple) in the runner.
 
 ## Changes
+- 2026-11-02: run once (6 trials). The pass bar above was not changed. Verdict: failed at 1x and 2x. `shock15` made +$92,985 / +$73,349 against +$121,482 / +$101,172, with Sharpe 0.51 / 0.40 against 0.52 / 0.43 and a 2020-2024 Sharpe of 0.39 / 0.27 against 0.48 / 0.38. Its maximum drawdown was smaller ($60,228 / $65,032 against $70,362 / $75,488). The shock never binds before 2020 (no entry had IV above 40%), so the 2014-2019 Sharpe check could only tie; this flaw in the bar does not decide the verdict. Only 4 entries changed size, all in March-April 2020. All six registry rows are tagged `-dirty` (commits 79b09a1 and 3568520, both containing af47198): other cards in the batch were pre-registered during the run and their uncommitted files were in the shared tree. Engine, `backtest.toml` and this card's files were unchanged. See `2026-11-02-crash-shock.pdf`.
+- 2026-11-02 (after the run): chart-only fixes in `experiment.py`. The drawdown legend moved to the lower left, and the March 2020 chart was widened with a shorter right-hand title. Figures rebuilt with `--report-only`; no new trials.

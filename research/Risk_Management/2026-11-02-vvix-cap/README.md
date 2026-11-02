@@ -8,7 +8,7 @@
 | **Experiment** | `2026-11-02-vvix-cap` (config: `configs/experiments/2026-11-02-vvix-cap.toml`) |
 | **Topic** | Risk_Management |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed (1x Sharpe 0.48 vs 0.52; 1x drawdown $74.9k vs $70.4k) |
 | **Started** | 2026-11-02 |
 
 ## Hypothesis
@@ -62,3 +62,4 @@ Primary `vvix_cap` against reference `hedged` at the same spread multiple. Every
 Run the hold-out once, together with the PM's hold-out decision for `2026-10-22-stress-sized-puts`. If it holds: shadow mode, a decision record, then live changes reviewed by the PM. Live needs the VVIX percentile, the tilt and the cap in the runner's sizing.
 
 ## Changes
+- 2026-11-02: run once (4 trials; registry tags `af47198-dirty` and `3568520-dirty`, later pre-registration commits of parallel cards in the same batch, with their uncommitted files in the shared tree; this card's files, the engine and `backtest.toml` were unchanged from 6eae543). The pass bar above was not changed. Verdict: failed. `vvix_cap` passed every check at 2x but failed full-window Sharpe (0.48 vs 0.52), 2014-2019 Sharpe (0.66 vs 0.84) and the drawdown check ($74,926 vs $70,362) at 1x. All February-April 2020 entries were at 1x, so the March 2020 drawdown was unchanged. See `summary.md` and `2026-11-02-vvix-cap.pdf`.

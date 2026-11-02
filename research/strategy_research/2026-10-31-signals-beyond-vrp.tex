@@ -1,0 +1,535 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{float}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Signals beyond VRP: what else the desk can trade on with options}
+\author{Strategy research \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-10-31}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Question:} look into how we can incoorporate additional signals beyond VRP to make trades on, this can even go beyond a gamma scalping trade or long short gamma. as long as the trade is options related
+
+\textbf{Method:} Searched all 35 papers in \texttt{docs/\allowbreak{}papers/\allowbreak{}} (page-tagged index) + web search. Quotes verified against the cited PDF pages. Page numbers are PDF pages; printed page numbers are given where they differ. Web sources were checked on their abstract pages (IDEAS/\allowbreak{}RePEc, NBER, journal or author pages). One desk data check on the registered \texttt{always25} backtest (aggregates only).
+
+\textbf{Previous research:} \href{2026-09-29-signal-generation-for-market-state.pdf}{Signal generation for market state} \textperiodcentered{} \href{2026-09-27-volatility-surface-for-the-strategy.pdf}{Volatility surface for the strategy} \textperiodcentered{} \href{2026-10-07-shock-or-regime-trigger-for-long-gamma.pdf}{Shock or regime trigger for long gamma}
+
+\section{Short answer}
+
+The best-supported signals beyond VRP fall into four groups:
+
+\begin{enumerate}
+
+\item \textbf{When to hold.} Calendar timing: weekends, overnight, FOMC days.
+
+\item \textbf{How much to hold.} VVIX and the VIX term-structure slope.
+
+\item \textbf{Which option to sell.} Skew and term structure, used to choose the strike and expiry rather than whether to trade.
+
+\item \textbf{Where to sell.} Volatility premia on other ETFs.
+
+\end{enumerate}
+
+Two less obvious points matter for the desk:
+
+\begin{itemize}
+
+\item \textbf{Calendar timing has the cleanest evidence, and our own data agrees.} Option returns are lower over weekends and overnight (Jones \& Shemesh 2018; Muravyev \& Ni 2020). In our \texttt{always25} backtest, the short put made essentially all of its mark-to-market profit between Friday 10:15 and Tuesday 10:15, in both halves of 2014-2024.
+
+\item \textbf{Several popular signals are weak or redundant:}
+
+\begin{itemize}
+
+\item Skew trades are mostly the same bet as VRP (Kozhan et al. 2013).
+
+\item Trend added nothing to short-put selection in the one SPX paper that tested it.
+
+\item 0DTE rules lose money after correctly measured costs (Vilkov's 2026 correction).
+
+\item Dealer-gamma signals need open-interest data the desk doesn't have historically.
+
+\end{itemize}
+
+\end{itemize}
+
+The library itself has only one paper that tests signals for SPX option selling: the learning-to-rank paper. Most of the evidence below comes from the web.
+
+\section{What the papers say}
+
+\subsection{What the library covers}
+
+\begin{itemize}
+
+\item The library is mostly about VRP forecasting, regimes and hedging. Only Wysocki's learning-to-rank paper tests a broad signal set for SPX option selling.
+
+\begin{itemize}
+
+\item It picks one of eight delta-targeted short puts, or no trade, each day.
+
+\begin{quote}``A LightGBM LambdaRank ranker scores a daily nine-strategy cross-section composed of eight delta-targeted short-put positions and a SKIP candidate'' (Wysocki 2026, \emph{Harvesting the VRP: A Learning-to-Rank Approach}, p. 1)\end{quote}
+
+\item Its motivation is the desk's current situation: an always-on put book sizes the same whatever the premium.
+
+\begin{quote}``These passive harvesters have a structural limitation, since the position is held continuously regardless of the prevailing market regime, so capital is allocated identically on days when the per-trade premium is wide and on days when it is narrow'' (Wysocki 2026, p. 2)\end{quote}
+
+\item Its out-of-time Sharpe ratios of 4.3-5.8 come from 0DTE SPXW options and one hold-out year, so treat the size of the result with caution.
+
+\begin{quote}``Those out-of-time figures rest on a single calendar year.'' (Wysocki 2026, p. 43)\end{quote}
+
+\end{itemize}
+
+\end{itemize}
+
+\subsection{Volatility surface: term slope and skew}
+
+\begin{itemize}
+
+\item The term-structure slope is the signal with the strongest evidence for index options.
+
+\begin{itemize}
+
+\item \textbf{Outside the repo:} Johnson (2017, JFQA) finds that the VIX term-structure shape is about the price of variance risk, not about expected VIX changes. The slope predicts excess returns on S\&P 500 variance swaps, VIX futures and straddles at all maturities, beyond other VRP proxies (\href{https://ideas.repec.org/a/cup/jfinqa/v52y2017i06p2461-2490_00.html}{abstract}).
+
+\item \textbf{Outside the repo:} Vasquez (2017) finds the same effect for single-stock straddles (\href{https://ideas.repec.org/a/cup/jfinqa/v52y2017i06p2727-2754_00.html}{abstract}).
+
+\item The library paper cites this literature.
+
+\begin{quote}``the slope of the term structure has been reported to predict the cross-section of subsequent option returns'' (Wysocki 2026, p. 23)\end{quote}
+
+\end{itemize}
+
+\item Skew is informative, but it is mostly the same risk as variance.
+
+\begin{itemize}
+
+\item \textbf{Outside the repo:} Kozhan, Neuberger \& Schneider (2013, RFS) find that the skew premium is over 40\% of the slope of the S\&P 500 implied-vol curve. Strategies that capture skew risk and hedge out variance risk ``earn an insignificant risk premium'' (\href{https://ideas.repec.org/a/oup/rfinst/v26y2013i9p2174-2203.html}{abstract}).
+
+\item The PRISM whitepaper uses skew as an early regime warning. It is a self-published industry document whose results come from its own simulation backtest, so its claims are not independently checked.
+
+\begin{quote}``SPX skew steepens in the 2--3 weeks before elevated-volatility episodes'' (Verma 2026, \emph{PRISM}, p. 28)\end{quote}
+
+\end{itemize}
+
+\item In the ranker, surface features matter most for choosing \emph{which} put to sell. The RV-versus-IV gaps (the desk's VRP) are among the largest contributors.
+
+\begin{quote}``they are one of the largest contributors to model performance in the ablation panel of Section 6.3.'' (Wysocki 2026, p. 23)\end{quote}
+
+\end{itemize}
+
+\subsection{Volatility of volatility (VVIX)}
+
+\begin{itemize}
+
+\item \textbf{Outside the repo:} Park (2015, J. Financial Markets) finds that a rise in VVIX raises the prices of S\&P 500 puts and VIX calls and ``lowers their subsequent returns over the next three to four weeks''. The result is robust to VRP, skew, jump risk and liquidity (\href{https://econpapers.repec.org/RePEc:eee:finmar:v:26:y:2015:i:c:p:38-63}{abstract}). For a put seller, high VVIX is a reason to sell more, not less.
+
+\item The library supports vol of vol as a separate state variable, not just a stand-in for the vol level.
+
+\begin{quote}``there is a growing literature in finance that documents the emergence of volatility of volatility as a separate risk factor and its weak correlation with volatility risk'' (Chong \& Todorov 2024, \emph{Volatility of Volatility and Leverage Effect from Options}, p. 1)\end{quote}
+
+\end{itemize}
+
+\subsection{Calendar: weekends, overnight and announcements}
+
+\begin{itemize}
+
+\item \textbf{Weekends (outside the repo):} Jones \& Shemesh (2018, JF) find that ``option returns are significantly lower over nontrading periods, the vast majority of which are weekends''. They attribute this to persistent mispricing from the ``incorrect treatment of stock return variance during periods of market closure'', not to risk (\href{https://ideas.repec.org/a/bla/jfinan/v73y2018i2p861-900.html}{abstract}).
+
+\item \textbf{Overnight (outside the repo):} Muravyev \& Ni (2020, JFE) find that delta-hedged S\&P 500 index option returns average \ensuremath{-}1\% per day close-to-open and +0.3\% open-to-close (\href{https://ideas.repec.org/a/eee/jfinec/v136y2020i1p219-238.html}{abstract}). Option sellers earn the premium overnight.
+
+\item \textbf{FOMC (outside the repo):}
+
+\begin{itemize}
+
+\item VIX and VIX futures fall significantly on FOMC announcement days (Fernandez-Perez, Frijns \& Tourani-Rad 2017, \href{https://ideas.repec.org/a/eee/empfin/v41y2017icp187-199.html}{abstract}; Krieger, Mauck \& Chen 2012, \href{https://ideas.repec.org/a/kap/fmktpm/v26y2012i3p315-331.html}{abstract}).
+
+\item Equities drift up before FOMC decisions (Lucca \& Moench 2015, \href{https://ideas.repec.org/a/bla/jfinan/v70y2015i1p329-371.html}{abstract}).
+
+\item Options whose life spans a political event are more expensive (Kelly, Pástor \& Veronesi 2016, \href{https://ideas.repec.org/a/bla/jfinan/v71y2016i5p2417-2480.html}{abstract}).
+
+\end{itemize}
+
+\item \textbf{In the ranker,} the calendar group's out-of-time effect is the largest of any feature group, although its walk-forward effect is modest. FOMC days are left out of the candidate set entirely.
+
+\begin{quote}``although calendar's out-of-time drop of \ensuremath{-}2.50 is the largest in the matrix'' (Wysocki 2026, p. 35) ``FOMC days are excluded upstream from the candidate universe.'' (Wysocki 2026, p. 23)\end{quote}
+
+\end{itemize}
+
+\subsection{Positioning and flow}
+
+\begin{itemize}
+
+\item \textbf{Dealer gamma (outside the repo):}
+
+\begin{itemize}
+
+\item When dealers are short gamma, their hedging trades go with the price and create intraday momentum (Baltussen, Da, Lammers \& Martens 2021, JFE, \href{https://econpapers.repec.org/RePEc:eee:jfinec:v:142:y:2021:i:1:p:377-403}{abstract}).
+
+\item Market-maker hedge rebalancing raises stock volatility and the chance of large moves (Ni, Pearson, Poteshman \& White 2021, RFS, \href{https://ideas.repec.org/a/oup/rfinst/v34y2021i4p1952-1986..html}{abstract}).
+
+\item Barbon \& Buraschi's \emph{Gamma Fragility} is a working paper with a related result (\href{https://www.alexandria.unisg.ch/261487}{abstract}).
+
+\item \textbf{Counterpoint:} Dim, Eraker \& Vilkov find that high 0DTE open-interest gamma ``does not propagate past volatility'' (\href{https://www.maths.ox.ac.uk/node/67396}{seminar abstract}).
+
+\end{itemize}
+
+\item \textbf{Crash-insurance demand (outside the repo):} Chen, Joslin \& Ni (2019, RFS) build a measure from trading in deep out-of-the-money S\&P 500 puts. Its tightening goes with more expensive options and higher risk premia across assets (\href{https://www.nber.org/papers/w25573}{NBER abstract}). Gârleanu, Pedersen \& Poteshman (2009) give the theory: end-user demand explains the expensiveness and skew of index options (\href{https://ideas.repec.org/a/oup/rfinst/v22y2009i10p4259-4299.html}{abstract}).
+
+\item \textbf{Put-call ratios:} the ranker uses them as sentiment.
+
+\begin{quote}``The PCR series carry sentiment-driven information beyond what is contained in the implied-volatility surface itself'' (Wysocki 2026, p. 23)\end{quote}
+
+\end{itemize}
+
+\subsection{Trend, regimes and momentum}
+
+\begin{itemize}
+
+\item The ranker found nothing in trend features.
+
+\begin{quote}``Trend signals are a natural hypothesis for short-volatility strategy selection, but the sample provides no evidence that they help within-day selection at this threshold.'' (Wysocki 2026, p. 35)\end{quote}
+
+\item The jump-model paper times equity exposure, not options.
+
+\begin{quote}``a regime-switching investment strategy aimed at mitigating downside risk by reducing market exposure during anticipated unfavorable market regimes'' (Shu, Yu \& Mulvey 2024, \emph{Downside Risk Reduction Using Regime-Switching Signals}, p. 1)\end{quote}
+
+\begin{itemize}
+
+\item The desk's earlier report found statistical regime models detect crashes about two weeks late.
+
+\end{itemize}
+
+\item OPHR uses RV-percentile momentum and mean reversion as straddle-timing baselines, on crypto options.
+
+\begin{quote}``Takes a long volatility position when the percentile momentum is high (expecting continuation), and a short volatility position when it is low.'' (Chen, Cai, Qin \& An 2025, \emph{OPHR}, p. 27) ``Evaluating our approach using cryptocurrency options data from 2021-2024'' (Chen et al. 2025, p. 1)\end{quote}
+
+\end{itemize}
+
+\subsection{News, text and LLM agents}
+
+\begin{itemize}
+
+\item News helps volatility forecasts only alongside a strong history-based model.
+
+\begin{quote}``News-only forecasts contain useful predictive information but generally do not outperform strong volatility-history benchmarks.'' (Rahimikia, Zohren \& Poon 2026, \emph{Realised Volatility Forecasting via Financial Word Embedding}, p. 1) ``combining stock-related news forecasts with a strong volatility-history benchmark lowers forecast losses for several specifications and increases realised utility'' (Rahimikia et al. 2026, p. 1)\end{quote}
+
+\item LLM agents do best on judgment calls, with the calculations and execution done by fixed code.
+
+\begin{quote}``The agentic architecture becomes competitive with this fully compiled benchmark when the agent is reserved for tender judgment and supported by pre-computed calculations and compiled unwind execution.'' (Cheng, Granger, Shi \& Strela 2026, \emph{Agents Are Not Algorithms}, p. 1)\end{quote}
+
+\end{itemize}
+
+\subsection{Trades beyond long or short gamma}
+
+\begin{itemize}
+
+\item \textbf{Choosing the strike or expiry, or skipping.} The ranker turns the signal into a choice among options rather than a yes/\allowbreak{}no decision (Wysocki 2026, p. 1).
+
+\item \textbf{VRP as a delta signal (outside the repo).} Bollerslev, Tauchen \& Zhou (2009, RFS) find that a high VRP predicts high index returns, most strongly at quarterly horizons (\href{https://econpapers.repec.org/RePEc:oup:rfinst:v:22:y:2009:i:11:p:4463-4492}{abstract}). That bears on whether to delta-hedge the short put, not only whether to sell it.
+
+\item \textbf{Writing calls or puts with the delta hedged (outside the repo).} In covered calls, the short-vol part earned a Sharpe of nearly 1.0, while the equity-reversal part added risk with little return (Israelov \& Nielsen 2015, FAJ, \href{https://ideas.repec.org/a/taf/ufajxx/v71y2015i6p44-57.html}{abstract}).
+
+\item \textbf{Volatility premia on other assets (outside the repo).} Shorting volatility across 34 markets in 4 asset classes gave a Sharpe of about 1.0 with substantial tail risk. Costs cut gross returns by 47\% on average (Fallon, Park \& Yu 2015, FAJ, \href{https://ideas.repec.org/a/taf/ufajxx/v71y2015i5p38-56.html}{abstract}).
+
+\item \textbf{VIX futures basis (outside the repo).} Shorting VIX futures in contango and buying in backwardation, hedged with S\&P futures, was profitable after costs from 2006 to 2011 (Simon \& Campasano 2014, \href{https://www.efmaefm.org/0EFMAMEETINGS/EFMA\%20ANNUAL\%20MEETINGS/2013-Reading/papers/VIX\%20paper_EFMA.pdf}{paper}). It is a futures trade, not SPY options.
+
+\item \textbf{0DTE (outside the repo).} Vilkov's replication repository carries an August 2026 correction: a cost-scaling error charged spreads at 1/\allowbreak{}100 of their true size, and after the fix ``no strategy or basket retains a positive net Sharpe ratio'' (\href{https://github.com/vilkovgr/0dte-strategies}{repo}).
+
+\end{itemize}
+
+\section{Desk data check: the weekend effect in \texttt{always25}}
+
+\begin{itemize}
+
+\item \textbf{Data:} the registered one-contract \texttt{always25} book (2026-10-17-always-short), 2014-06 to 2024-12, P\&L from each 10:15 decision to the next. Only intervals that hold the put and end without a trade, roll or stop are counted.
+
+\end{itemize}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X l l l l}
+\toprule
+\textbf{Interval (10:15 to 10:15)} & \textbf{Intervals} & \textbf{Sum, 1x} & \textbf{Mean} & \textbf{t-stat} \\
+\midrule
+Friday to Monday (incl. long weekends) & 525 & +\$2,491 & +\$4.74 & 2.9 \\
+Monday to Tuesday & 468 & +\$3,170 & +\$6.77 & 3.9 \\
+Tuesday to Wednesday & 516 & +\$28 & +\$0.05 & 0.0 \\
+Wednesday to Thursday & 494 & \ensuremath{-}\$263 & \ensuremath{-}\$0.53 & \ensuremath{-}0.3 \\
+Thursday to Friday & 351 & \ensuremath{-}\$918 & \ensuremath{-}\$2.62 & \ensuremath{-}1.2 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item \textbf{The weekend gain holds in both halves.} The mean weekend interval made \$5.3 against \$0.5 for other days in 2014-2019, and \$4.1 against \$1.8 in 2020-2024. The 2x run gives the same picture.
+
+\item \textbf{The sized book shows it too.} Over all intervals, including trade days, \texttt{hedged} from 2026-10-22-stress-sized-puts made a mean of \$104 per weekend interval against \$22 on one-day intervals.
+
+\item \textbf{Caveats:}
+
+\begin{itemize}
+
+\item Five buckets were looked at, after reading the papers.
+
+\item The t-stats assume independent days.
+
+\item Marks are 10:15 mids. Each interval contains one overnight, so overnight and intraday can't be separated.
+
+\item Intervals that end in a trade (mostly Friday rolls and stops) lost \$3.3k in total. That loss is not counted above.
+
+\end{itemize}
+
+\end{itemize}
+
+\section{How the papers connect}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Paper} & \textbf{Builds on /\allowbreak{} agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
+\midrule
+Wysocki 2026 (repo) & Vasquez 2017; Johnson 2017; VRP literature & Static put-writing (PUT index) & Ranks which put to sell or skip; calendar and surface matter, trend doesn't \\
+Johnson 2017 (web) & Bakshi \& Kapadia 2003 & Expectations hypothesis for VIX & VIX slope predicts index variance and straddle returns beyond VRP \\
+Park 2015 (web) & Chong \& Todorov (repo): vol of vol is a separate factor & VIX-level timing & High VVIX means lower later put returns \\
+Jones \& Shemesh 2018; Muravyev \& Ni 2020 (web) & Each other: variance is mis-timed in prices & Risk-based explanations & Option sellers earn over weekends and overnight \\
+Kozhan et al. 2013 (web) & Gârleanu et al. 2009 & Skew as a separate premium & Skew and variance premia are one risk \\
+Baltussen et al. 2021; Ni et al. 2021 (web) & Gârleanu et al. 2009 & Dim, Eraker \& Vilkov (0DTE gamma) & Dealer hedging moves prices and volatility \\
+Shu et al. 2024; OPHR 2025 (repo) & HMM regime literature & Wysocki 2026 (trend adds nothing) & Regime and momentum timing, tested off SPX options \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item \textbf{Two lines agree:} the term-structure line (Vasquez, Johnson, Wysocki) and the calendar line (Jones \& Shemesh, Muravyev \& Ni, our data). Both rest on large samples and peer review.
+
+\item \textbf{Skew is the main disagreement.} PRISM treats it as an early warning signal. Kozhan et al. show it adds little premium beyond variance.
+
+\item \textbf{Dealer gamma is contested.} The momentum evidence is strong for futures. The 0DTE counter-evidence says new gamma doesn't amplify volatility.
+
+\item \textbf{The ML papers agree on one thing.} Option-based features beat price-based ones: Wysocki's ablation, and Bali et al. (2023) on equity options (\href{https://econpapers.repec.org/RePEc:oup:rfinst:v:36:y:2023:i:9:p:3548-3602.}{abstract}).
+
+\end{itemize}
+
+\section{Relevance to the LS Gamma desk}
+
+These are suggestions. Thresholds, sizes and structures are the PM's call.
+
+Context from the desk's own results:
+
+\begin{itemize}
+
+\item Gates that skip shorts have failed every time: the VIX term gate (twice) and the VIX/\allowbreak{}VIX3M entry gate. The 2026-10-18 diagnostic found stress filters remove profit.
+
+\item The VRP level barely ranks P\&L.
+
+\item The always-on put works, and its weakness is size and concentration.
+
+\end{itemize}
+
+So new signals look more useful for \textbf{sizing, timing and choosing the option} than for deciding whether to trade.
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Candidate} & \textbf{Trade} & \textbf{Data the desk has} & \textbf{Prior desk result} & \textbf{Suggested first test} \\
+\midrule
+Weekend /\allowbreak{} overnight & Roll or add puts on Fridays; avoid Friday exits & Snapshots (Friday expiries 1-60 DTE) & Data check above & Card: Friday-only roll day vs the 7-DTE rule, on \texttt{always25} \\
+VVIX level /\allowbreak{} change & Size short puts up when VVIX is high & Live yfinance \texttt{\textasciicircum{}VVIX}; history needs a VVIX series & None & Card: VVIX-scaled size on the stress-sized book \\
+VIX /\allowbreak{} term slope & Size, or pick the expiry (sell where the curve is steepest) & VIX, VIX9D, VIX3M; snapshot term structure & Gates failed (used to skip) & Card: slope as a size multiplier, not a gate \\
+Skew /\allowbreak{} strike choice & Pick the put delta each day (rank or rule) & Snapshot smile fits & 25-delta beat ATM (costs) & Diagnostic: forward P\&L by delta bucket against skew \\
+VRP for delta & Hedge less when VRP is high & Existing signal & \texttt{unhedged} P\&L was 75\% delta & Card: hedge ratio conditional on VRP \\
+FOMC /\allowbreak{} CPI days & Hold or add short vol into FOMC; skip entry on CPI & Needs an event calendar & None & Diagnostic on \texttt{always25} P\&L by event day \\
+Cross-asset VRP & Short puts on QQQ/\allowbreak{}IWM/\allowbreak{}GLD/\allowbreak{}TLT & R2 trades for 5 more ETFs; needs snapshot builds & None & Build one ETF (QQQ or TLT) and rerun \texttt{always25} \\
+Dealer gamma & Short gamma when dealers are long gamma & No history (R2 has no open interest); IBKR open interest live only & None & Start logging open interest now \\
+News /\allowbreak{} LLM & Event judgment layer & None & None & Later; only as an input to rules \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item \textbf{Cheapest first:} weekend timing, VVIX and slope sizing use data the desk already loads.
+
+\item \textbf{The FOMC check} needs only a list of dates.
+
+\item \textbf{Cross-asset} needs new snapshot builds but uses data already on R2.
+
+\item \textbf{Not recommended now:}
+
+\begin{itemize}
+
+\item 0DTE: losing after costs, and needs intraday infrastructure;
+
+\item skew as a standalone trade: redundant with VRP;
+
+\item trend or HMM timing: no evidence for option selection, and too slow for crashes.
+
+\end{itemize}
+
+\end{itemize}
+
+\section{Gaps and open questions}
+
+\begin{itemize}
+
+\item \textbf{Index-specific weekend evidence.} Jones \& Shemesh's abstract doesn't confirm SPX coverage, and our check is one book with 10:15 marks.
+
+\item \textbf{Whether a weekend trade survives costs.} A weekend-only trade would pay the spread every week, and \$4.74 a weekend on one contract is below a round-trip spread plus \$1.30 commission. The edge is more likely in when to roll and how much to hold.
+
+\item \textbf{Sign and horizon of the slope signal for SPY puts.} Johnson's evidence is for variance swaps, VIX futures and straddles, not 25-delta puts held to 7 DTE.
+
+\item \textbf{Missing histories.}
+
+\begin{itemize}
+
+\item VVIX history isn't in R2's CBOE file (VIX, VXO, VXN, VXD only).
+
+\item Open interest isn't anywhere in R2.
+
+\item R2 has no trade direction (no quotes), so a Chen-Joslin-Ni demand measure can't be built cleanly.
+
+\end{itemize}
+
+\item \textbf{Margin and fills.} Cross-asset and size-up signals add margin, which the backtest doesn't model.
+
+\item \textbf{One sample for every check.} Every new signal is another trial on the same 2014-2024 window (76 trials registered). The 2025-2026 hold-out can be used once per card.
+
+\end{itemize}
+
+\section{Sources}
+
+\textbf{Repo papers used}
+
+\begin{itemize}
+
+\item \texttt{Harvesting-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium-\allowbreak{}A-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}Rank-\allowbreak{}Approach.\allowbreak{}pdf}: Wysocki 2026, pp. 1, 2, 23, 35, 43
+
+\item \texttt{Volatility-\allowbreak{}of-\allowbreak{}Volatility-\allowbreak{}and-\allowbreak{}Leverage-\allowbreak{}Effect-\allowbreak{}from-\allowbreak{}Options.\allowbreak{}pdf}: Chong \& Todorov 2024, p. 1
+
+\item \texttt{OPHR-\allowbreak{}Mastering-\allowbreak{}Volatility-\allowbreak{}Trading-\allowbreak{}with-\allowbreak{}Multi-\allowbreak{}Agent-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf}: Chen, Cai, Qin \& An 2025, pp. 1, 27
+
+\item \texttt{Downside-\allowbreak{}Risk-\allowbreak{}Reduction-\allowbreak{}Using-\allowbreak{}Regime-\allowbreak{}Switching-\allowbreak{}Signals-\allowbreak{}A-\allowbreak{}Statistical-\allowbreak{}Jump-\allowbreak{}Model-\allowbreak{}Approach.\allowbreak{}pdf}: Shu, Yu \& Mulvey 2024, p. 1
+
+\item \texttt{Realised-\allowbreak{}Volatility-\allowbreak{}Forecasting-\allowbreak{}Machine-\allowbreak{}Learning-\allowbreak{}via-\allowbreak{}Financial-\allowbreak{}Word-\allowbreak{}Embedding.\allowbreak{}pdf}: Rahimikia, Zohren \& Poon 2026, p. 1
+
+\item \texttt{Agents-\allowbreak{}Are-\allowbreak{}not-\allowbreak{}Algorithms.\allowbreak{}pdf}: Cheng, Granger, Shi \& Strela 2026, p. 1
+
+\item \texttt{PRISM-\allowbreak{}A-\allowbreak{}Probabilistic-\allowbreak{}Regime-\allowbreak{}Integrated-\allowbreak{}Scalping-\allowbreak{}Model-\allowbreak{}for-\allowbreak{}Derivatives-\allowbreak{}Arbitrage.\allowbreak{}pdf}: Verma 2026, p. 28 (industry whitepaper)
+
+\end{itemize}
+
+\textbf{Repo papers checked with nothing new on trade signals}
+
+\begin{itemize}
+
+\item \textbf{Hedging} (covered in earlier reports): the Deep Hedging papers (\texttt{Deep-\allowbreak{}Hedging.\allowbreak{}pdf}, \texttt{Deep-\allowbreak{}Bellman-\allowbreak{}Hedging.\allowbreak{}pdf}, \texttt{Learning-\allowbreak{}to-\allowbreak{}Trade-\allowbreak{}II-\allowbreak{}Deep-\allowbreak{}Hedging.\allowbreak{}pdf}, \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}Simulate-\allowbreak{}Equity-\allowbreak{}Option-\allowbreak{}Markets.\allowbreak{}pdf}, \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}of-\allowbreak{}Derivatives-\allowbreak{}Using-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf}, \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}with-\allowbreak{}Options-\allowbreak{}Using-\allowbreak{}the-\allowbreak{}Implied-\allowbreak{}Volatility-\allowbreak{}Surface.\allowbreak{}pdf}, \texttt{Enhancing-\allowbreak{}Deep-\allowbreak{}Hedging-\allowbreak{}of-\allowbreak{}Options-\allowbreak{}with-\allowbreak{}Implied-\allowbreak{}Volatility-\allowbreak{}Surface-\allowbreak{}Feedback-\allowbreak{}Information.\allowbreak{}pdf}, \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}with-\allowbreak{}Reinforcement-\allowbreak{}Learning-\allowbreak{}A-\allowbreak{}Practical-\allowbreak{}Framework-\allowbreak{}for-\allowbreak{}Option-\allowbreak{}Risk-\allowbreak{}Management.\allowbreak{}pdf}, \texttt{Gamma-\allowbreak{}and-\allowbreak{}Vega-\allowbreak{}Hedging-\allowbreak{}Using-\allowbreak{}Deep-\allowbreak{}Distributional-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf}, \texttt{Application-\allowbreak{}of-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}At-\allowbreak{}the-\allowbreak{}Money-\allowbreak{}S\&P-\allowbreak{}500-\allowbreak{}Options-\allowbreak{}Hedging.\allowbreak{}pdf}, \texttt{Is-\allowbreak{}the-\allowbreak{}Difference-\allowbreak{}between-\allowbreak{}Deep-\allowbreak{}Hedging-\allowbreak{}and-\allowbreak{}Delta-\allowbreak{}Hedging-\allowbreak{}a-\allowbreak{}Statistical-\allowbreak{}Arbitrage.\allowbreak{}pdf}), \texttt{Hedging-\allowbreak{}with-\allowbreak{}Linear-\allowbreak{}Regressions-\allowbreak{}and-\allowbreak{}Neural-\allowbreak{}Networks.\allowbreak{}pdf} and \texttt{When-\allowbreak{}You-\allowbreak{}Hedge-\allowbreak{}Discretely-\allowbreak{}.\allowbreak{}.\allowbreak{}.\allowbreak{}pdf}.
+
+\item \textbf{RV forecasting} (covered in earlier reports): \texttt{A-\allowbreak{}machine-\allowbreak{}learning-\allowbreak{}approach-\allowbreak{}to-\allowbreak{}volatility-\allowbreak{}forecasting.\allowbreak{}pdf}, \texttt{Foundation-\allowbreak{}Time-\allowbreak{}Series-\allowbreak{}AI-\allowbreak{}Model-\allowbreak{}for-\allowbreak{}Realized-\allowbreak{}Volatility-\allowbreak{}Forecasting.\allowbreak{}pdf}, \texttt{Improving-\allowbreak{}S\&P-\allowbreak{}500-\allowbreak{}Volatility-\allowbreak{}Forecasting-\allowbreak{}through-\allowbreak{}Regime-\allowbreak{}Switching-\allowbreak{}Methods.\allowbreak{}pdf}, \texttt{Novel-\allowbreak{}Optimization-\allowbreak{}Approach-\allowbreak{}.\allowbreak{}.\allowbreak{}.\allowbreak{}-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning-\allowbreak{}Model.\allowbreak{}pdf}, \texttt{Realized-\allowbreak{}GARCH,\allowbreak{}-\allowbreak{}CBOE-\allowbreak{}VIX,\allowbreak{}-\allowbreak{}and-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}, \texttt{Volatility-\allowbreak{}Forecasting-\allowbreak{}and-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Premium.\allowbreak{}pdf}, \texttt{Time-\allowbreak{}Series-\allowbreak{}Embedding-\allowbreak{}and-\allowbreak{}Combination-\allowbreak{}of-\allowbreak{}Forecasts-\allowbreak{}.\allowbreak{}.\allowbreak{}.\allowbreak{}pdf} and \texttt{Reinforcement-\allowbreak{}Learning-\allowbreak{}based-\allowbreak{}Dynamic-\allowbreak{}Model-\allowbreak{}Selection-\allowbreak{}.\allowbreak{}.\allowbreak{}.\allowbreak{}pdf}.
+
+\item \textbf{Regimes and allocation:} \texttt{Clustering-\allowbreak{}Market-\allowbreak{}Regimes-\allowbreak{}Using-\allowbreak{}the-\allowbreak{}Wasserstein-\allowbreak{}Distance.\allowbreak{}pdf}, \texttt{Learning-\allowbreak{}Hidden-\allowbreak{}Markov-\allowbreak{}Models-\allowbreak{}with-\allowbreak{}Persistent-\allowbreak{}States-\allowbreak{}by-\allowbreak{}Penalizing-\allowbreak{}Jumps.\allowbreak{}pdf} and \texttt{Dynamic-\allowbreak{}Investment-\allowbreak{}Strategies-\allowbreak{}Through-\allowbreak{}Market-\allowbreak{}Classification-\allowbreak{}and-\allowbreak{}Volatility-\allowbreak{}.\allowbreak{}.\allowbreak{}.\allowbreak{}pdf}.
+
+\item \textbf{Pricing and identification:} \texttt{Identifying-\allowbreak{}the-\allowbreak{}Volatility-\allowbreak{}Risk-\allowbreak{}Price-\allowbreak{}Through-\allowbreak{}the-\allowbreak{}Leverage-\allowbreak{}Effect.\allowbreak{}pdf}.
+
+\item \textbf{Backtest method} (covered in earlier reports): \texttt{A-\allowbreak{}Novel-\allowbreak{}Approach-\allowbreak{}to-\allowbreak{}Trading-\allowbreak{}Strategy-\allowbreak{}Parameter-\allowbreak{}Optimization-\allowbreak{}.\allowbreak{}.\allowbreak{}.\allowbreak{}pdf} and \texttt{The-\allowbreak{}GT-\allowbreak{}Score-\allowbreak{}.\allowbreak{}.\allowbreak{}.\allowbreak{}pdf}.
+
+\item \textbf{Survey:} \texttt{From-\allowbreak{}Deep-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}LLMs-\allowbreak{}A-\allowbreak{}Survey-\allowbreak{}of-\allowbreak{}AI-\allowbreak{}in-\allowbreak{}Quantitative-\allowbreak{}Investment.\allowbreak{}pdf} has sentiment and news methods for stock prediction but no option-trading evidence.
+
+\end{itemize}
+
+\textbf{Web sources (outside the repo)}
+
+\emph{Calendar and timing}
+
+\begin{itemize}
+
+\item \href{https://ideas.repec.org/a/bla/jfinan/v73y2018i2p861-900.html}{Jones \& Shemesh 2018, JF}
+
+\item \href{https://ideas.repec.org/a/eee/jfinec/v136y2020i1p219-238.html}{Muravyev \& Ni 2020, JFE}
+
+\item \href{https://ideas.repec.org/a/bla/jfinan/v70y2015i1p329-371.html}{Lucca \& Moench 2015, JF}
+
+\item \href{https://ideas.repec.org/a/bla/jfinan/v71y2016i5p2417-2480.html}{Kelly, Pástor \& Veronesi 2016, JF}
+
+\item \href{https://ideas.repec.org/a/eee/empfin/v41y2017icp187-199.html}{Fernandez-Perez, Frijns \& Tourani-Rad 2017, JEF}
+
+\item \href{https://ideas.repec.org/a/kap/fmktpm/v26y2012i3p315-331.html}{Krieger, Mauck \& Chen 2012, FMPM}
+
+\end{itemize}
+
+\emph{Surface, VVIX and VRP}
+
+\begin{itemize}
+
+\item \href{https://ideas.repec.org/a/cup/jfinqa/v52y2017i06p2461-2490_00.html}{Johnson 2017, JFQA}
+
+\item \href{https://ideas.repec.org/a/cup/jfinqa/v52y2017i06p2727-2754_00.html}{Vasquez 2017, JFQA}
+
+\item \href{https://ideas.repec.org/a/oup/rfinst/v26y2013i9p2174-2203.html}{Kozhan, Neuberger \& Schneider 2013, RFS}
+
+\item \href{https://econpapers.repec.org/RePEc:eee:finmar:v:26:y:2015:i:c:p:38-63}{Park 2015, JFM}
+
+\item \href{https://econpapers.repec.org/RePEc:oup:rfinst:v:22:y:2009:i:11:p:4463-4492}{Bollerslev, Tauchen \& Zhou 2009, RFS}
+
+\item \href{https://ideas.repec.org/a/oup/rfinst/v16y2003i2p527-566.html}{Bakshi \& Kapadia 2003, RFS}
+
+\end{itemize}
+
+\emph{Positioning and flow}
+
+\begin{itemize}
+
+\item \href{https://econpapers.repec.org/RePEc:eee:jfinec:v:142:y:2021:i:1:p:377-403}{Baltussen, Da, Lammers \& Martens 2021, JFE}
+
+\item \href{https://ideas.repec.org/a/oup/rfinst/v34y2021i4p1952-1986..html}{Ni, Pearson, Poteshman \& White 2021, RFS}
+
+\item \href{https://www.alexandria.unisg.ch/261487}{Barbon \& Buraschi, Gamma Fragility (working paper)}
+
+\item \href{https://www.maths.ox.ac.uk/node/67396}{Dim, Eraker \& Vilkov, 0DTEs (seminar abstract)}
+
+\item \href{https://www.nber.org/papers/w25573}{Chen, Joslin \& Ni 2019, RFS (NBER)}
+
+\item \href{https://ideas.repec.org/a/oup/rfinst/v22y2009i10p4259-4299.html}{Gârleanu, Pedersen \& Poteshman 2009, RFS}
+
+\end{itemize}
+
+\emph{Option writing, cross-asset and 0DTE}
+
+\begin{itemize}
+
+\item \href{https://econpapers.repec.org/RePEc:oup:rfinst:v:36:y:2023:i:9:p:3548-3602.}{Bali, Beckmeyer, Mörke \& Weigert 2023, RFS}
+
+\item \href{https://ideas.repec.org/a/taf/ufajxx/v71y2015i6p44-57.html}{Israelov \& Nielsen 2015, FAJ}
+
+\item \href{https://ideas.repec.org/a/taf/ufajxx/v71y2015i5p38-56.html}{Fallon, Park \& Yu 2015, FAJ}
+
+\item \href{https://www.efmaefm.org/0EFMAMEETINGS/EFMA\%20ANNUAL\%20MEETINGS/2013-Reading/papers/VIX\%20paper_EFMA.pdf}{Simon \& Campasano, VIX futures basis}
+
+\item \href{https://github.com/vilkovgr/0dte-strategies}{Vilkov, 0DTE trading rules (replication and correction)}
+
+\end{itemize}
+
+\textbf{Suggested papers to add to \texttt{docs/\allowbreak{}papers/\allowbreak{}}}
+
+\begin{enumerate}
+
+\item \textbf{Johnson 2017,} \emph{Risk Premia and the VIX Term Structure}: the cleanest index-level signal beyond VRP.
+
+\item \textbf{Jones \& Shemesh 2018,} \emph{Option Mispricing around Nontrading Periods}: the weekend effect our data shows.
+
+\item \textbf{Muravyev \& Ni 2020,} \emph{Why Do Option Returns Change Sign from Day to Night?}: when the SPX premium is earned.
+
+\item \textbf{Park 2015,} \emph{Volatility-of-Volatility and Tail Risk Hedging Returns}: VVIX, already in the live pipeline.
+
+\item \textbf{Kozhan, Neuberger \& Schneider 2013,} \emph{The Skew Risk Premium in the Equity Index Market}: why skew isn't a separate edge.
+
+\end{enumerate}
+
+\end{document}

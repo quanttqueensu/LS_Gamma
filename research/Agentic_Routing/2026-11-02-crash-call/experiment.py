@@ -123,7 +123,7 @@ def yearly(sets, path):
 
 def standard(sets, folder):
     return [cum_pnl(sets, folder / "cum_pnl.png"), drawdown(sets, folder / "drawdown.png"),
-            yearly(sets, folder / "yearly.png"), by_reason(sets, folder / "by_reason.png"),
+            yearly(sets, folder / "yearly.png"), by_reason(sets, folder / "vs_hedged.png"),
             report.fees(sets, folder / "fees.png")]
 
 
@@ -132,19 +132,22 @@ def show(folder, name, df):
     print(f"\n{name}\n{df.round(3).to_string(index=False)}")
 
 
-def by_reason(sets, path, mult=1.0):
-    # report.by_reason pairs by time only
-    rows = []
-    for label, by_mult in sets.items():
-        lg = legs(by_mult[mult])
-        rows.append(lg.groupby(["leg", "reason"])["pnl_net"].sum().rename(label))
-    df = pd.concat(rows, axis=1).fillna(0)
-    df.index = [f"{a} {b}" for a, b in df.index]
-    fig, ax = plt.subplots(figsize=(7, 3.2))
-    df.plot.barh(ax=ax, color=[report.color(i, c) for i, c in enumerate(df.columns)], width=0.8)
-    ax.axvline(0, color="k", lw=0.6)
-    ax.set(title=f"Net P&L by leg and exit reason, {mult:g}x", xlabel="USD")
-    ax.legend(fontsize=7, frameon=False)
+def marginal(sets, k, mult):
+    # crash variant minus hedged, daily net P&L
+    return (report.daily(sets[k][mult]) - report.daily(sets["hedged"][mult])).fillna(0.0)
+
+
+def by_reason(sets, path):
+    # cumulative P&L vs hedged; leg split unreliable
+    fig, axes = plt.subplots(2, 1, figsize=(7, 4), sharex=True)
+    for ax, mult in zip(axes, MULTS):
+        for i, k in enumerate(sets):
+            if k != "hedged":
+                d = marginal(sets, k, mult).cumsum()
+                ax.plot(d.index, d.values, color=report.color(i, k), lw=1, label=k)
+        ax.axhline(0, color="k", lw=0.6)
+        ax.set(title=f"Cumulative net P&L minus hedged, {mult:g}x", ylabel="USD")
+    axes[0].legend(fontsize=7, frameon=False)
     return report.save(fig, path)
 
 
@@ -164,14 +167,19 @@ def events(out, kind):
 def split(sets):
     rows = []
     for k, by_mult in sets.items():
+        if k == "hedged":
+            continue
         for mult, out in sorted(by_mult.items()):
             lg = legs(out)
-            for leg in ("put", "crash call"):
-                x = lg[lg["leg"] == leg]
-                rows.append({"book": k, "mult": mult, "leg": leg, "round_trips": len(x),
-                             "net": float(x["pnl_net"].sum()), "gross": float(x["pnl"].sum()),
-                             "wins": int((x["pnl_net"] > 0).sum()),
-                             "contracts": float(x["qty"].mean()) if len(x) else 0.0})
+            cc = lg[lg["leg"] == "crash call"]
+            t = out["trades"]
+            fees = float(t.loc[t["right"] == "C", "commission"].sum())
+            rows.append({"book": k, "mult": mult, "calls": len(cc),
+                         "contracts": float(cc["open_qty"].mean()) if len(cc) else 0.0,
+                         "premium": float((cc["open_price"] * cc["open_qty"] * 100).sum()),
+                         "option_net": float(((cc["price"] - cc["open_price"]) * cc["qty"]
+                                              * 100).sum()) - fees,
+                         "marginal": float(marginal(sets, k, mult).sum())})
     return pd.DataFrame(rows)
 
 
@@ -180,23 +188,22 @@ def crash_years(sets, folder):
     fig, axes = plt.subplots(1, 2, figsize=(7.5, 3))
     n = len(keys)
     for i, k in enumerate(keys):
-        lg = legs(sets[k][1.0])
-        lg = lg[lg["leg"] == "crash call"]
-        y = lg.groupby(pd.to_datetime(lg["date"]).dt.year)["pnl_net"].sum()
+        d = marginal(sets, k, 1.0)
+        y = d.groupby(d.index.year).sum()
         c = opens(sets[k][1.0])
         m = c.groupby(pd.to_datetime(c["date"]).dt.year).size()
         for ax, s in zip(axes, (y, m)):
             ax.bar(s.index + (i - (n - 1) / 2) * 0.8 / n, s.values, 0.8 / n,
                    color=report.color(i + 1, k), label=k)
     axes[0].axhline(0, color="k", lw=0.6)
-    axes[0].set(title="Crash-call net P&L by exit year, 1x", ylabel="USD")
+    axes[0].set(title="Net P&L minus hedged, by year, 1x", ylabel="USD")
     axes[1].set(title="Crash calls opened per year", ylabel="calls")
     axes[1].legend(fontsize=7, frameon=False)
     return report.save(fig, folder / "crash_years.png")
 
 
 def extra(cfg, sets, folder):
-    # P&L split by leg; crash calls per year
+    # crash-call cost and effect; calls per year
     show(folder, "legs", split(sets))
     return [crash_years(sets, folder)]
 

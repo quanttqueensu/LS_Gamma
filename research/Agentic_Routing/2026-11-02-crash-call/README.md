@@ -8,7 +8,7 @@
 | **Experiment** | `2026-11-02-crash-call` (config: `configs/experiments/2026-11-02-crash-call.toml`) |
 | **Topic** | Agentic_Routing |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed (max drawdown $70,998 vs $70,362 at 1x, $76,514 vs $75,488 at 2x) |
 | **Started** | 2026-11-02 |
 
 ## Hypothesis
@@ -56,3 +56,6 @@ Primary `crash11` against reference `hedged` at the same spread multiple. Every 
 Run the hold-out once, together with the PM's hold-out decision for `2026-10-22-stress-sized-puts`. If it holds: shadow mode, a decision record, then live changes reviewed by the PM. Live needs a second position type in the runner (the crash call beside the put), the gate, and its own exit.
 
 ## Changes
+- 2026-11-02: run once (6 trials; registry rows tagged `3568520-dirty` because other cards of the same batch had uncommitted files in the shared working tree; the engine, configs and this card's files were unchanged). The pass bar above was not changed. Verdict: failed at 1x and 2x. Max drawdown was worse ($70,998 vs $70,362 at 1x, $76,514 vs $75,488 at 2x); ES 5% was less severe (−$2,998 vs −$3,016, −$3,077 vs −$3,094) and net P&L was within the $10k allowance ($119,806 vs $121,482, $98,891 vs $101,172). 14 crash calls met the floor of 10. See `summary.md` and `2026-11-02-crash-call.pdf`.
+- 2026-11-02 (reporting only, after the run): `report.round_trips` matches closes to opens by time alone, which misassigns side and entry date when the put and a crash call open at the same 10:15 step. The engine also splits the book's hedge shares across open positions, so a single round trip's P&L includes shares inherited from the other leg. The script's charts were therefore changed to measure the call by the equity difference against `hedged`: the by-reason chart became `vs_hedged.png`, and the crash-call P&L panel became net P&L minus `hedged`. Rebuilt with `--report-only` (no trials). Pass-bar metrics come from the equity curve and are unaffected.
+- 2026-11-02 (checker, after the run): the call is held 5 weekdays, not 5 trading days (`engine.crash_exit` counts business days without holidays); 3 of 14 `crash11` calls were held 4 trading days. Disclosed in the report and summary; no rerun. Reporting-only change also disclosed: the `split()` / `legs.csv` columns now give calls, contracts, premium, option net and marginal P&L instead of per-leg round trips.

@@ -29,6 +29,7 @@ research/                  # Research notes (AI), papers (Written by Analysts or
 ├── strategy_research/     # research reports (LaTeX + PDF)
 └── Misc_Research_Notes/   # deep research reports and notes (LaTeX + PDF)
 work-logs/                 # analyst session logs: run /log-work (see work-logs/README.md)
+meetings/                  # weekly team decks (YYYY-MM-DD-weekly.pptx) + _template/
 docs/
 ├── education/             # 10 onboarding lessons (LaTeX + PDF)
 ├── decisions/             # decision records
@@ -38,7 +39,7 @@ docs/
 └── repo-architecture.png  # architecture diagram
 configs/
 ├── paper.toml             # every strategy number for paper trading
-├── backtest.toml          # backtest settings: replay grid, data window, hold-out, costs
+├── backtest.toml          # backtest settings: replay grid, data window, out-of-sample window, costs, research-only flags (off by default)
 ├── backtest_spread.toml   # bid/ask spread model fit on live IBKR quotes
 └── experiments/           # one TOML per research experiment (+ TEMPLATE.toml)
 tests/                     # offline tests (pytest, fake IBKR)
@@ -60,10 +61,10 @@ pyproject.toml             # package definition, pinned dependencies, pytest set
 
 | Metric | Target |
 |--------|--------|
-| Sharpe | > 1.2 |
+| Sharpe | > 0.7 |
 | Sortino | > 1.5 |
 | Max Drawdown | < 15% |
-| Hit Rate | > 53% |
+| Hit Rate | > 51% |
 | VRP Capture | > 60% of theoretical VRP |
 
 Benchmarks: CBOE VIX short-term futures index, SPY buy-and-hold

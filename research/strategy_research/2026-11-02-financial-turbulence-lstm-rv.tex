@@ -1,0 +1,337 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{float}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{Does an LSTM with financial turbulence forecast realised volatility better, and does it matter for the desk?}
+\author{Strategy research \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-11-02}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Question:} look into https:/\allowbreak{}/\allowbreak{}github.com/\allowbreak{}hugogobato/\allowbreak{}Forecasting-Realized-Volatility-through-Financial-Turbulence-and-Neural-Networks
+
+\textbf{Method:} Read the paper behind the repository (Souto \& Moradi 2023, \emph{Economics and Business Review} 9(2), CC BY 4.0; now in \texttt{docs/\allowbreak{}papers/\allowbreak{}}) and the repository's code and spreadsheets (the Model 2 notebook, the HAR and GARCH workbooks, the data file). Searched all 36 papers in \texttt{docs/\allowbreak{}papers/\allowbreak{}} (page-tagged index) plus the web. Quotes were verified against the cited PDF pages. Page numbers are PDF pages; printed journal pages are given in brackets.
+
+\textbf{Previous research:} \href{2026-09-27-ml-rl-for-realised-volatility-forecasting.pdf}{ML and RL for realised volatility forecasting}; the desk's 2026-10-18 forecast-ladder card (\texttt{research/\allowbreak{}RV\_\allowbreak{}Forecasting/\allowbreak{}2026-\allowbreak{}10-\allowbreak{}18-\allowbreak{}forecast-\allowbreak{}ladder/\allowbreak{}}).
+
+\section{Short answer}
+
+The repository is the code for one short study. A single-layer LSTM fed past daily realised volatility (Yang-Zhang) plus Kritzman and Li's financial turbulence index forecasts next-day S\&P 500 volatility slightly better than an LSTM without it, HAR and GARCH.
+
+The evidence is thin:
+
+\begin{itemize}
+
+\item \textbf{One split:} a single 80/\allowbreak{}20 split of five years of data, so the test set is about 252 days ending November 2022.
+
+\item \textbf{Small gain:} about 6\% lower error than HAR on the S\&P 500, and none on the Dow.
+
+\item \textbf{Mislabelled metric:} the ``RMSE'' in the code is a mean absolute error.
+
+\item \textbf{Missing code:} the turbulence series arrives precomputed, so the code that builds it, and whether it looks ahead, can't be checked.
+
+\end{itemize}
+
+The idea worth keeping is the turbulence index itself. It's a Mahalanobis distance of a day's cross-asset returns, cheap to build from free data, and an independent study found it improves volatility forecasts.
+
+For the desk the forecaster is not the bottleneck. The always-on put book doesn't use the VRP signal, and the 2026-10-18 card found that HAR-X and a random forest don't beat GARCH at 22 days. At most, turbulence earns a cheap forecast-only diagnostic, not an LSTM build.
+
+\section{What the papers say}
+
+\subsection{What the study does}
+
+\begin{itemize}
+
+\item \textbf{Inputs:}
+
+\begin{itemize}
+
+\item \textbf{Model 2}, the proposal, takes past RV and turbulence.
+
+\item \textbf{Model 1} is an LSTM on RV only.
+
+\item \textbf{Model 3} is an LSTM with Bucci's macro inputs.
+
+\item \textbf{Models 4-6} are GARCH(1,1), EGARCH(1,1) and HAR.
+
+\end{itemize}
+
+\item \textbf{Data:} daily S\&P 500 RV over five years, with the Dow and Nasdaq as robustness checks.
+
+\begin{quote}``daily observations of the S\&P 500 realized volatility (RV) from 01 November 2017 until 01 November 2022, five years in total'' (Souto \& Moradi 2023, p. 10 [140])\end{quote}
+
+\begin{quote}``The data set is divided into training data, 80\% of the total data, and test data, 20\% of the total data.'' (p. 10 [140])\end{quote}
+
+\item \textbf{Turbulence} is Kritzman and Li's (2010) squared Mahalanobis distance of a day's return vector from its historical mean, $d_t = (y_t-\mu)\Sigma^{-1}(y_t-\mu)'$, with
+
+\begin{quote}``\ensuremath{\Sigma} = sample covariance n \ensuremath{\times} n matrix of historical returns'' (p. 5 [135])\end{quote}
+
+The paper doesn't say which n assets make up the S\&P 500 return vector, or over what window $\mu$ and $\Sigma$ are estimated. The appendix says only that turbulence is
+
+\begin{quote}``estimated with prices retrieved from Compustat'' (p. 24 [154])\end{quote}
+
+\end{itemize}
+
+\subsection{What it finds}
+
+\begin{itemize}
+
+\item \textbf{Headline:}
+
+\begin{quote}``the proposed model yields statistically significantly more accurate and robust forecasts than all other studied models when applied to stocks with middle-to-high volatility'' (p. 3 [133])\end{quote}
+
+\item \textbf{S\&P 500 error (Table 4, p. 15 [145]):} 0.318 for Model 2, against 0.339 for the plain LSTM and 0.340 for HAR. GARCH and EGARCH are worst at 0.401 and 0.418, because
+
+\begin{quote}``they are actually almost always predicting the next time-step value as being the current time-step value'' (p. 14 [144])\end{quote}
+
+\item \textbf{The Dow doesn't support it} (Table 8, p. 19 [149]): HAR 0.282, Model 2 0.283, plain LSTM 0.283. The authors narrow their claim accordingly:
+
+\begin{quote}``It could be thus hypothesized that Model 2 performs relatively better than the other considered models only when applied stocks with middle-to-high volatility'' (p. 18 [148])\end{quote}
+
+\item \textbf{Limits the authors state:}
+
+\begin{quote}``the assumption that ten trials were enough to fulfill CLT conditions when estimating the RMSE and MA 95\% CI can easily be considered a weakness of this study'' (p. 23 [153])\end{quote}
+
+\begin{quote}``for DM tests, the forecasts of the first trial of the LSTM models will be used'' (p. 14 [144])\end{quote}
+
+\end{itemize}
+
+\subsection{What the code shows}
+
+These points come from reading the repository's code and spreadsheets, not from the paper:
+
+\begin{itemize}
+
+\item \textbf{The ``RMSE'' is a mean absolute error.}
+
+\begin{itemize}
+
+\item The Model 2 notebook computes \texttt{sum(sqrt((test -\allowbreak{} pred)**2)) /\allowbreak{} n}, and the HAR and GARCH workbooks average \texttt{SQRT((actual -\allowbreak{} predicted)\textasciicircum{}2)}. Both are a mean absolute error.
+
+\item ``Model accuracy'' is 1 minus the mean absolute percentage error. The paper describes it as based on MPE:
+
+\begin{quote}``RMSE and mean percent error (MPE) are used'' (p. 13 [143])\end{quote}
+
+\item No loss suited to volatility (QLIKE) is reported, and the 2026-09-27 report and the desk's forecast cards treat QLIKE as the standard.
+
+\end{itemize}
+
+\item \textbf{The validation split differs from the paper.}
+
+\begin{quote}``12.5\% of the training data is used as validation data'' (p. 10 [140])\end{quote}
+
+The tuning code uses a 60/\allowbreak{}20/\allowbreak{}20 split, so validation is 20\% of all data, and it draws about 20 random configurations. The loss list in the code (MSE, MAE, Huber) also differs from the paper's Table 2 (MSE, RMSE, Huber).
+
+\item \textbf{The forecasts don't peek at test values.} Each step predicts day t from a window ending at t\ensuremath{-}1, then appends the actual value for t. The scaler is fitted on training data only.
+
+\item \textbf{The turbulence series can't be checked.} The data file holds a precomputed ``S\&P 500 Financial Turbulence'' column next to RV, and no code builds it. If $\mu$ and $\Sigma$ were estimated over the full five years, test-period information leaks into the training inputs. That can't be ruled out from the repository.
+
+\item \textbf{The baselines are weak.}
+
+\begin{itemize}
+
+\item GARCH is fitted to daily returns, so it forecasts conditional return volatility, not the Yang-Zhang range measure it is scored against. That puts it at a disadvantage.
+
+\item HAR's coefficients are fixed values in the workbook, fitted once and never refit.
+
+\item No model is refit through the test year.
+
+\end{itemize}
+
+\end{itemize}
+
+\subsection{Other evidence on turbulence (outside the repo)}
+
+\begin{itemize}
+
+\item \textbf{Kritzman and Li (2010)}, \emph{Financial Analysts Journal} 66(5), defined the index for risk management: stress-testing portfolios and scaling down risk when turbulence is high (\href{https://rpc.cfainstitute.org/research/financial-analysts-journal/2010/skulls-financial-turbulence-and-risk-management}{CFA Institute}).
+
+\item \textbf{Salisu, Demirer and Gupta (2022)}, \emph{Global Finance Journal} 52, are the independent support. Adding weekly turbulence to a GARCH-MIDAS model improved out-of-sample daily volatility forecasts in seven markets, and turbulence beat a systemic-risk measure (\href{https://repository.up.ac.za/items/47051c9e-ded9-4528-a489-245319682eb2}{University of Pretoria repository}).
+
+\item \textbf{The same authors' later work} compares newer networks: NBEATSx against LSTM, TCN, HAR and GARCH (2024), and Transformers against HAR and NBEATSx (2024), as listed on \href{https://publinova.nl/product/introducing-nbeatsx-to-realized-volatility-forecasting}{Publinova} and \href{https://ouci.dntb.gov.ua/works/40RgkoW9}{OUCI}. These were seen as listings only, not read.
+
+\end{itemize}
+
+\subsection{What the desk's papers already say about neural RV forecasts}
+
+\begin{itemize}
+
+\item \textbf{HAR is hard to beat.} Neural nets help mostly at longer horizons and with implied vol as an input. From Christensen, Siggaard \& Veliyev (\texttt{A-\allowbreak{}machine-\allowbreak{}learning-\allowbreak{}approach-\allowbreak{}to-\allowbreak{}volatility-\allowbreak{}forecasting.\allowbreak{}pdf}), as verified in the 2026-09-27 report:
+
+\begin{quote}``The random forest and neural networks are preferred among ML algorithms and significantly improve prediction relative to HAR.'' (p. 36, printed p. 35)\end{quote}
+
+\begin{quote}``Interestingly, the basic HAR model is remarkably solid and tough to beat in the VaR framework.'' (p. 33, printed p. 32)\end{quote}
+
+\item \textbf{Better forecasts don't mean better option P\&L.}
+
+\begin{quote}``Similarly, ML baselines (GBDT, MLP, LSTM, DeepVol, GARCH) struggle with profitability despite occasionally achieving lower volatility'' (\emph{OPHR}, p. 9)\end{quote}
+
+\end{itemize}
+
+\section{How the papers connect}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Paper} & \textbf{Builds on /\allowbreak{} agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
+\midrule
+Souto \& Moradi 2023 (repo) & Bucci 2020 (LSTM RV); Kritzman \& Li 2010; Salisu et al. 2022 & Christensen et al. (horizons up to a month, QLIKE, many stocks) & Turbulence as an extra LSTM input for next-day RV \\
+Kritzman \& Li 2010 (web) & Mahalanobis (1927) & Volatility-only risk measures & Turbulence index for stress tests and risk scaling \\
+Salisu et al. 2022 (web) & Kritzman \& Li & LSTM approach & Turbulence improves GARCH-MIDAS volatility forecasts in 7 markets \\
+Christensen et al. 2022 (repo) & Corsi 2009 (HAR) & Single-index, single-split studies & Random forests and neural nets beat HAR, more so at longer horizons \\
+OPHR 2025 (repo) & Volatility-trading reinforcement learning & Forecast-error-only evaluation & Lower forecast error doesn't mean option P\&L \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item \textbf{Two independent studies agree} that turbulence adds information to volatility forecasts: Salisu et al. with an econometric model, and Souto \& Moradi with an LSTM.
+
+\item \textbf{Souto \& Moradi's test is much weaker} than Christensen et al.'s: one index, one test year, absolute-error loss, no refitting.
+
+\item \textbf{The LSTM part is not where the gain comes from.} The paper shows turbulence helps the LSTM. It doesn't show an LSTM beats a HAR that also gets turbulence (a HAR-X with turbulence), which is the cheap comparison.
+
+\end{itemize}
+
+\section{Relevance to the LS Gamma desk}
+
+These are suggestions. The horizon, inputs and any thresholds are the PM's call.
+
+\begin{itemize}
+
+\item \textbf{The forecaster isn't what drives P\&L now.}
+
+\begin{itemize}
+
+\item The always-on stress-sized put book ignores the VRP signal.
+
+\item On the signal book, VRP barely ranked P\&L.
+
+\item The 2026-10-18 forecast ladder found HAR-GK, HAR-X and a random forest all lose to GARCH on 22-day QLIKE, mostly because GARCH updates daily through spikes. A better RV forecast is a second-order improvement.
+
+\end{itemize}
+
+\item \textbf{The horizon doesn't match.} The paper forecasts one day ahead. The desk's signal needs RV over the option's life, about 22-30 days.
+
+\item \textbf{If anything is tested, test turbulence, not the LSTM.} A suggested cheap diagnostic, with no backtest trials:
+
+\begin{itemize}
+
+\item \textbf{Build the index:} compute turbulence from free daily returns of a small cross-asset set, for example SPY, TLT, GLD, IWM and QQQ, which are also on R2. Use a trailing window for $\mu$ and $\Sigma$, so nothing looks ahead.
+
+\item \textbf{Test it in the forecast-ladder setup:} add the index to HAR-X as one more input, at the 22-day horizon, scored with QLIKE in 2014-2019 and 2020-2024.
+
+\item \textbf{Promote only if it earns it:} if it beats GARCH on the ladder's bar, it would earn a P\&L card. If not, archive it.
+
+\end{itemize}
+
+\item \textbf{As a risk gauge, expect little.} Kritzman and Li meant turbulence for scaling risk. The desk's 2026-11-02 cards showed that sizing by VIX, VVIX or the VIX slope mostly re-times exposure to March 2020. Turbulence will be highly correlated with those, so a sizing card would likely repeat their result. That's an inference, not tested.
+
+\item \textbf{Not recommended:}
+
+\begin{itemize}
+
+\item building the LSTM itself: it needs many trials and gives a small, fragile gain;
+
+\item using the repository's data: it is S\&P 500 index-level Compustat data, not the desk's.
+
+\end{itemize}
+
+\end{itemize}
+
+\section{Gaps and open questions}
+
+\begin{itemize}
+
+\item \textbf{Turbulence construction:} which assets, which window, and whether $\mu$ and $\Sigma$ use future data. The repository doesn't say.
+
+\item \textbf{Robustness:} no evidence beyond one test year (late 2021 to late 2022, a falling market) and three US indexes.
+
+\item \textbf{Losses and benchmarks:} the reported losses aren't suited to volatility, and there's no comparison against HAR plus turbulence or HAR with implied vol.
+
+\item \textbf{Horizon:} whether turbulence helps 22-day forecasts at all. Salisu et al. report gains at short and long horizons in a different model; the desk would have to check its own horizon.
+
+\item \textbf{P\&L:} none of this connects forecast error to option P\&L.
+
+\end{itemize}
+
+\section{Sources}
+
+\begin{itemize}
+
+\item \textbf{Repo papers used:}
+
+\begin{itemize}
+
+\item \texttt{Forecasting-\allowbreak{}Realized-\allowbreak{}Volatility-\allowbreak{}through-\allowbreak{}Financial-\allowbreak{}Turbulence-\allowbreak{}and-\allowbreak{}Neural-\allowbreak{}Networks.\allowbreak{}pdf}: Souto \& Moradi 2023, pp. 3, 5, 10, 13, 14, 15, 18, 19, 23, 24 (added to \texttt{docs/\allowbreak{}papers/\allowbreak{}} today).
+
+\item \texttt{A-\allowbreak{}machine-\allowbreak{}learning-\allowbreak{}approach-\allowbreak{}to-\allowbreak{}volatility-\allowbreak{}forecasting.\allowbreak{}pdf}: Christensen, Siggaard \& Veliyev, pp. 33, 36.
+
+\item \texttt{OPHR-\allowbreak{}Mastering-\allowbreak{}Volatility-\allowbreak{}Trading-\allowbreak{}with-\allowbreak{}Multi-\allowbreak{}Agent-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf}: p. 9.
+
+\end{itemize}
+
+\item \textbf{Repo papers checked, nothing directly relevant:}
+
+\begin{itemize}
+
+\item \texttt{Novel-\allowbreak{}Optimization-\allowbreak{}Approach-\allowbreak{}for-\allowbreak{}Realized-\allowbreak{}Volatility-\allowbreak{}Forecast-\allowbreak{}of-\allowbreak{}Stock-\allowbreak{}Price-\allowbreak{}Index-\allowbreak{}Based-\allowbreak{}on-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning-\allowbreak{}Model.\allowbreak{}pdf}: an LSTM/\allowbreak{}GRU/\allowbreak{}DBN ensemble; it doesn't use turbulence.
+
+\item \texttt{Foundation-\allowbreak{}Time-\allowbreak{}Series-\allowbreak{}AI-\allowbreak{}Model-\allowbreak{}for-\allowbreak{}Realized-\allowbreak{}Volatility-\allowbreak{}Forecasting.\allowbreak{}pdf}: a literature mention of LSTM and NBEATSx only.
+
+\item \texttt{Improving-\allowbreak{}S\&P-\allowbreak{}500-\allowbreak{}Volatility-\allowbreak{}Forecasting-\allowbreak{}through-\allowbreak{}Regime-\allowbreak{}Switching-\allowbreak{}Methods.\allowbreak{}pdf} and \texttt{Downside-\allowbreak{}Risk-\allowbreak{}Reduction-\allowbreak{}Using-\allowbreak{}Regime-\allowbreak{}Switching-\allowbreak{}Signals-\allowbreak{}A-\allowbreak{}Statistical-\allowbreak{}Jump-\allowbreak{}Model-\allowbreak{}Approach.\allowbreak{}pdf}: ``turbulent'' used only in the everyday sense.
+
+\item \texttt{Realised-\allowbreak{}Volatility-\allowbreak{}Forecasting-\allowbreak{}Machine-\allowbreak{}Learning-\allowbreak{}via-\allowbreak{}Financial-\allowbreak{}Word-\allowbreak{}Embedding.\allowbreak{}pdf}.
+
+\end{itemize}
+
+\item \textbf{Code read:} the GitHub repository \texttt{hugogobato/\allowbreak{}Forecasting-\allowbreak{}Realized-\allowbreak{}Volatility-\allowbreak{}through-\allowbreak{}Financial-\allowbreak{}Turbulence-\allowbreak{}and-\allowbreak{}Neural-\allowbreak{}Networks}:
+
+\begin{itemize}
+
+\item the \texttt{Model 2/\allowbreak{}S\&P\_\allowbreak{}500.\allowbreak{}ipynb} notebook;
+
+\item the \texttt{Model 4/\allowbreak{}GARCH model.\allowbreak{}xlsx} and \texttt{Model 6/\allowbreak{}HAR models.\allowbreak{}xlsx} workbooks;
+
+\item the \texttt{Model 2/\allowbreak{}S\_\allowbreak{}P 500 Realized Volatility.\allowbreak{}xlsx} data file.
+
+\end{itemize}
+
+\item \textbf{Web:}
+
+\begin{itemize}
+
+\item Souto \& Moradi, \href{https://doi.org/10.18559/ebr.2023.2.737}{doi:10.18559/\allowbreak{}ebr.2023.2.737}.
+
+\item Kritzman \& Li 2010, \href{https://rpc.cfainstitute.org/research/financial-analysts-journal/2010/skulls-financial-turbulence-and-risk-management}{CFA Institute}.
+
+\item Salisu, Demirer \& Gupta 2022, \href{https://repository.up.ac.za/items/47051c9e-ded9-4528-a489-245319682eb2}{University of Pretoria}.
+
+\item Souto \& Moradi 2024 listings: \href{https://publinova.nl/product/introducing-nbeatsx-to-realized-volatility-forecasting}{NBEATSx}, \href{https://ouci.dntb.gov.ua/works/40RgkoW9}{Transformers}.
+
+\end{itemize}
+
+\item \textbf{Suggested papers to add:}
+
+\begin{itemize}
+
+\item Salisu, Demirer \& Gupta 2022: the strongest independent evidence that turbulence helps volatility forecasts.
+
+\item Kritzman \& Li 2010: the index's definition and its use in risk management.
+
+\item Souto \& Moradi 2024 (NBEATSx): the same authors with more horizons and stronger baselines (LSTM, TCN, HAR, GJR-GARCH).
+
+\end{itemize}
+
+\end{itemize}
+
+\end{document}

@@ -88,7 +88,8 @@ def test_collect_card(repo):
 
 def test_team(repo):
     (repo / "research" / "team.toml").write_text(
-        '[[member]]\nname = "Jane Doe"\nrole = "Analyst"\ngithub = "jdoe"\nphoto = "research/team/jane.jpg"\n'
+        '[[member]]\nname = "Jane Doe"\nrole = "Analyst"\ngithub = "jdoe"\nlinkedin = "https://www.linkedin.com/in/jdoe/"\n'
+        'photo = "research/team/jane.jpg"\n'
         'logs = ["work-logs/jane", "work-logs/old"]\n\n[[member]]\nname = "Sam Roe"\nrole = "PM"\n')
     (repo / "research" / "team").mkdir()
     (repo / "research" / "team" / "jane.jpg").write_bytes(b"jpg")
@@ -101,6 +102,7 @@ def test_team(repo):
     data = collect.collect()
     jane, sam = data["team"]
     assert jane["topics"] == ["Agentic Routing"] and jane["cards"] == 1
+    assert jane["linkedin"] == "https://www.linkedin.com/in/jdoe/" and sam["linkedin"] == ""
     assert (jane["logs"], jane["lastLog"]) == (3, "2026-11-04")
     assert jane["photo"] == "files/research/team/jane.jpg" and "research/team/jane.jpg" in data["files"]
     assert (sam["role"], sam["photo"], sam["logs"], sam["topics"]) == ("PM", "", 0, [])

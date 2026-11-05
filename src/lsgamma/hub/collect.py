@@ -283,7 +283,7 @@ def team(root, cards, files):
         photo = m.get("photo", "")
         if photo and (root / photo).exists():
             files.add(photo)
-        out.append({"name": name, "role": m.get("role", "Analyst"), "github": gh,
+        out.append({"name": name, "role": m.get("role", "Analyst"), "github": gh, "linkedin": m.get("linkedin", ""),
                     "photo": "files/" + photo if photo in files else "",
                     "topics": [topic_label(t) for t, rows in own.items()
                                if any(n.startswith(name) or (gh and g.strip("`") == gh) for n, g in rows)],

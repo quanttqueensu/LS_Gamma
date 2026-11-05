@@ -1,3 +1,4 @@
+import json
 from datetime import date
 from types import SimpleNamespace
 
@@ -125,6 +126,9 @@ def test_open_hedge_then_flip(env):
     assert trades["action"].tolist() == ["open", "close", "open"]
     assert trades["reason"].iloc[1] == "flip"
     assert len(ledger.read_log("signals")) == 2
+    snap = json.loads(runner.desk.OUT.read_text())
+    assert snap["position"]["side"] == "long" and len(snap["signals"]) == 2
+    assert [t["action"] for t in snap["trades"]] == ["open", "close", "open"]
 
 
 def test_flat_signal_no_trade(env):

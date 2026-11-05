@@ -1,4 +1,5 @@
 import csv
+import json
 import os
 import re
 import subprocess
@@ -293,6 +294,11 @@ def team(root, cards, files):
     return out
 
 
+def desk(root):
+    path = root / "research" / "desk.json"
+    return json.loads(path.read_text()) if path.exists() else None
+
+
 def commit(root):
     sha = os.environ.get("GITHUB_SHA", "")[:7]
     if sha:
@@ -316,7 +322,7 @@ def collect(root=None):
              "oos": sum(c["stages"][4] for c in found),
              "reports": sum(d["kind"] != "Paper" for d in docs) + sum(bool(c["report"]) for c in found),
              "papers": sum(d["kind"] == "Paper" for d in docs)}
-    return {"cards": found, "library": docs, "timeline": timeline(found, docs, plan), "team": team(root, found, files),
+    return {"cards": found, "library": docs, "timeline": timeline(found, docs, plan), "team": team(root, found, files), "desk": desk(root),
             "topics": [[t, topic_label(t)] for t in TOPICS] + [["General", "General"]],
             "stats": stats, "build": {"commit": commit(root), "date": date.today().isoformat()},
             "repo": GITHUB.split("/blob/")[0], "files": sorted(files)}

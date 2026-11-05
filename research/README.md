@@ -33,10 +33,11 @@ To test a rule change on real option trades (R2, 2014-06-02 to 2026-07-10) with 
 Commands and data build steps: `docs/scripts.md` section 8. Rules: `docs/decisions/0002-backtest-data-and-timing-rules.md`.
 
 ## Research hub
-The hub (GitHub Pages, rebuilt on every push to `main`) opens with the team, then shows every card, its lifecycle (Card → Run → Report → Summary → OOS → Shadow → Live), summary, charts, trials and report, plus a roadmap Gantt and the report library. It reads only committed files:
+The hub (GitHub Pages, rebuilt on every push to `main`) opens with the team, this week's activity and the live paper desk, then shows every card, its lifecycle (Card → Run → Report → Summary → OOS → Shadow → Live), summary, charts, trials and report, plus a roadmap Gantt and the report library. It reads only committed files:
 - **Your card and summary:** keep the card table (Owner, Status, Started) and the summary's `**Date finished:**` and `**Verdict:**` lines filled in. Those lines are what the hub shows.
 - **`registry.csv`:** run `python -m lsgamma.hub.export` when you commit results, and commit `research/registry.csv`. It holds per-trial aggregates only (the one committed export from `results/`).
 - **`roadmap.toml`:** add planned experiments, papers to read or write up, and general research. An item without dates shows under Ideas.
+- **`desk.json`:** written by the PM's daily paper run; it feeds the Live desk section. Don't edit it by hand.
 - **`team.toml`:** your name, role, GitHub handle, headshot (`research/team/<name>.jpg`, about 320px square) and work-log folders. Your topic comes from the topic README's "Who's working on it" table, so add yourself there.
 
 Commands: `docs/scripts.md` section 10.

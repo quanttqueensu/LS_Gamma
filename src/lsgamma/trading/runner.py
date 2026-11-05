@@ -6,6 +6,7 @@ import pandas as pd
 from lsgamma.core.Algos import broker
 from lsgamma.core.Algos.Hedging import delta_hedge, portfolio
 from lsgamma.forecasting import FORECASTERS
+from lsgamma.hub import desk
 from lsgamma.pipeline import store
 from lsgamma.signals import SIGNALS
 from lsgamma.trading import config, exits, ledger, pnl, selection
@@ -201,7 +202,16 @@ def run(ib, cfg, asof, dry=False):
             pos = enter(ib, d["signal"], chain, cfg, asof, dry)
     if not dry:
         hedge(ib, pos, cfg, asof, spot(chain))
+        publish(chain, cfg)
     return d
+
+
+def publish(chain, cfg):
+    # hub snapshot; never blocks trading
+    try:
+        print(f"desk snapshot -> {desk.write(chain, cfg)}")
+    except (OSError, KeyError, ValueError) as e:
+        print(f"WARNING: desk snapshot not written ({e})")
 
 
 def main():

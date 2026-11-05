@@ -20,8 +20,9 @@ def commit():
     try:
         out = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=REPO,
                              capture_output=True, text=True, check=True)
-        dirty = subprocess.run(["git", "status", "--porcelain"], cwd=REPO,
-                               capture_output=True, text=True).stdout.strip()
+        # the daily desk snapshot is data, not code
+        dirty = subprocess.run(["git", "status", "--porcelain", "--", ".", ":(exclude)research/desk.json"],
+                               cwd=REPO, capture_output=True, text=True).stdout.strip()
         return out.stdout.strip() + ("-dirty" if dirty else "")
     except (OSError, subprocess.CalledProcessError):
         return "unknown"

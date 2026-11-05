@@ -12,26 +12,47 @@
 <body>
 <nav class="gs-nav"><div class="gs-wrap">
   <a class="gs-brand" href="#top"><span class="mark" aria-hidden="true">Γ</span>L/S Gamma Research</a>
-  <div class="gs-segment"><a href="#team">Team</a><a href="#experiments">Experiments</a><a href="#roadmap">Roadmap</a><a href="#library">Library</a></div>
+  <div class="gs-segment"><a href="#team">Team</a><a href="#week">This week</a><a href="#desk">Desk</a><a href="#experiments">Experiments</a><a href="#roadmap">Roadmap</a><a href="#library">Library</a></div>
   <div class="gs-navacts">
     <a class="gs-pill gs-pill-ghost" id="repo" target="_blank" rel="noopener">GitHub</a>
-    <button class="gs-pill gs-pill-primary" id="latest" type="button">Latest result</button>
   </div>
 </div></nav>
 
 <section class="gs-sec first" id="team"><div class="gs-wrap">
-  <div class="gs-headrow"><h1 class="gs-h2">The L/S Gamma team.</h1><span class="gs-tag" id="team-tag"></span></div>
+  <div class="gs-headrow"><h1 class="gs-h2">The L/S Gamma team.</h1></div>
   <div class="team" id="team-grid"></div>
 </div></section>
 
+<section class="gs-sec" id="week"><div class="gs-wrap">
+  <div class="gs-headrow"><h2 class="gs-h2">This week.</h2></div>
+  <p class="sec-meta gs-meta" id="week-meta"></p>
+  <div class="wstats" id="week-stats"></div>
+</div></section>
+
+<section class="gs-sec" id="desk" hidden><div class="gs-wrap">
+  <div class="gs-headrow"><h2 class="gs-h2">Live desk.</h2></div>
+  <p class="sec-meta gs-meta" id="desk-meta"></p>
+  <div class="desk-stats" id="desk-stats"></div>
+  <div class="gs-card desk-book"><h3 class="colh">Book P&amp;L</h3><p class="gs-meta book-note" id="book-note"></p><div id="book-chart"></div><div class="g-tip" id="b-tip" role="tooltip" hidden></div></div>
+  <div class="desk-grid">
+    <div class="gs-card desk-chart"><h3 class="colh">Signal history</h3><div id="desk-chart"></div><p class="gs-meta desk-rule" id="desk-rule"></p><div class="g-tip" id="d-tip" role="tooltip" hidden></div></div>
+    <div class="gs-card" id="desk-pos"></div>
+  </div>
+</div></section>
+
 <section class="gs-sec" id="experiments"><div class="gs-wrap">
-  <div class="gs-headrow"><h2 class="gs-h2">Experiments.</h2><span class="gs-tag" id="exp-tag"></span></div>
-  <div class="filters"><div class="gs-segment chips" id="f-topic"></div><div class="gs-segment chips" id="f-verdict"></div></div>
-  <div class="gs-stack" id="cards"></div>
+  <div class="gs-headrow"><h2 class="gs-h2">Experiments.</h2></div>
+  <div class="lib-tools">
+    <input class="gs-input lib-search" id="exp-q" type="search" placeholder="Search experiments" aria-label="Search experiments" autocomplete="off">
+    <div class="gs-segment chips" id="f-verdict"></div>
+  </div>
+  <div class="filters"><div class="gs-segment chips" id="f-topic"></div></div>
+  <p class="gs-meta lib-count" id="exp-count" aria-live="polite"></p>
+  <div id="cards"></div>
 </div></section>
 
 <section class="gs-sec" id="roadmap"><div class="gs-wrap">
-  <div class="gs-headrow"><h2 class="gs-h2">Roadmap.</h2><span class="gs-tag" id="road-tag"></span></div>
+  <div class="gs-headrow"><h2 class="gs-h2">Roadmap.</h2></div>
   <div class="filters">
     <div class="filter-group"><div class="gs-segment chips" id="f-tag"></div><div class="gs-segment chips" id="f-when"></div></div>
     <div class="gs-segment chips" id="f-view"></div>
@@ -46,9 +67,13 @@
 </div></section>
 
 <section class="gs-sec" id="library"><div class="gs-wrap">
-  <div class="gs-headrow"><h2 class="gs-h2">Library.</h2><span class="gs-tag" id="lib-tag"></span></div>
-  <div class="filters"><div class="gs-segment chips" id="f-kind"></div></div>
-  <div class="gs-grid3" id="docs"></div>
+  <div class="gs-headrow"><h2 class="gs-h2">Library.</h2></div>
+  <div class="lib-tools">
+    <input class="gs-input lib-search" id="lib-q" type="search" placeholder="Search titles" aria-label="Search the library" autocomplete="off">
+    <div class="gs-segment chips" id="f-kind"></div>
+  </div>
+  <p class="gs-meta lib-count" id="lib-count" aria-live="polite"></p>
+  <div class="lib-list" id="docs"></div>
 </div></section>
 
 <footer class="gs-foot"><div class="gs-wrap"><div>QUANTT · L/S Gamma desk · aggregate results only</div><div id="built"></div></div></footer>

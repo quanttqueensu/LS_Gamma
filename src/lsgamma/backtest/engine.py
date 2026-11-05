@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from lsgamma import experiments
 from lsgamma.backtest import sim
 from lsgamma.core.Algos.broker import MULTIPLIER
 from lsgamma.history import marks
@@ -70,6 +71,7 @@ def state(cfg, feats, root, holdout, cache):
     sched = times(cfg)
     return {"cfg": cfg, "feats": feats, "root": root, "holdout": holdout, "times": sched,
             "rv_for": cached(cache, cfg["backtest"]["fit_years"]), "book": sim.book(),
+            "picks": picks(cfg),
             "no_entry": hold.date() - timedelta(days=cfg["entry"]["max_dte"]),
             "last_dev": feats.index[feats.index < hold].max().date(),
             "keep": (cfg["exit"]["flat_days"] + 1) * sum(sig for _, sig in sched),
@@ -159,9 +161,28 @@ def close(s, pos, reason, chain, fill, asof):
                         "entry_ts": pos["entry_ts"]})
 
 
-def put_strike(s, t, chain):
+def picks(cfg):
+    # research only: ranker's daily put deltas
+    name = cfg["backtest"].get("put_picks", "")
+    if not name:
+        return None
+    df = pd.read_parquet(experiments.ROOT / name)
+    return dict(zip(df["date"].astype(str), df["delta"].astype(float)))
+
+
+def put_target(s, asof):
+    # research only: day's pick, else put_delta
+    p, d = s["picks"], str(asof.date())
+    return p[d] if p is not None and d in p else s["cfg"]["backtest"].get("put_delta", 0.0)
+
+
+def pick_skip(s, side, asof):
+    # research only: pick 0 means no short
+    return side == "short" and s["picks"] is not None and s["picks"].get(str(asof.date())) == 0.0
+
+
+def put_strike(t, chain, target):
     # research only: put strike by delta target
-    target = s["cfg"]["backtest"].get("put_delta", 0.0)
     if not target or t["right"] != "P":
         return t["strike"]
     rows = chain[(chain["expiry"] == selection.to_date(t["expiry"])) & (chain["right"] == "P")]
@@ -290,7 +311,7 @@ def enter(s, signal, chain, fill, asof, vrp=math.nan, crash=False):
         t = selection.trade_for(signal, chain, crash_cfg(cfg) if crash else cfg)
     except ValueError as e:
         return log(s, asof, "no_entry", str(e))
-    t = {**t, "strike": put_strike(s, t, chain)}
+    t = {**t, "strike": put_strike(t, chain, put_target(s, asof))}
     price, src = sim.option_fill(fill, signal, t["expiry"], t["strike"], t["right"], "open",
                                  bt["spread_mult"])
     if math.isnan(price):
@@ -436,6 +457,8 @@ def act(s, chain, fill, asof, d, hist):
             log(s, asof, "gate", f"no short entry, VIX/VIX3M {ratio:.3f}")
         elif off_day(s, asof):
             log(s, asof, "weekday", f"no {d['signal']} entry on {asof:%A}")
+        elif pick_skip(s, d["signal"], asof):
+            log(s, asof, "pick_skip", "ranker picked no trade")
         else:
             enter(s, d["signal"], chain, fill, asof, d["vrp"])
     if d and crash_due(s, asof):

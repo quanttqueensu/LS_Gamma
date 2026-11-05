@@ -13,6 +13,7 @@ dependencies = [
     "boto3==1.43.61",
     "duckdb==1.5.5",
     "ib_async==2.1.0",
+    "lightgbm==4.7.0",
     "matplotlib==3.11.2",
     "numpy==2.4.6",
     "pandas==3.0.3",

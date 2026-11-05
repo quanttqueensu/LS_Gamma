@@ -11,5 +11,5 @@ def target_shares(ib, underlying=UNDERLYING):
     return -option_delta(ib, underlying)
 
 
-def hedge(ib, underlying=UNDERLYING, min_shares=1):
-    return rebalance(ib, target_shares(ib, underlying), underlying, min_shares)
+def hedge(ib, ref, underlying=UNDERLYING, min_shares=1, pad=0.0):
+    return rebalance(ib, target_shares(ib, underlying), ref, underlying, min_shares, pad)

@@ -29,11 +29,18 @@ class FakeIB:
         return SimpleNamespace(contract=contract, order=order)
 
 
-def test_stock_orders_are_day_orders():
+def test_stock_orders_are_day_limit_orders():
     ib = FakeIB()
-    broker.submit_stock(ib, -101)
+    broker.submit_stock(ib, -101, 5.0, pad=0.005)
     order = ib.orders[-1]
-    assert (order.action, order.totalQuantity, order.tif) == ("SELL", 101, "DAY")
+    assert (order.action, order.totalQuantity, order.tif, order.orderType) == ("SELL", 101, "DAY", "LMT")
+    assert order.lmtPrice == broker.round_tick(5.0 * 0.995)
+
+
+def test_stock_buy_limit_is_above_mid():
+    ib = FakeIB()
+    broker.submit_stock(ib, 50, 5.0, pad=0.005)
+    assert ib.orders[-1].lmtPrice == broker.round_tick(5.0 * 1.005)
 
 
 def test_option_orders_are_day_orders():

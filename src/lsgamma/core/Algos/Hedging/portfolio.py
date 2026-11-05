@@ -41,9 +41,9 @@ def option_delta(ib, underlying=UNDERLYING):
     return delta
 
 
-def rebalance(ib, target_shares, underlying=UNDERLYING, min_shares=1):
+def rebalance(ib, target_shares, ref, underlying=UNDERLYING, min_shares=1, pad=0.0):
     """Trade shares so the stock position equals target_shares. Returns None if no trade needed."""
     shares = round(target_shares - stock_position(ib, underlying))
     if abs(shares) < min_shares:
         return None
-    return submit_stock(ib, shares, underlying)
+    return submit_stock(ib, shares, ref, underlying, pad)

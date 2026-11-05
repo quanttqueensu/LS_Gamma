@@ -22,17 +22,18 @@ def wait(ib, trade, label, cfg):
 
 def run(ib, cfg):
     chain = store.load("chain")
-    slip = cfg["execution"]["slippage"]
+    slip, pad = cfg["execution"]["slippage"], cfg["execution"]["stock_pad"]
+    ref = float(chain["und_price"].median())
     trades = [selection.trade_for(side, chain, cfg) for side in ("long", "short")]
 
     for t in trades:
         wait(ib, t["algo"].open_position(ib, t["expiry"], t["strike"], 1, slip), f"open {t['side']}", cfg)
-    shares = wait(ib, delta_hedge.hedge(ib), "hedge", cfg)
+    shares = wait(ib, delta_hedge.hedge(ib, ref, pad=pad), "hedge", cfg)
 
     for t in trades:
         wait(ib, t["algo"].close_position(ib, t["expiry"], t["strike"], 1, slip), f"close {t['side']}", cfg)
     if shares:
-        wait(ib, broker.submit_stock(ib, -shares), "unwind hedge", cfg)
+        wait(ib, broker.submit_stock(ib, -shares, ref, pad=pad), "unwind hedge", cfg)
 
 
 def main():

@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import date
 
-from ib_async import IB, Bag, ComboLeg, LimitOrder, MarketOrder, Option, Stock
+from ib_async import IB, Bag, ComboLeg, LimitOrder, Option, Stock
 
 HOST = "127.0.0.1"
 PORT_PAPER_TWS = 7497
@@ -169,14 +169,17 @@ def submit(ib, legs, quantity, slippage=0.0, underlying=UNDERLYING, tif="DAY"):
     return ib.placeOrder(contract, order)
 
 
-def submit_stock(ib, shares, underlying=UNDERLYING):
-    """Market order for `shares` of the underlying. Positive = buy, negative = sell."""
+def submit_stock(ib, shares, ref, underlying=UNDERLYING, pad=0.0):
+    """Limit order for `shares` at ref +/- pad. Positive = buy, negative = sell."""
     if shares == 0:
         raise ValueError("shares must be non-zero")
     stock = Stock(underlying, EXCHANGE, CURRENCY)
     ib.qualifyContracts(stock)
+    # no stock data on API: no market orders
+    action = "BUY" if shares > 0 else "SELL"
+    price = round_tick(ref * (1 + pad if action == "BUY" else 1 - pad))
     # explicit TIF avoids IBKR warning 10349
-    order = MarketOrder("BUY" if shares > 0 else "SELL", abs(shares), tif="DAY")
+    order = LimitOrder(action, abs(shares), price, tif="DAY")
     return ib.placeOrder(stock, order)
 
 

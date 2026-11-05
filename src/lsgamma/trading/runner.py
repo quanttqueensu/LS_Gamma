@@ -155,8 +155,9 @@ def enter(ib, signal, chain, cfg, asof, dry):
     return pos
 
 
-def hedge(ib, pos, cfg, asof):
-    trade = delta_hedge.hedge(ib, min_shares=cfg["hedge"]["min_shares"])
+def hedge(ib, pos, cfg, asof, ref):
+    trade = delta_hedge.hedge(ib, ref, min_shares=cfg["hedge"]["min_shares"],
+                              pad=cfg["execution"]["stock_pad"])
     if trade is None:
         print("hedge: no trade needed")
         return
@@ -199,7 +200,7 @@ def run(ib, cfg, asof, dry=False):
         else:
             pos = enter(ib, d["signal"], chain, cfg, asof, dry)
     if not dry:
-        hedge(ib, pos, cfg, asof)
+        hedge(ib, pos, cfg, asof, spot(chain))
     return d
 
 

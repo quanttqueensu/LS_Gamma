@@ -19,7 +19,8 @@ const TOPIC_KEY = Object.fromEntries(D.topics.map(([k, l]) => [l, k]));
 const RESULT = { passed: ["✓", "pass"], promoted: ["✓", "pass"], failed: ["✕", "fail"], inconclusive: ["–", "neutral"], running: ["◐", "neutral"], planned: ["○", "neutral"] };
 const state = { topic: "all", verdict: "all", tag: "all", when: "all", view: innerWidth <= 760 ? "list" : "timeline", kind: "all", allDocs: false, allCards: false, allDone: false, q: "", eq: "" };
 const DONE_LIMIT = 8;
-const CARD_LIMIT = 15;
+const PHONE = innerWidth <= 760;
+const CARD_LIMIT = PHONE ? 8 : 15;
 const topicChip = (key, label) => `<span class="kind c-${TOPIC_C[key] || "rv"}"><span class="dot"></span>${esc(label)}</span>`;
 const resultPill = v => `<span class="result r-${RESULT[v][1]}"><span class="ri" aria-hidden="true">${RESULT[v][0]}</span>${VERDICTS[v]}</span>`;
 
@@ -44,7 +45,18 @@ function chips(el, options, active, pick) {
 
 /* page chrome */
 function chrome() {
-  $("#repo").href = D.repo;
+  $("#repo").href = $("#menu-repo").href = D.repo;
+  const btn = $("#menu-btn"), menu = $("#menu");
+  const set = open => {
+    menu.hidden = !open;
+    btn.setAttribute("aria-expanded", open);
+    btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+  };
+  btn.addEventListener("click", () => set(menu.hidden));
+  menu.addEventListener("click", e => { if (e.target.closest("a")) set(false); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !menu.hidden) { set(false); btn.focus(); } });
+  document.addEventListener("click", e => { if (!menu.hidden && !e.target.closest(".gs-nav")) set(false); });
+  addEventListener("resize", () => { if (innerWidth > 900) set(false); });
   const sha = D.build.commit.replace("-dirty", "");
   $("#built").innerHTML = `Built from <a href="${D.repo}/commit/${esc(sha)}" target="_blank" rel="noopener">${esc(D.build.commit)}</a> · ${esc(D.build.date)}`;
 }
@@ -442,7 +454,7 @@ function roadmap() {
 /* library */
 const KINDS = [["all", "All"], ["Literature report", "Literature"], ["Research note", "Notes"], ["General research", "General"], ["Paper", "Papers"]];
 const KIND_C = { "Literature report": "lit", "Research note": "note", "General research": "note", Paper: "pub" };
-const LIMIT = 15;
+const LIMIT = PHONE ? 8 : 15;
 
 const reEsc = w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -648,6 +660,7 @@ function desk() {
   draw();
   let frame = 0;
   addEventListener("resize", () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(draw); });
+  $("#desk-rule-box").open = !PHONE;
   $("#desk-rule").textContent = `Short gamma when implied vol is more than ${r.short_band * 100} pts above the ${r.forecaster.toUpperCase()} forecast, long gamma when more than ${-r.long_band * 100} pts below, otherwise flat. Options near ${r.target_dte} DTE, closed at ${r.exit_dte} DTE; stop at ${r.short_stop_mult}× the credit, profit take at ${r.short_profit_frac * 100}% on shorts.`;
   $("#desk-pos").innerHTML = positionHtml(k);
   hoverTip($(".desk-chart"), $("#d-tip"), el => {

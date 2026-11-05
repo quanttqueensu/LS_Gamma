@@ -15,8 +15,16 @@
   <div class="gs-segment"><a href="#team">Team</a><a href="#week">This week</a><a href="#desk">Desk</a><a href="#experiments">Experiments</a><a href="#roadmap">Roadmap</a><a href="#library">Library</a></div>
   <div class="gs-navacts">
     <a class="gs-pill gs-pill-ghost" id="repo" target="_blank" rel="noopener">GitHub</a>
+    <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="menu" aria-label="Open menu">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path class="m-open" d="M3 6h14M3 10h14M3 14h14"/><path class="m-close" d="M5 5l10 10M15 5L5 15"/></svg>
+    </button>
   </div>
-</div></nav>
+</div>
+<div class="menu" id="menu" hidden><div class="gs-wrap">
+  <a href="#team">Team</a><a href="#week">This week</a><a href="#desk">Live desk</a><a href="#experiments">Experiments</a><a href="#roadmap">Roadmap</a><a href="#library">Library</a>
+  <a class="menu-gh" id="menu-repo" target="_blank" rel="noopener">GitHub ↗</a>
+</div></div>
+</nav>
 
 <section class="gs-sec first" id="team"><div class="gs-wrap">
   <div class="gs-headrow"><h1 class="gs-h2">The L/S Gamma team.</h1></div>
@@ -35,7 +43,7 @@
   <div class="desk-stats" id="desk-stats"></div>
   <div class="gs-card desk-book"><h3 class="colh">Book P&amp;L</h3><p class="gs-meta book-note" id="book-note"></p><div id="book-chart"></div><div class="g-tip" id="b-tip" role="tooltip" hidden></div></div>
   <div class="desk-grid">
-    <div class="gs-card desk-chart"><h3 class="colh">Signal history</h3><div id="desk-chart"></div><p class="gs-meta desk-rule" id="desk-rule"></p><div class="g-tip" id="d-tip" role="tooltip" hidden></div></div>
+    <div class="gs-card desk-chart"><h3 class="colh">Signal history</h3><div id="desk-chart"></div><details class="desk-rule" id="desk-rule-box"><summary>How the signal works</summary><p class="gs-meta" id="desk-rule"></p></details><div class="g-tip" id="d-tip" role="tooltip" hidden></div></div>
     <div class="gs-card" id="desk-pos"></div>
   </div>
 </div></section>
@@ -52,10 +60,9 @@
 </div></section>
 
 <section class="gs-sec" id="roadmap"><div class="gs-wrap">
-  <div class="gs-headrow"><h2 class="gs-h2">Roadmap.</h2></div>
+  <div class="gs-headrow"><h2 class="gs-h2">Roadmap.</h2><div class="gs-segment chips" id="f-view"></div></div>
   <div class="filters">
     <div class="filter-group"><div class="gs-segment chips" id="f-tag"></div><div class="gs-segment chips" id="f-when"></div></div>
-    <div class="gs-segment chips" id="f-view"></div>
   </div>
   <div class="gs-card gantt-card" id="gantt-view"><div class="gantt-scroll"><div id="gantt"></div></div><div class="g-tip" id="g-tip" role="tooltip" hidden></div></div>
   <div class="gs-card list-card" id="list-view" hidden></div>

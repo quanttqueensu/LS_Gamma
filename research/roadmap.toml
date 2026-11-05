@@ -1,0 +1,75 @@
+# Research roadmap: the source of the hub's Gantt chart.
+# One [[item]] per planned experiment, paper or general research piece.
+#   title   short name
+#   tag     experiment | paper | general   (paper = read a paper or write up its report)
+#   topic   RV_Forecasting | Deep_Hedging | Agentic_Routing | Risk_Management | General
+#   owner   name or GitHub handle
+#   start   YYYY-MM-DD (no quotes); leave start/end out for an undated idea
+#   end     YYYY-MM-DD
+#   status  idea | next | active | done
+#   card    experiment slug once the card exists (the real card then replaces this item)
+#   link    repo path or URL (paper, report)
+#   note    one line
+#
+# Example of a scheduled item:
+# [[item]]
+# title = "Read Wysocki (2026) learning-to-rank"
+# tag = "paper"
+# topic = "Agentic_Routing"
+# owner = "analyst handle"
+# start = 2026-11-09
+# end = 2026-11-13
+# status = "next"
+# link = "docs/papers/Harvesting-the-Volatility-Risk-Premium-A-Learning-to-Rank-Approach.pdf"
+
+# Seeded 2026-11-05 from follow-ups already written in the desk's notes. Undated: the PM sets dates, owners and tags.
+
+[[item]]
+title = "VRP partial hedge ratio, keeping size"
+tag = "experiment"
+topic = "Deep_Hedging"
+status = "idea"
+note = "Follow-up to 2026-11-02-vrp-hedge: cut the hedge when VRP is high without shrinking the stress-sized book."
+
+[[item]]
+title = "15% / 25% stress budgets"
+tag = "experiment"
+topic = "Risk_Management"
+status = "idea"
+note = "Follow-up to 2026-10-22-stress-sized-puts; so far only a sensitivity in 2026-11-02-crash-shock."
+
+[[item]]
+title = "Two 25-delta puts vs one ATM put"
+tag = "experiment"
+topic = "Agentic_Routing"
+status = "idea"
+note = "Follow-up to 2026-10-17-otm-put."
+
+[[item]]
+title = "Paper fills vs the spread model"
+tag = "general"
+topic = "General"
+status = "idea"
+note = "Follow-up to 2026-10-17-otm-put: its result rests on the backtest's spread model."
+
+[[item]]
+title = "Hourly signal with a daily hedge or 10-share band"
+tag = "experiment"
+topic = "Agentic_Routing"
+status = "idea"
+note = "Follow-up to 2026-10-21-signal-times."
+
+[[item]]
+title = "Flat exit that counts the entry signal"
+tag = "experiment"
+topic = "Risk_Management"
+status = "idea"
+note = "Follow-up to 2026-10-21-signal-times (PM call)."
+
+[[item]]
+title = "GJR / LHAR forecaster and a spot-vol correlation feature"
+tag = "paper"
+topic = "RV_Forecasting"
+status = "idea"
+link = "research/strategy_research/2026-09-27-leverage-effect-and-the-ls-gamma-desk.pdf"
+note = "Suggested by the leverage-effect report; not yet tested."

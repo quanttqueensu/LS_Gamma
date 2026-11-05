@@ -930,3 +930,51 @@ def test_batch_flags_off_by_default(bt):
     for k in flags:
         del saved["backtest"][k]
     assert report.same(saved, cfg)
+
+
+def picked(cfg, rows):
+    path = experiments.ROOT / "ltr" / "picks.parquet"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(rows, columns=["date", "delta"]).to_parquet(path)
+    cfg["backtest"]["put_picks"] = "ltr/picks.parquet"
+    return cfg
+
+
+def test_put_picks_skip_then_pick_delta(bt):
+    cfg, root = bt
+    d = days("2024-03-04", 3)
+    write(root, list(zip(d, [0.10] * 3)), make=skewed)
+    cfg = picked(cfg, [(str(d[0]), 0.0), (str(d[1]), 0.25), (str(d[2]), 0.5)])
+    out = engine.backtest(cfg, d[0], d[-1], root=root)
+    t = out["trades"]
+    assert t["date"].iloc[0] == str(d[1]) and t["strike"].iloc[0] == 595.0
+    assert out["events"].query("event == 'pick_skip'")["date"].tolist() == [str(d[0])]
+
+
+def test_put_picks_missing_day_uses_put_delta(bt):
+    cfg, root = bt
+    cfg["backtest"]["put_delta"] = 0.25
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])), make=skewed)
+    t = engine.backtest(picked(cfg, [("2023-01-03", 0.0)]), d[0], d[-1], root=root)["trades"]
+    assert t["date"].iloc[0] == str(d[0]) and t["strike"].iloc[0] == 595.0
+
+
+def test_put_picks_leave_long_calls(bt):
+    cfg, root = bt
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.25, 0.25])), make=skewed)
+    t = engine.backtest(picked(cfg, [(str(d[0]), 0.0)]), d[0], d[-1], root=root)["trades"]
+    assert t["date"].iloc[0] == str(d[0]) and t["right"].iloc[0] == "C"
+
+
+def test_put_picks_off_by_default(bt):
+    cfg, root = bt
+    assert cfg["backtest"]["put_picks"] == ""
+    saved = copy.deepcopy(cfg)
+    del saved["backtest"]["put_picks"]
+    assert report.same(saved, cfg)
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])), make=skewed)
+    t = engine.backtest(cfg, d[0], d[-1], root=root)["trades"]
+    assert t["date"].iloc[0] == str(d[0]) and t["strike"].iloc[0] == 600.0

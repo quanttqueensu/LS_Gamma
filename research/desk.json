@@ -1,0 +1,319 @@
+{
+ "asof": "2026-11-05T13:04:55-05:00",
+ "rules": {
+  "forecaster": "garch",
+  "short_band": 0.02,
+  "long_band": -0.05,
+  "target_dte": 30,
+  "exit_dte": 7,
+  "short_stop_mult": 1.0,
+  "long_stop_frac": 0.5,
+  "short_profit_frac": 0.5
+ },
+ "signals": [
+  {
+   "date": "2026-10-02",
+   "expiry": "2026-10-30",
+   "dte": 28,
+   "rv_forecast": 0.129,
+   "iv": 0.1302,
+   "vrp": 0.0013,
+   "signal": "flat"
+  },
+  {
+   "date": "2026-10-05",
+   "expiry": "2026-11-06",
+   "dte": 32,
+   "rv_forecast": 0.1296,
+   "iv": 0.1306,
+   "vrp": 0.001,
+   "signal": "flat"
+  },
+  {
+   "date": "2026-10-06",
+   "expiry": "2026-11-06",
+   "dte": 31,
+   "rv_forecast": 0.1334,
+   "iv": 0.1276,
+   "vrp": -0.0058,
+   "signal": "flat"
+  },
+  {
+   "date": "2026-10-07",
+   "expiry": "2026-11-06",
+   "dte": 30,
+   "rv_forecast": 0.1308,
+   "iv": 0.1308,
+   "vrp": 0.0,
+   "signal": "flat"
+  },
+  {
+   "date": "2026-10-08",
+   "expiry": "2026-11-06",
+   "dte": 29,
+   "rv_forecast": 0.1263,
+   "iv": 0.1293,
+   "vrp": 0.003,
+   "signal": "flat"
+  },
+  {
+   "date": "2026-10-09",
+   "expiry": "2026-11-06",
+   "dte": 28,
+   "rv_forecast": 0.1258,
+   "iv": 0.1224,
+   "vrp": -0.0034,
+   "signal": "flat"
+  },
+  {
+   "date": "2026-10-14",
+   "expiry": "2026-11-13",
+   "dte": 30,
+   "rv_forecast": 0.1303,
+   "iv": 0.134,
+   "vrp": 0.0037,
+   "signal": "flat"
+  },
+  {
+   "date": "2026-10-15",
+   "expiry": "2026-11-13",
+   "dte": 29,
+   "rv_forecast": 0.1278,
+   "iv": 0.1364,
+   "vrp": 0.0086,
+   "signal": "flat"
+  },
+  {
+   "date": "2026-10-16",
+   "expiry": "2026-11-13",
+   "dte": 28,
+   "rv_forecast": 0.1279,
+   "iv": 0.143,
+   "vrp": 0.0152,
+   "signal": "flat"
+  },
+  {
+   "date": "2026-10-19",
+   "expiry": "2026-11-20",
+   "dte": 32,
+   "rv_forecast": 0.1363,
+   "iv": 0.1416,
+   "vrp": 0.0052,
+   "signal": "flat"
+  },
+  {
+   "date": "2026-10-20",
+   "expiry": "2026-11-20",
+   "dte": 31,
+   "rv_forecast": 0.134,
+   "iv": 0.1373,
+   "vrp": 0.0033,
+   "signal": "flat"
+  },
+  {
+   "date": "2026-10-21",
+   "expiry": "2026-11-20",
+   "dte": 30,
+   "rv_forecast": 0.1319,
+   "iv": 0.1382,
+   "vrp": 0.0063,
+   "signal": "flat"
+  },
+  {
+   "date": "2026-10-23",
+   "expiry": "2026-11-20",
+   "dte": 28,
+   "rv_forecast": 0.1378,
+   "iv": 0.1543,
+   "vrp": 0.0165,
+   "signal": "flat"
+  },
+  {
+   "date": "2026-10-26",
+   "expiry": "2026-11-27",
+   "dte": 32,
+   "rv_forecast": 0.1376,
+   "iv": 0.1406,
+   "vrp": 0.003,
+   "signal": "flat"
+  },
+  {
+   "date": "2026-10-27",
+   "expiry": "2026-11-27",
+   "dte": 31,
+   "rv_forecast": 0.1374,
+   "iv": 0.1399,
+   "vrp": 0.0025,
+   "signal": "flat"
+  },
+  {
+   "date": "2026-11-02",
+   "expiry": "2026-12-04",
+   "dte": 32,
+   "rv_forecast": 0.1511,
+   "iv": 0.1514,
+   "vrp": 0.0003,
+   "signal": "flat"
+  },
+  {
+   "date": "2026-11-03",
+   "expiry": "2026-12-04",
+   "dte": 31,
+   "rv_forecast": 0.1475,
+   "iv": 0.1664,
+   "vrp": 0.0189,
+   "signal": "flat"
+  },
+  {
+   "date": "2026-11-05",
+   "expiry": "2026-12-04",
+   "dte": 29,
+   "rv_forecast": 0.1564,
+   "iv": 0.2082,
+   "vrp": 0.0518,
+   "signal": "short"
+  }
+ ],
+ "position": {
+  "side": "short",
+  "right": "P",
+  "strike": 737.0,
+  "expiry": "2026-12-04",
+  "qty": 1,
+  "entry_price": 14.22,
+  "entry_date": "2026-11-05",
+  "hedge_shares": -46,
+  "dte": 29,
+  "mark_ts": "2026-11-05T12:41:23-05:00",
+  "spot": 737.4591,
+  "premium": 1422.0,
+  "stop": -1422.0,
+  "take": 711.0,
+  "option_pnl": -23.5,
+  "hedge_pnl": 46.0411,
+  "pnl": 22.5411
+ },
+ "trades": [
+  {
+   "date": "2026-11-05",
+   "action": "open",
+   "side": "short",
+   "right": "P",
+   "strike": 737.0,
+   "expiry": "2026-12-04",
+   "qty": 1,
+   "price": 14.22
+  }
+ ],
+ "realized": 0,
+ "book": [
+  {
+   "date": "2026-10-02",
+   "realized": 0,
+   "open": 0.0,
+   "total": 0
+  },
+  {
+   "date": "2026-10-05",
+   "realized": 0,
+   "open": 0.0,
+   "total": 0
+  },
+  {
+   "date": "2026-10-06",
+   "realized": 0,
+   "open": 0.0,
+   "total": 0
+  },
+  {
+   "date": "2026-10-07",
+   "realized": 0,
+   "open": 0.0,
+   "total": 0
+  },
+  {
+   "date": "2026-10-08",
+   "realized": 0,
+   "open": 0.0,
+   "total": 0
+  },
+  {
+   "date": "2026-10-09",
+   "realized": 0,
+   "open": 0.0,
+   "total": 0
+  },
+  {
+   "date": "2026-10-14",
+   "realized": 0,
+   "open": 0.0,
+   "total": 0
+  },
+  {
+   "date": "2026-10-15",
+   "realized": 0,
+   "open": 0.0,
+   "total": 0
+  },
+  {
+   "date": "2026-10-16",
+   "realized": 0,
+   "open": 0.0,
+   "total": 0
+  },
+  {
+   "date": "2026-10-19",
+   "realized": 0,
+   "open": 0.0,
+   "total": 0
+  },
+  {
+   "date": "2026-10-20",
+   "realized": 0,
+   "open": 0.0,
+   "total": 0
+  },
+  {
+   "date": "2026-10-21",
+   "realized": 0,
+   "open": 0.0,
+   "total": 0
+  },
+  {
+   "date": "2026-10-23",
+   "realized": 0,
+   "open": 0.0,
+   "total": 0
+  },
+  {
+   "date": "2026-10-26",
+   "realized": 0,
+   "open": 0.0,
+   "total": 0
+  },
+  {
+   "date": "2026-10-27",
+   "realized": 0,
+   "open": 0.0,
+   "total": 0
+  },
+  {
+   "date": "2026-11-02",
+   "realized": 0,
+   "open": 0.0,
+   "total": 0
+  },
+  {
+   "date": "2026-11-03",
+   "realized": 0,
+   "open": 0.0,
+   "total": 0
+  },
+  {
+   "date": "2026-11-05",
+   "realized": 0,
+   "open": 22.5411,
+   "total": 22.5411
+  }
+ ]
+}

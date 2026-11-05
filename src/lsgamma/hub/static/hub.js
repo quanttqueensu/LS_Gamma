@@ -17,9 +17,9 @@ const ICON = {
 const TOPIC_C = { RV_Forecasting: "rv", Deep_Hedging: "dh", Agentic_Routing: "ar", Risk_Management: "rm" };
 const TOPIC_KEY = Object.fromEntries(D.topics.map(([k, l]) => [l, k]));
 const RESULT = { passed: ["✓", "pass"], promoted: ["✓", "pass"], failed: ["✕", "fail"], inconclusive: ["–", "neutral"], running: ["◐", "neutral"], planned: ["○", "neutral"] };
-const state = { topic: "all", verdict: "all", tag: "all", when: "all", view: innerWidth <= 760 ? "list" : "timeline", kind: "all", allDocs: false, allCards: false, allDone: false };
+const state = { topic: "all", verdict: "all", tag: "all", when: "all", view: innerWidth <= 760 ? "list" : "timeline", kind: "all", allDocs: false, allCards: false, allDone: false, q: "", eq: "" };
 const DONE_LIMIT = 8;
-const CARD_LIMIT = 12;
+const CARD_LIMIT = 15;
 const topicChip = (key, label) => `<span class="kind c-${TOPIC_C[key] || "rv"}"><span class="dot"></span>${esc(label)}</span>`;
 const resultPill = v => `<span class="result r-${RESULT[v][1]}"><span class="ri" aria-hidden="true">${RESULT[v][0]}</span>${VERDICTS[v]}</span>`;
 
@@ -53,9 +53,6 @@ function chrome() {
 function memberHtml(m) {
   const pm = m.role === "PM";
   const initials = m.name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
-  const logs = m.logs ? `${m.logs} log ${m.logs === 1 ? "entry" : "entries"}${m.lastLog ? ` · <span class="nw">last ${date(m.lastLog).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>` : ""}` : "No work log yet";
-  const bits = [m.cards ? plural(m.cards, "card") : "No cards yet"];
-  if (!pm) bits.push(m.logLink ? `<a href="${esc(m.logLink)}" target="_blank" rel="noopener">${logs}</a>` : logs);
   const topics = pm ? "" : `<div class="topics${m.topics.length ? "" : " none"}">${m.topics.length
     ? m.topics.map(t => topicChip(TOPIC_KEY[t], t)).join(" ") : "Topic not picked yet"}</div>`;
   return `<article class="gs-card member${pm ? " pm" : ""}">
@@ -63,34 +60,28 @@ function memberHtml(m) {
     <div class="gs-cardh">${esc(m.name)}</div>
     <span class="vpill ${pm ? "v-pm" : "v-analyst"}">${pm ? "Portfolio manager" : "Analyst"}</span>
     ${topics}
-    <div class="mfoot"><div class="links">${m.github ? `<a class="icon-link" href="https://github.com/${esc(m.github)}" target="_blank" rel="noopener" aria-label="${esc(m.name)} on GitHub" title="@${esc(m.github)} on GitHub">${ICON.github}</a>` : ""}${m.linkedin ? `<a class="icon-link" href="${esc(m.linkedin)}" target="_blank" rel="noopener" aria-label="${esc(m.name)} on LinkedIn" title="${esc(m.name)} on LinkedIn">${ICON.linkedin}</a>` : ""}</div>
-    <div class="gs-divider">${bits.join("<br>")}</div></div>
+    <div class="mfoot"><div class="links">${m.github ? `<a class="icon-link" href="https://github.com/${esc(m.github)}" target="_blank" rel="noopener" aria-label="${esc(m.name)} on GitHub" title="@${esc(m.github)} on GitHub">${ICON.github}</a>` : ""}${m.linkedin ? `<a class="icon-link" href="${esc(m.linkedin)}" target="_blank" rel="noopener" aria-label="${esc(m.name)} on LinkedIn" title="${esc(m.name)} on LinkedIn">${ICON.linkedin}</a>` : ""}</div></div>
   </article>`;
 }
 
 function team() {
-  const analysts = D.team.filter(m => m.role !== "PM").length;
-  $("#team-tag").textContent = `QUANTT · ${D.team.length - analysts} PM · ${plural(analysts, "analyst")}`;
   $("#team-grid").innerHTML = D.team.map(memberHtml).join("");
 }
 
 /* experiments */
 function cardHtml(c) {
   const when = date(c.started).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  const n = c.trials.length;
-  const bits = [when, c.owner && esc(c.owner), n ? plural(n, "trial") : "no trials logged",
-    c.figures.length && plural(c.figures.length, "chart"), c.report && "report"].filter(Boolean);
   const done = c.stages.filter(Boolean).length;
-  return `<article class="gs-card xcard c-${TOPIC_C[c.topic] || "rv"}" id="card-${c.id}" data-id="${c.id}" data-topic="${c.topic}" data-verdict="${c.verdict}">
-    <div class="xtop">${topicChip(c.topic, c.topicLabel)}${resultPill(c.verdict)}</div>
-    <h3 class="xname">${esc(c.id.slice(11))}</h3>
-    <p class="hyp">${esc(c.title)}</p>
-    <div class="xfoot">
-      <ol class="stepper" aria-label="Lifecycle, ${done} of 7 stages">${STAGES.map((s, i) => `<li class="${c.stages[i] ? "done" : ""}">${s}</li>`).join("")}</ol>
-      <div class="stage-text">${done} of 7 stages · ${STAGES[c.stages.lastIndexOf(true)]}</div>
-      <div class="xact"><span class="gs-meta xmeta">${bits.join(" · ")}</span>
-        <button class="gs-pill gs-pill-ghost xtoggle" type="button" aria-expanded="false" aria-controls="body-${c.id}">Details</button></div>
-    </div>
+  const search = [c.id.slice(11), c.title, c.topicLabel, VERDICTS[c.verdict], c.detail, c.owner].join(" ").toLowerCase();
+  return `<article class="xrow" id="card-${c.id}" data-id="${c.id}" data-topic="${c.topic}" data-verdict="${c.verdict}" data-search="${esc(search)}">
+    <button class="xhead" type="button" aria-expanded="false" aria-controls="body-${c.id}">
+      ${topicChip(c.topic, c.topicLabel)}
+      <span class="xmain"><span class="xname">${esc(c.id.slice(11))}</span><span class="hyp">${esc(c.title)}</span></span>
+      <span class="dots" role="img" aria-label="${done} of 7 stages">${c.stages.map(on => `<i class="${on ? "on" : ""}"></i>`).join("")}</span>
+      <span class="ldate">${when}</span>
+      ${resultPill(c.verdict)}
+      <span class="chev" aria-hidden="true">›</span>
+    </button>
     <div class="xbody" id="body-${c.id}" hidden></div>
   </article>`;
 }
@@ -119,7 +110,11 @@ function paneHtml(c, tab) {
 function bodyHtml(c) {
   const tabs = [["summary", "Summary", c.summaryHtml], ["card", "Card", true], ["charts", "Charts", c.figures.length],
     ["trials", "Trials", c.trials.length], ["report", "Report", c.report]].filter(t => t[2]);
-  return `${c.detail ? `<p class="xresult"><span class="lab">Result</span>${esc(c.detail)}</p>` : ""}
+  const n = c.trials.length, done = c.stages.filter(Boolean).length;
+  const bits = [c.owner && esc(c.owner), n ? plural(n, "trial") : "no trials logged", c.figures.length && plural(c.figures.length, "chart"), c.report && "report"].filter(Boolean);
+  return `<div class="xinfo"><ol class="stepper" aria-label="Lifecycle, ${done} of 7 stages">${STAGES.map((s, i) => `<li class="${c.stages[i] ? "done" : ""}">${s}</li>`).join("")}</ol>
+      <div class="stage-text">${done} of 7 stages · ${STAGES[c.stages.lastIndexOf(true)]}</div><span class="gs-meta">${bits.join(" · ")}</span></div>
+    ${c.detail ? `<p class="xresult"><span class="lab">Result</span>${esc(c.detail)}</p>` : ""}
     <div class="gs-segment chips tabs" role="tablist">${tabs.map(([k, l], i) =>
       `<button type="button" role="tab" data-tab="${k}" class="${i ? "" : "is-active"}" aria-selected="${!i}">${l}</button>`).join("")}</div>
     <div class="pane">${tabs.map(([k], i) => `<div data-pane="${k}" role="tabpanel"${i ? " hidden" : ""}>${paneHtml(c, k)}</div>`).join("")}</div>
@@ -127,13 +122,12 @@ function bodyHtml(c) {
 }
 
 function toggle(el, open) {
-  const body = $(".xbody", el), btn = $(".xtoggle", el);
+  const body = $(".xbody", el), btn = $(".xhead", el);
   open = open ?? body.hidden;
   if (open && !body.dataset.ready) { body.innerHTML = bodyHtml(byId[el.dataset.id]); body.dataset.ready = "1"; }
   body.hidden = !open;
   el.classList.toggle("open", open);
   btn.setAttribute("aria-expanded", open);
-  btn.textContent = open ? "Close" : "Details";
 }
 
 function showTab(btn) {
@@ -145,14 +139,24 @@ function showTab(btn) {
 }
 
 function filterCards() {
+  const words = state.eq.toLowerCase().split(/\s+/).filter(Boolean);
   let match = 0;
-  $$(".xcard").forEach(el => {
-    const ok = (state.topic === "all" || el.dataset.topic === state.topic) && (state.verdict === "all" || el.dataset.verdict === state.verdict);
+  $$(".xrow").forEach(el => {
+    const ok = (state.topic === "all" || el.dataset.topic === state.topic) && (state.verdict === "all" || el.dataset.verdict === state.verdict)
+      && words.every(w => el.dataset.search.includes(w));
     match += ok;
-    el.hidden = !ok || (!state.allCards && match > CARD_LIMIT);
+    el.hidden = !ok || (!state.allCards && !words.length && match > CARD_LIMIT);
+    if (ok) {
+      const c = byId[el.dataset.id];
+      $(".xname", el).innerHTML = marked(c.id.slice(11), words);
+      $(".hyp", el).innerHTML = marked(c.title, words);
+    }
   });
+  const capped = !state.allCards && !words.length && match > CARD_LIMIT;
+  $("#exp-count").textContent = words.length ? `${match} of ${D.cards.length} match “${state.eq.trim()}”`
+    : `${plural(match, "experiment")}${capped ? `, newest ${CARD_LIMIT} shown` : ""}`;
   $("#cards-empty").hidden = match > 0;
-  $("#cards-more").hidden = state.allCards || match <= CARD_LIMIT;
+  $("#cards-more").hidden = !capped;
   $("#cards-more button").textContent = `Show all ${match}`;
 }
 
@@ -165,30 +169,38 @@ function experimentFilters() {
 }
 
 function experiments() {
-  $("#exp-tag").textContent = `${plural(D.cards.length, "card")} · ${D.stats.trials} trials logged`;
   experimentFilters();
-  $("#cards").innerHTML = D.cards.map(cardHtml).join("") + `<p class="gs-meta" id="cards-empty" hidden>No cards match these filters.</p>
+  $("#cards").innerHTML = D.cards.map(cardHtml).join("") + `<p class="gs-meta empty" id="cards-empty" hidden>No experiments match. Try fewer words or another filter.</p>
     <div class="more" id="cards-more" hidden><button class="gs-pill gs-pill-ghost" type="button">Show all</button></div>`;
   filterCards();
   $("#cards-more button").addEventListener("click", () => { state.allCards = true; filterCards(); });
+  const q = $("#exp-q");
+  q.addEventListener("input", () => { state.eq = q.value; filterCards(); });
+  q.addEventListener("keydown", e => { if (e.key === "Escape") { q.value = state.eq = ""; filterCards(); } });
   $("#cards").addEventListener("click", e => {
-    const t = e.target.closest(".xtoggle");
+    const t = e.target.closest(".xhead");
     if (t) {
-      const el = t.closest(".xcard");
+      const el = t.closest(".xrow");
       toggle(el);
       return el.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
     const tab = e.target.closest("[data-tab]");
     if (tab) return showTab(tab);
     const fig = e.target.closest("[data-fig]");
-    if (fig) lightbox(byId[fig.closest(".xcard").dataset.id], Number(fig.dataset.fig));
+    if (fig) lightbox(byId[fig.closest(".xrow").dataset.id], Number(fig.dataset.fig));
   });
 }
 
 function openCard(id) {
   const el = document.getElementById(`card-${id}`);
   if (!el) return;
-  if (el.hidden) { state.topic = state.verdict = "all"; state.allCards = true; experimentFilters(); filterCards(); }
+  if (el.hidden) {
+    state.topic = state.verdict = "all";
+    state.eq = $("#exp-q").value = "";
+    state.allCards = true;
+    experimentFilters();
+    filterCards();
+  }
   toggle(el, true);
   el.scrollIntoView({ block: "start" });
   history.replaceState(null, "", `#card-${id}`);
@@ -402,7 +414,6 @@ function road() {
 }
 
 function roadmap() {
-  $("#road-tag").textContent = `${BACK} weeks back · ${AHEAD} ahead`;
   const count = t => D.timeline.filter(it => it.tag === t).length;
   chips($("#f-tag"), [["all", "All tags"], ...Object.keys(TAGS).map(t => [t, HEADS[t], t, count(t)])], state.tag, v => { state.tag = v; road(); });
   chips($("#f-when"), [["all", "Any time"], ["next", "Up next"], ["done", "Done"]], state.when, v => { state.when = v; road(); });
@@ -431,32 +442,229 @@ function roadmap() {
 /* library */
 const KINDS = [["all", "All"], ["Literature report", "Literature"], ["Research note", "Notes"], ["General research", "General"], ["Paper", "Papers"]];
 const KIND_C = { "Literature report": "lit", "Research note": "note", "General research": "note", Paper: "pub" };
-const LIMIT = 12;
+const LIMIT = 15;
+
+const reEsc = w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+function marked(text, words) {
+  if (!words.length) return esc(text);
+  const re = new RegExp(`(${words.map(reEsc).join("|")})`, "gi");
+  return text.split(re).map((part, i) => i % 2 ? `<mark>${esc(part)}</mark>` : esc(part)).join("");
+}
 
 function docs() {
-  const list = D.library.filter(d => state.kind === "all" || d.kind === state.kind);
-  const cut = state.allDocs ? list : list.slice(0, LIMIT);
-  $("#docs").innerHTML = cut.map(d => `<a class="gs-card doc" href="${esc(d.href)}" target="_blank" rel="noopener">
-      <div class="doc-meta"><span class="kind c-${KIND_C[d.kind] || "note"}"><span class="dot"></span>${esc(d.kind)}</span>${d.date ? `<span class="gs-meta">${d.date}</span>` : ""}</div>
-      <div class="gs-cardh">${esc(d.title)}</div>
-      <div class="open">${d.kind === "Paper" ? "View on GitHub ↗" : "Open PDF ↗"}</div></a>`).join("")
-    + (list.length > cut.length ? `<div class="more" style="grid-column:1/-1"><button class="gs-pill gs-pill-ghost" type="button" id="more">Show all ${list.length}</button></div>` : "");
+  const words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
+  const list = D.library.filter(d => (state.kind === "all" || d.kind === state.kind)
+    && words.every(w => `${d.title} ${d.kind}`.toLowerCase().includes(w)));
+  const cut = state.allDocs || words.length ? list : list.slice(0, LIMIT);
+  const scope = state.kind === "all" ? "items" : `${state.kind.toLowerCase()}s`;
+  $("#lib-count").textContent = words.length ? `${list.length} of ${D.library.length} match “${state.q.trim()}”`
+    : `${list.length} ${scope}${cut.length < list.length ? `, newest ${cut.length} shown` : ""}`;
+  $("#docs").innerHTML = cut.map(d => `<a class="lrow" href="${esc(d.href)}" target="_blank" rel="noopener">
+      <span class="kind c-${KIND_C[d.kind] || "note"}"><span class="dot"></span>${esc(d.kind)}</span>
+      <span class="ltitle">${marked(d.title, words)}</span>
+      <span class="ldate">${d.date ? short_day(d.date) + ", " + d.date.slice(0, 4) : "—"}</span>
+      <span class="lopen">${d.kind === "Paper" ? "GitHub ↗" : "Open PDF ↗"}</span></a>`).join("")
+    + (list.length ? "" : `<p class="gs-meta empty">No matches. Try fewer words or another filter.</p>`)
+    + (list.length > cut.length ? `<div class="more"><button class="gs-pill gs-pill-ghost" type="button" id="more">Show all ${list.length}</button></div>` : "");
   $("#more")?.addEventListener("click", () => { state.allDocs = true; docs(); });
 }
 
 function library() {
-  const reports = D.library.filter(d => d.kind !== "Paper").length;
-  $("#lib-tag").textContent = `${plural(reports, "report")} · ${plural(D.stats.papers, "paper")}`;
   const kinds = KINDS.filter(([k]) => k === "all" || D.library.some(d => d.kind === k))
     .map(([k, l]) => k === "all" ? [k, l] : [k, l, KIND_C[k], D.library.filter(d => d.kind === k).length]);
   chips($("#f-kind"), kinds, state.kind, v => { state.kind = v; state.allDocs = false; docs(); });
+  const q = $("#lib-q");
+  q.addEventListener("input", () => { state.q = q.value; docs(); });
+  q.addEventListener("keydown", e => { if (e.key === "Escape") { q.value = state.q = ""; docs(); } });
+  document.addEventListener("keydown", e => {
+    if (e.key === "/" && !e.target.closest("input, textarea") && modal.hidden) { e.preventDefault(); q.focus(); }
+  });
   docs();
+}
+
+/* this week */
+const short_day = s => date(s).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+const long_day = s => date(s).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+const signed = v => v == null ? "—" : `${Math.round(v) < 0 ? "−" : Math.round(v) > 0 ? "+" : ""}$${Math.round(Math.abs(v)).toLocaleString("en-US")}`;
+const contract = t => `${t.side} ${+t.strike} ${t.right === "P" ? "put" : "call"} (${short_day(t.expiry)})`;
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+function weekTile(href, n, label, sub) {
+  return `<a class="wstat" href="${href}"><div class="dnum">${esc(n)}</div><div class="wlab">${esc(label)}</div><div class="gs-meta">${esc(sub)}</div></a>`;
+}
+
+function week() {
+  const start = new Date(today);
+  start.setDate(start.getDate() - 6);
+  const lo = iso(start), hi = iso(today);
+  const inside = s => s && s >= lo && s <= hi;
+  const done = D.cards.filter(c => inside(c.finished));
+  const passed = done.filter(c => c.verdict === "passed" || c.verdict === "promoted").length;
+  const failed = done.filter(c => c.verdict === "failed").length;
+  const other = done.length - passed - failed;
+  const runDay = r => `${r.slice(0, 4)}-${r.slice(4, 6)}-${r.slice(6, 8)}`;
+  const trials = D.cards.flatMap(c => c.trials).filter(t => t.run && inside(runDay(t.run))).length;
+  const reports = D.library.filter(d => d.kind !== "Paper" && inside(d.date));
+  const lit = reports.filter(d => d.kind === "Literature report").length;
+  const trades = (D.desk?.trades || []).filter(t => inside(t.date));
+  const opened = trades.filter(t => t.action === "open").length;
+  const book = D.desk?.book || [];
+  const before = book.filter(b => b.date < lo).at(-1)?.total ?? 0;
+  const now = book.filter(b => b.date <= hi).at(-1)?.total;
+  $("#week-meta").textContent = `${short_day(lo)} – ${short_day(hi)}`;
+  $("#week-stats").innerHTML = [
+    weekTile("#experiments", done.length, done.length === 1 ? "experiment finished" : "experiments finished",
+      `${passed} passed · ${failed} failed${other ? ` · ${other} other` : ""}`),
+    weekTile("#experiments", trials, trials === 1 ? "trial logged" : "trials logged", "backtest and forecast runs"),
+    weekTile("#library", reports.length, reports.length === 1 ? "report published" : "reports published",
+      `${lit} literature · ${reports.length - lit} notes`),
+    weekTile("#desk", trades.length, trades.length === 1 ? "paper trade" : "paper trades", `${opened} opened · ${trades.length - opened} closed`),
+    weekTile("#desk", now == null ? "—" : signed(now - before), "book P&L this week", "realized + open, paper"),
+  ].join("");
+}
+
+/* live desk */
+const SIDE = { short: "Short gamma", long: "Long gamma", flat: "Flat" };
+const pts = v => `${v < 0 ? "−" : "+"}${Math.abs(v * 100).toFixed(1)} pts`;
+const pct = v => `${(v * 100).toFixed(1)}%`;
+
+function deskChart(k, W) {
+  const S = k.signals, r = k.rules, H = 250, L = 44, R = 12, T = 14, B = 30;
+  if (!S.length) return `<p class="gs-meta empty">No signals logged yet.</p>`;
+  const vals = S.map(s => s.vrp * 100), top = Math.max(...vals, r.short_band * 100) + 2, bot = Math.min(...vals, r.long_band * 100) - 2;
+  const x = i => L + (S.length === 1 ? (W - L - R) / 2 : i * (W - L - R) / (S.length - 1));
+  const y = v => T + (top - v) * (H - T - B) / (top - bot);
+  const sb = y(r.short_band * 100), lb = y(r.long_band * 100), zero = y(0);
+  const ticks = [[r.short_band * 100, `+${r.short_band * 100}`], [0, "0"], [r.long_band * 100, `${r.long_band * 100}`.replace("-", "−")]];
+  const labels = [0, Math.floor((S.length - 1) / 2), S.length - 1].filter((v, i, a) => a.indexOf(v) === i);
+  return `<svg class="dchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="VRP over the last ${S.length} signals with the short and long bands">
+    <rect x="${L}" y="${T}" width="${W - L - R}" height="${sb - T}" class="zone"/>
+    <rect x="${L}" y="${lb}" width="${W - L - R}" height="${H - B - lb}" class="zone"/>
+    <text x="${L + 8}" y="${T + 14}" class="zlab">Short gamma zone</text>
+    <text x="${L + 8}" y="${H - B - 8}" class="zlab">Long gamma zone</text>
+    <line x1="${L}" x2="${W - R}" y1="${zero}" y2="${zero}" class="base"/>
+    <line x1="${L}" x2="${W - R}" y1="${sb}" y2="${sb}" class="band"/>
+    <line x1="${L}" x2="${W - R}" y1="${lb}" y2="${lb}" class="band"/>
+    ${ticks.map(([v, t]) => `<text x="${L - 8}" y="${y(v) + 4}" class="tick" text-anchor="end">${t}</text>`).join("")}
+    ${labels.map(i => `<text x="${x(i)}" y="${H - 9}" class="tick" text-anchor="${i === 0 ? "start" : i === S.length - 1 ? "end" : "middle"}">${short_day(S[i].date)}</text>`).join("")}
+    <polyline points="${S.map((s, i) => `${x(i)},${y(s.vrp * 100)}`).join(" ")}" class="vline"/>
+    ${S.map((s, i) => `<circle cx="${x(i)}" cy="${y(s.vrp * 100)}" r="4.5" class="pt${s.signal === "flat" ? " flat" : ""}"/>
+      <circle cx="${x(i)}" cy="${y(s.vrp * 100)}" r="13" class="hit" data-s="${i}" tabindex="0"/>`).join("")}
+  </svg>`;
+}
+
+function gauge(p) {
+  const hi = p.take ?? -p.stop, lo = p.stop, at = Math.min(Math.max(p.pnl ?? 0, lo), hi);
+  const pos = v => ((v - lo) / (hi - lo)) * 100, z = pos(0), m = pos(at);
+  const cls = (p.pnl ?? 0) >= 0 ? "r-pass" : "r-fail";
+  return `<div class="gauge" aria-label="P&L ${signed(p.pnl)} between stop ${signed(p.stop)} and ${p.take == null ? "no profit take" : `take ${signed(p.take)}`}">
+    <div class="gtrack"><span class="gfill ${cls}" style="left:${Math.min(z, m)}%;width:${Math.abs(m - z)}%"></span>
+      <span class="gzero" style="left:${z}%"></span><span class="gmark" style="left:${m}%"></span></div>
+    <div class="gends"><span>Stop ${signed(p.stop)}</span><span class="gnow ${cls}"><span class="ri">${(p.pnl ?? 0) >= 0 ? "▲" : "▼"}</span> ${signed(p.pnl)}</span>
+      <span>${p.take == null ? "No profit take" : `Take ${signed(p.take)}`}</span></div>
+  </div>`;
+}
+
+function positionHtml(k) {
+  const p = k.position;
+  const trades = k.trades.map(t => `<tr><td>${short_day(t.date)}</td><td>${t.action === "open" ? "Open" : "Close"}</td>
+    <td>${esc(contract(t))}</td><td class="num">$${t.price}</td><td class="num">${t.action === "close" ? signed(t.pnl) : "—"}</td></tr>`).join("");
+  const table = k.trades.length ? `<table class="trials dtrades"><thead><tr><th>Date</th><th>Action</th><th>Contract</th><th class="num">Price</th>
+    <th class="num">P&amp;L</th></tr></thead><tbody>${trades}</tbody></table>` : `<p class="gs-meta">No trades yet.</p>`;
+  const marked = p?.mark_ts ? new Date(p.mark_ts).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }) + " ET" : "—";
+  const head = p ? `<h3 class="colh">Open position</h3>
+    <div class="pos-name">${esc(SIDE[p.side].split(" ")[0])} ${+p.strike} ${p.right === "P" ? "put" : "call"} · ${short_day(p.expiry)}</div>
+    <dl class="drows"><dt>Entry</dt><dd>$${p.entry_price} on ${short_day(p.entry_date)}</dd><dt>Size</dt><dd>${plural(p.qty, "contract")} · hedge ${p.hedge_shares > 0 ? "+" : "−"}${Math.abs(p.hedge_shares)} SPY</dd>
+      <dt>P&amp;L</dt><dd>option ${signed(p.option_pnl)} · hedge ${signed(p.hedge_pnl)} · <b>total ${signed(p.pnl)}</b></dd><dt>Marked</dt><dd>${marked}</dd></dl>
+    ${gauge(p)}`
+    : `<h3 class="colh">Open position</h3><div class="pos-name">Flat: no open position</div>`;
+  return `${head}<h3 class="colh sub">Trades</h3>${table}<p class="gs-meta realized">Realized P&amp;L ${signed(k.realized)}</p>`;
+}
+
+function bookChart(B, W) {
+  const H = 230, L = 64, R = 70, T = 16, Bm = 30;
+  if (!B.length) return `<p class="gs-meta empty">No book history yet.</p>`;
+  const vals = B.map(b => b.total ?? 0), span = Math.max(...vals, 0) - Math.min(...vals, 0);
+  const pad = Math.max(10, span * 0.25), top = Math.max(...vals, 0) + pad, bot = Math.min(...vals, 0) - pad;
+  const x = i => L + (B.length === 1 ? (W - L - R) / 2 : i * (W - L - R) / (B.length - 1));
+  const y = v => T + (top - v) * (H - T - Bm) / (top - bot);
+  const line = B.map((b, i) => `${x(i)},${y(b.total ?? 0)}`).join(" ");
+  const area = `M${x(0)},${y(0)} L${line.replaceAll(" ", " L")} L${x(B.length - 1)},${y(0)} Z`;
+  const ticks = [...new Set([0, Math.max(...vals), Math.min(...vals)].map(v => Math.round(v)))];
+  const labels = [0, Math.floor((B.length - 1) / 2), B.length - 1].filter((v, i, a) => a.indexOf(v) === i);
+  const lastV = vals.at(-1);
+  return `<svg class="dchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Book P&L over ${B.length} days, now ${signed(lastV)}">
+    ${ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="${v === 0 ? "band" : "base"}"/>
+      <text x="${L - 8}" y="${y(v) + 4}" class="tick" text-anchor="end">${signed(v)}</text>`).join("")}
+    ${labels.map(i => `<text x="${x(i)}" y="${H - 9}" class="tick" text-anchor="${i === 0 ? "start" : i === B.length - 1 ? "end" : "middle"}">${short_day(B[i].date)}</text>`).join("")}
+    <path d="${area}" class="barea ${lastV < 0 ? "neg" : "pos"}"/>
+    <polyline points="${line}" class="vline"/>
+    <circle cx="${x(B.length - 1)}" cy="${y(lastV)}" r="5" class="pt"/>
+    <text x="${x(B.length - 1) + 10}" y="${y(lastV) + 4}" class="endlab">${signed(lastV)}</text>
+    ${B.map((b, i) => `<circle cx="${x(i)}" cy="${y(b.total ?? 0)}" r="12" class="hit" data-b="${i}" tabindex="0"/>`).join("")}
+  </svg>`;
+}
+
+function hoverTip(box, tip, render) {
+  const show = el => {
+    const [head, body] = render(el), title = document.createElement("div"), meta = document.createElement("div");
+    title.className = "t";
+    title.textContent = head;
+    meta.className = "m";
+    meta.textContent = body;
+    tip.replaceChildren(title, meta);
+    tip.hidden = false;
+    const c = box.getBoundingClientRect(), b = el.getBoundingClientRect();
+    tip.style.left = `${Math.min(Math.max(b.left - c.left - 40, 8), c.width - tip.offsetWidth - 8)}px`;
+    tip.style.top = `${b.top - c.top - tip.offsetHeight - 6}px`;
+  };
+  box.addEventListener("pointerover", e => { const h = e.target.closest(".hit"); h ? show(h) : (tip.hidden = true); });
+  box.addEventListener("pointerleave", () => { tip.hidden = true; });
+  box.addEventListener("focusin", e => { const h = e.target.closest(".hit"); if (h) show(h); });
+  box.addEventListener("focusout", () => { tip.hidden = true; });
+}
+
+function desk() {
+  const k = D.desk;
+  if (!k) return;
+  $("#desk").hidden = false;
+  const last = k.signals.at(-1), p = k.position, r = k.rules, book = k.book || [];
+  const total = book.at(-1)?.total ?? k.realized;
+  const when = k.asof ? new Date(k.asof).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }) + " ET" : "—";
+  $("#desk-meta").textContent = `Paper account · updated ${when}`;
+  const tiles = [
+    [last ? SIDE[last.signal] : "—", last ? `${long_day(last.date)} · VRP ${pts(last.vrp)}` : "no signal yet"],
+    [last ? `${pct(last.iv)} vs ${pct(last.rv_forecast)}` : "—", "implied vol vs RV forecast"],
+    [p ? `${SIDE[p.side].split(" ")[0]} ${+p.strike} ${p.right === "P" ? "put" : "call"}` : "Flat", p ? `${short_day(p.expiry)} expiry · ${p.dte} DTE` : "no open position"],
+    [signed(total), `book P&L · realized ${signed(k.realized)} · open ${signed(p ? p.pnl : 0)}`],
+  ];
+  $("#desk-stats").innerHTML = tiles.map(([n, l]) => `<div class="dstat"><div class="dnum">${esc(n)}</div><div class="gs-meta">${esc(l)}</div></div>`).join("");
+  $("#book-note").textContent = book.length ? `Realized plus open P&L, option and hedge, since ${short_day(book[0].date)}. Days without a position count realized only.` : "";
+  const draw = () => {
+    $("#book-chart").innerHTML = bookChart(book, Math.max(300, Math.round($("#book-chart").clientWidth || 900)));
+    $("#desk-chart").innerHTML = deskChart(k, Math.max(300, Math.round($("#desk-chart").clientWidth || 560)));
+  };
+  draw();
+  let frame = 0;
+  addEventListener("resize", () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(draw); });
+  $("#desk-rule").textContent = `Short gamma when implied vol is more than ${r.short_band * 100} pts above the ${r.forecaster.toUpperCase()} forecast, long gamma when more than ${-r.long_band * 100} pts below, otherwise flat. Options near ${r.target_dte} DTE, closed at ${r.exit_dte} DTE; stop at ${r.short_stop_mult}× the credit, profit take at ${r.short_profit_frac * 100}% on shorts.`;
+  $("#desk-pos").innerHTML = positionHtml(k);
+  hoverTip($(".desk-chart"), $("#d-tip"), el => {
+    const s = k.signals[Number(el.dataset.s)];
+    return [`${long_day(s.date)} · ${SIDE[s.signal]}`, `VRP ${pts(s.vrp)} · IV ${pct(s.iv)} vs forecast ${pct(s.rv_forecast)} · ${s.dte} DTE`];
+  });
+  hoverTip($(".desk-book"), $("#b-tip"), el => {
+    const b = book[Number(el.dataset.b)];
+    return [`${long_day(b.date)} · ${signed(b.total)}`, `realized ${signed(b.realized)} · open ${signed(b.open)}`];
+  });
 }
 
 chrome();
 team();
+week();
+desk();
 experiments();
 roadmap();
 library();
-$("#latest").addEventListener("click", () => D.cards.length && openCard(D.cards[0].id));
 if (location.hash.startsWith("#card-")) openCard(location.hash.slice(6));

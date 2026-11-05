@@ -1,4 +1,5 @@
 import json
+from datetime import date
 
 import pandas as pd
 import pytest
@@ -6,7 +7,8 @@ import pytest
 pytest.importorskip("markdown_it")
 
 from lsgamma import experiments
-from lsgamma.hub import build, collect, export
+from lsgamma.hub import build, collect, desk, export
+from lsgamma.trading import config, ledger
 
 CARD = """# Hypothesis: a demo rule beats the baseline
 
@@ -150,3 +152,39 @@ def test_export_adds_folder_runs(tmp_path, monkeypatch):
     assert rows.set_index("run").loc["20261101-120000", ["card", "variant"]].tolist() == ["2026-11-01-demo", "a"]
     assert rows.set_index("run").loc["20261002-143446", ["card", "commit"]].tolist() == ["2026-10-05-forecast", "123abc"]
     assert len(rows) == 3
+
+
+def test_desk_snapshot(tmp_path, monkeypatch):
+    monkeypatch.setattr(ledger, "ROOT", tmp_path)
+    ledger.log("signals", {"date": "2026-11-04", "expiry": "2026-12-04", "dte": 30, "rv_forecast": 0.15,
+                           "iv": 0.15, "vrp": 0.0, "signal": "flat", "ts": "2026-11-04T10:15:00-05:00"})
+    ledger.log("signals", {"date": "2026-11-05", "expiry": "2026-12-04", "dte": 29, "rv_forecast": 0.15,
+                           "iv": 0.2, "vrp": 0.05, "signal": "short", "ts": "2026-11-05T10:15:00-05:00"})
+    pos = {"side": "short", "right": "P", "strike": 700.0, "expiry": "2026-12-04", "qty": 1, "entry_price": 10.0,
+           "entry_date": "2026-11-05", "entry_ts": "2026-11-05T10:15:00-05:00",
+           "hedges": [{"date": "2026-11-05", "ts": "2026-11-05T10:20:00-05:00", "shares": -50, "price": 700.0}]}
+    ledger.save_position(pos)
+    ledger.log("trades", {k: v for k, v in pos.items() if k != "hedges"} | {"date": "2026-11-05",
+                          "ts": "2026-11-05T10:15:00-05:00", "action": "open", "price": 10.0})
+    chain = pd.DataFrame({"asof": [pd.Timestamp("2026-11-05 10:30", tz="America/New_York")],
+                          "expiry": [date(2026, 12, 4)], "strike": [700.0], "right": ["P"], "mid": [9.0],
+                          "und_price": [702.0]})
+    cfg = config.load()
+    snap = desk.build(chain, cfg)
+    p = snap["position"]
+    assert (p["option_pnl"], p["hedge_pnl"], p["pnl"]) == (100.0, -100.0, 0.0)
+    assert (p["premium"], p["stop"], p["take"], p["hedge_shares"]) == (1000.0, -1000.0, 500.0, -50)
+    assert snap["asof"] == "2026-11-05T10:30:00-05:00" and snap["realized"] == 0
+    assert snap["signals"][1]["signal"] == "short" and snap["trades"][0]["action"] == "open"
+    assert [(b["date"], b["total"]) for b in snap["book"]] == [("2026-11-04", 0), ("2026-11-05", 0.0)]
+    desk.write(chain, cfg, tmp_path / "desk.json")
+    desk.write(chain, cfg, tmp_path / "desk.json")
+    assert ledger.read_log("book")["date"].tolist() == ["2026-11-05"]
+    ledger.clear_position()
+    out = desk.write(chain, cfg, tmp_path / "desk.json")
+    assert json.loads(out.read_text())["position"] is None
+
+
+def test_collect_reads_desk(repo):
+    (repo / "research" / "desk.json").write_text(json.dumps({"asof": "x", "signals": [], "trades": []}))
+    assert collect.collect()["desk"]["asof"] == "x"

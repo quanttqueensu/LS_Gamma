@@ -2,6 +2,7 @@
 #   name    as written on cards ("Owner") and in topic READMEs
 #   role    PM | Analyst
 #   github  GitHub handle
+#   linkedin  LinkedIn profile URL (from quantt.ca/team)
 #   photo   square headshot in research/team/ (about 320px; initials show without one)
 #   logs    work-log folders (work-logs/<folder>); entries and last date come from these
 # Topics come from each topic README's "Who's working on it" table, so add yourself there.
@@ -10,12 +11,14 @@
 name = "Gabe Soler"
 role = "PM"
 github = "Gabe-Soler"
+linkedin = "https://www.linkedin.com/in/gabriel-soler-gs/"
 photo = "research/team/gabe-soler.jpg"
 
 [[member]]
 name = "Ben Gorenc"
 role = "Analyst"
 github = "benjaminGorenc11"
+linkedin = "https://www.linkedin.com/in/bengorenc/"
 photo = "research/team/ben-gorenc.jpg"
 logs = ["work-logs/benjaminGorenc11", "work-logs/BenWorkLog"]
 
@@ -23,6 +26,7 @@ logs = ["work-logs/benjaminGorenc11", "work-logs/BenWorkLog"]
 name = "Brandon Scheidler"
 role = "Analyst"
 github = "Brandon-Scheidler"
+linkedin = "https://www.linkedin.com/in/brandon-scheidler/"
 photo = "research/team/brandon-scheidler.jpg"
 logs = ["work-logs/Brandon"]
 
@@ -30,6 +34,7 @@ logs = ["work-logs/Brandon"]
 name = "Elizabeth Bighiu"
 role = "Analyst"
 github = "ebighiu07"
+linkedin = "https://www.linkedin.com/in/elizabethbighiu/"
 photo = "research/team/elizabeth-bighiu.jpg"
 logs = ["work-logs/Elizabeth"]
 
@@ -37,5 +42,6 @@ logs = ["work-logs/Elizabeth"]
 name = "Zach Glazer"
 role = "Analyst"
 github = "zglazer10"
+linkedin = "https://www.linkedin.com/in/z-glazer/"
 photo = "research/team/zach-glazer.jpg"
 logs = ["work-logs/ZachGlazer"]

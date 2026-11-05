@@ -10,8 +10,18 @@ const HEADS = { experiment: "Experiments", paper: "Papers", general: "General re
 const TOPIC = Object.fromEntries(D.topics);
 const byId = Object.fromEntries(D.cards.map(c => [c.id, c]));
 const STATUS = { done: "Done", next: "Next", active: "Active", idea: "Idea" };
-const state = { topic: "all", verdict: "all", tag: "all", when: "all", view: "timeline", kind: "all", allDocs: false, allCards: false };
-const CARD_LIMIT = 10;
+const ICON = {
+  github: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>`,
+  linkedin: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>`,
+};
+const TOPIC_C = { RV_Forecasting: "rv", Deep_Hedging: "dh", Agentic_Routing: "ar", Risk_Management: "rm" };
+const TOPIC_KEY = Object.fromEntries(D.topics.map(([k, l]) => [l, k]));
+const RESULT = { passed: ["✓", "pass"], promoted: ["✓", "pass"], failed: ["✕", "fail"], inconclusive: ["–", "neutral"], running: ["◐", "neutral"], planned: ["○", "neutral"] };
+const state = { topic: "all", verdict: "all", tag: "all", when: "all", view: innerWidth <= 760 ? "list" : "timeline", kind: "all", allDocs: false, allCards: false, allDone: false };
+const DONE_LIMIT = 8;
+const CARD_LIMIT = 12;
+const topicChip = (key, label) => `<span class="kind c-${TOPIC_C[key] || "rv"}"><span class="dot"></span>${esc(label)}</span>`;
+const resultPill = v => `<span class="result r-${RESULT[v][1]}"><span class="ri" aria-hidden="true">${RESULT[v][0]}</span>${VERDICTS[v]}</span>`;
 
 const date = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
 const days = (a, b) => Math.round((b - a) / DAY);
@@ -43,17 +53,18 @@ function chrome() {
 function memberHtml(m) {
   const pm = m.role === "PM";
   const initials = m.name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
-  const logs = m.logs ? `${m.logs} log ${m.logs === 1 ? "entry" : "entries"}${m.lastLog ? ` · last ${date(m.lastLog).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}` : "No work log yet";
+  const logs = m.logs ? `${m.logs} log ${m.logs === 1 ? "entry" : "entries"}${m.lastLog ? ` · <span class="nw">last ${date(m.lastLog).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>` : ""}` : "No work log yet";
   const bits = [m.cards ? plural(m.cards, "card") : "No cards yet"];
   if (!pm) bits.push(m.logLink ? `<a href="${esc(m.logLink)}" target="_blank" rel="noopener">${logs}</a>` : logs);
-  const topics = pm ? "" : `<div class="topics${m.topics.length ? "" : " none"}">${m.topics.length ? esc(m.topics.join(" · ")) : "Topic not picked yet"}</div>`;
+  const topics = pm ? "" : `<div class="topics${m.topics.length ? "" : " none"}">${m.topics.length
+    ? m.topics.map(t => topicChip(TOPIC_KEY[t], t)).join(" ") : "Topic not picked yet"}</div>`;
   return `<article class="gs-card member${pm ? " pm" : ""}">
     ${m.photo ? `<img class="avatar" src="${esc(m.photo)}" alt="${esc(m.name)}" loading="lazy">` : `<div class="avatar" aria-hidden="true">${esc(initials)}</div>`}
     <div class="gs-cardh">${esc(m.name)}</div>
     <span class="vpill ${pm ? "v-pm" : "v-analyst"}">${pm ? "Portfolio manager" : "Analyst"}</span>
     ${topics}
-    ${m.github ? `<a class="gh" href="https://github.com/${esc(m.github)}" target="_blank" rel="noopener">@${esc(m.github)}</a>` : ""}
-    <div class="gs-divider">${bits.join("<br>")}</div>
+    <div class="mfoot"><div class="links">${m.github ? `<a class="icon-link" href="https://github.com/${esc(m.github)}" target="_blank" rel="noopener" aria-label="${esc(m.name)} on GitHub" title="@${esc(m.github)} on GitHub">${ICON.github}</a>` : ""}${m.linkedin ? `<a class="icon-link" href="${esc(m.linkedin)}" target="_blank" rel="noopener" aria-label="${esc(m.name)} on LinkedIn" title="${esc(m.name)} on LinkedIn">${ICON.linkedin}</a>` : ""}</div>
+    <div class="gs-divider">${bits.join("<br>")}</div></div>
   </article>`;
 }
 
@@ -65,23 +76,20 @@ function team() {
 
 /* experiments */
 function cardHtml(c) {
-  const when = c.finished && c.finished !== c.started ? `${c.started} → ${c.finished}` : c.started;
+  const when = date(c.started).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   const n = c.trials.length;
-  const bits = [n ? plural(n, "trial") : "no trials logged", c.figures.length && plural(c.figures.length, "chart"), c.report && "report"].filter(Boolean);
+  const bits = [when, c.owner && esc(c.owner), n ? plural(n, "trial") : "no trials logged",
+    c.figures.length && plural(c.figures.length, "chart"), c.report && "report"].filter(Boolean);
   const done = c.stages.filter(Boolean).length;
-  return `<article class="gs-card xcard" id="card-${c.id}" data-id="${c.id}" data-topic="${c.topic}" data-verdict="${c.verdict}">
-    <div class="xhead">
-      <div class="xmain">
-        <div class="gs-meta">${when} · ${esc(c.topicLabel)}${c.owner ? ` · ${esc(c.owner)}` : ""}</div>
-        <h3 class="gs-cardh">${esc(c.title)}</h3>
-        <div class="xverdict"><span class="vpill v-${c.verdict}">${VERDICTS[c.verdict]}</span>${c.detail ? `<span class="gs-meta">${esc(c.detail)}</span>` : ""}</div>
-      </div>
-      <button class="gs-pill gs-pill-ghost xtoggle" type="button" aria-expanded="false" aria-controls="body-${c.id}">Details</button>
-    </div>
+  return `<article class="gs-card xcard c-${TOPIC_C[c.topic] || "rv"}" id="card-${c.id}" data-id="${c.id}" data-topic="${c.topic}" data-verdict="${c.verdict}">
+    <div class="xtop">${topicChip(c.topic, c.topicLabel)}${resultPill(c.verdict)}</div>
+    <h3 class="xname">${esc(c.id.slice(11))}</h3>
+    <p class="hyp">${esc(c.title)}</p>
     <div class="xfoot">
       <ol class="stepper" aria-label="Lifecycle, ${done} of 7 stages">${STAGES.map((s, i) => `<li class="${c.stages[i] ? "done" : ""}">${s}</li>`).join("")}</ol>
-      <div class="stage-text">${done} of 7 stages · ${STAGES.filter((_, i) => c.stages[i]).join(", ")}</div>
-      <div class="gs-meta">${bits.join(" · ")}</div>
+      <div class="stage-text">${done} of 7 stages · ${STAGES[c.stages.lastIndexOf(true)]}</div>
+      <div class="xact"><span class="gs-meta xmeta">${bits.join(" · ")}</span>
+        <button class="gs-pill gs-pill-ghost xtoggle" type="button" aria-expanded="false" aria-controls="body-${c.id}">Details</button></div>
     </div>
     <div class="xbody" id="body-${c.id}" hidden></div>
   </article>`;
@@ -111,7 +119,8 @@ function paneHtml(c, tab) {
 function bodyHtml(c) {
   const tabs = [["summary", "Summary", c.summaryHtml], ["card", "Card", true], ["charts", "Charts", c.figures.length],
     ["trials", "Trials", c.trials.length], ["report", "Report", c.report]].filter(t => t[2]);
-  return `<div class="gs-segment chips tabs" role="tablist">${tabs.map(([k, l], i) =>
+  return `${c.detail ? `<p class="xresult"><span class="lab">Result</span>${esc(c.detail)}</p>` : ""}
+    <div class="gs-segment chips tabs" role="tablist">${tabs.map(([k, l], i) =>
       `<button type="button" role="tab" data-tab="${k}" class="${i ? "" : "is-active"}" aria-selected="${!i}">${l}</button>`).join("")}</div>
     <div class="pane">${tabs.map(([k], i) => `<div data-pane="${k}" role="tabpanel"${i ? " hidden" : ""}>${paneHtml(c, k)}</div>`).join("")}</div>
     <div class="pane-foot gs-meta"><span>${c.summaryHtml ? "" : "Summary not written yet · "}${esc(c.id)}</span><a href="${c.github}" target="_blank" rel="noopener">Folder on GitHub ↗</a></div>`;
@@ -122,6 +131,7 @@ function toggle(el, open) {
   open = open ?? body.hidden;
   if (open && !body.dataset.ready) { body.innerHTML = bodyHtml(byId[el.dataset.id]); body.dataset.ready = "1"; }
   body.hidden = !open;
+  el.classList.toggle("open", open);
   btn.setAttribute("aria-expanded", open);
   btn.textContent = open ? "Close" : "Details";
 }
@@ -147,10 +157,11 @@ function filterCards() {
 }
 
 function experimentFilters() {
-  const topics = D.topics.filter(([t]) => D.cards.some(c => c.topic === t));
+  const count = (k, v) => D.cards.filter(c => c[k] === v).length;
+  const topics = D.topics.filter(([t]) => count("topic", t)).map(([t, l]) => [t, l, TOPIC_C[t], count("topic", t)]);
   chips($("#f-topic"), [["all", "All topics"], ...topics], state.topic, v => { state.topic = v; filterCards(); });
-  const verdicts = Object.keys(VERDICTS).filter(v => D.cards.some(c => c.verdict === v));
-  chips($("#f-verdict"), [["all", "Any result"], ...verdicts.map(v => [v, VERDICTS[v]])], state.verdict, v => { state.verdict = v; filterCards(); });
+  const verdicts = Object.keys(VERDICTS).filter(v => count("verdict", v)).map(v => [v, VERDICTS[v], RESULT[v][1], count("verdict", v)]);
+  chips($("#f-verdict"), [["all", "Any result"], ...verdicts], state.verdict, v => { state.verdict = v; filterCards(); });
 }
 
 function experiments() {
@@ -162,7 +173,11 @@ function experiments() {
   $("#cards-more button").addEventListener("click", () => { state.allCards = true; filterCards(); });
   $("#cards").addEventListener("click", e => {
     const t = e.target.closest(".xtoggle");
-    if (t) return toggle(t.closest(".xcard"));
+    if (t) {
+      const el = t.closest(".xcard");
+      toggle(el);
+      return el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
     const tab = e.target.closest("[data-tab]");
     if (tab) return showTab(tab);
     const fig = e.target.closest("[data-fig]");
@@ -346,11 +361,16 @@ function listView() {
   for (const [name, list] of groups) {
     if (!list.length) continue;
     rows.push(`<tr class="grp"><th colspan="6">${name} <span class="n">${list.length}</span></th></tr>`);
-    for (const it of list) {
-      rows.push(`<tr><td class="when">${it.start ? whenText(it) : "—"}</td>
-        <td><button class="l-item" type="button" data-l="${listView.items.push(it) - 1}">${esc(it.title)}</button></td>
+    const cut = name === "Done" && !state.allDone ? list.slice(0, DONE_LIMIT) : list;
+    for (const it of cut) {
+      const result = it.verdict ? `<span class="ri r-${RESULT[it.verdict][1]}" aria-hidden="true">${RESULT[it.verdict][0]}</span> ` : "";
+      rows.push(`<tr><td class="when${it.start ? "" : " nodate"}">${it.start ? whenText(it) : "—"}</td>
+        <td><button class="l-item" type="button" data-l="${listView.items.push(it) - 1}">${esc(it.short || it.title)}</button></td>
         <td class="tagcell"><span class="dot c-${it.tag}"></span>${TAGS[it.tag]}</td><td>${esc(TOPIC[it.topic] || it.topic)}</td>
-        <td>${esc(it.owner || "—")}</td><td>${statusText(it)}</td></tr>`);
+        <td>${esc(it.owner || "—")}</td><td>${result}${statusText(it)}</td></tr>`);
+    }
+    if (cut.length < list.length) {
+      rows.push(`<tr class="more-row"><td colspan="6"><button class="gs-pill gs-pill-ghost" type="button" data-all-done>Show all ${list.length} done</button></td></tr>`);
     }
   }
   $("#list-view").innerHTML = rows.length ? `<div class="list-scroll"><table class="ltable"><thead><tr><th>When</th><th>Item</th><th>Tag</th>
@@ -397,7 +417,11 @@ function roadmap() {
   g.addEventListener("focusin", e => { const b = e.target.closest(".g-item"); if (b) showTip(b); });
   g.addEventListener("focusout", () => { $("#g-tip").hidden = true; });
   g.parentElement.addEventListener("scroll", () => { $("#g-tip").hidden = true; });
-  $("#list-view").addEventListener("click", e => { const b = e.target.closest("[data-l]"); if (b) itemModal(listView.items[Number(b.dataset.l)]); });
+  $("#list-view").addEventListener("click", e => {
+    if (e.target.closest("[data-all-done]")) { state.allDone = true; return listView(); }
+    const b = e.target.closest("[data-l]");
+    if (b) itemModal(listView.items[Number(b.dataset.l)]);
+  });
   $("#ideas").addEventListener("click", e => { const b = e.target.closest("[data-idea]"); if (b) itemModal(ideas.list[Number(b.dataset.idea)]); });
   let frame = 0;
   addEventListener("resize", () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(() => state.view === "timeline" && gantt()); });

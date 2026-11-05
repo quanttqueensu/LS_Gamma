@@ -23,7 +23,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest==9.1.1"]
+dev = ["pytest==9.1.1", "markdown-it-py==4.2.0"]
+hub = ["markdown-it-py==4.2.0"]  # research hub build (lsgamma.hub)
 
 # Install editable only (pip install -e ".[dev]"): the code finds configs/, data/
 # and results/ relative to src/, so a regular install would look in site-packages.

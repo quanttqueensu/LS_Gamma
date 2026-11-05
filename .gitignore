@@ -234,11 +234,12 @@ MVP_do_not_use/data/
 # Backtest outputs
 results/
 
-# Claude Code workspace (local only), except the shared /log-work skill
+# Claude Code workspace (local only), except the shared /log-work and /strategy-research skills
 .claude/*
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/log-work/
+!.claude/skills/strategy-research/
 
 # deep-research skill scratch output (converted to research/Misc_Research_Notes/)
 /research_notes/

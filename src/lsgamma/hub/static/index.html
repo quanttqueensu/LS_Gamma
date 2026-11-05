@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>L/S Gamma Research</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Manrope:wght@300;400;500&display=swap">
+<link rel="stylesheet" href="hub.css">
+</head>
+<body>
+<nav class="gs-nav"><div class="gs-wrap">
+  <a class="gs-brand" href="#top"><span class="mark" aria-hidden="true">Γ</span>L/S Gamma Research</a>
+  <div class="gs-segment"><a href="#team">Team</a><a href="#experiments">Experiments</a><a href="#roadmap">Roadmap</a><a href="#library">Library</a></div>
+  <div class="gs-navacts">
+    <a class="gs-pill gs-pill-ghost" id="repo" target="_blank" rel="noopener">GitHub</a>
+    <button class="gs-pill gs-pill-primary" id="latest" type="button">Latest result</button>
+  </div>
+</div></nav>
+
+<section class="gs-sec first" id="team"><div class="gs-wrap">
+  <div class="gs-headrow"><h1 class="gs-h2">The L/S Gamma team.</h1><span class="gs-tag" id="team-tag"></span></div>
+  <div class="team" id="team-grid"></div>
+</div></section>
+
+<section class="gs-sec" id="experiments"><div class="gs-wrap">
+  <div class="gs-headrow"><h2 class="gs-h2">Experiments.</h2><span class="gs-tag" id="exp-tag"></span></div>
+  <div class="filters"><div class="gs-segment chips" id="f-topic"></div><div class="gs-segment chips" id="f-verdict"></div></div>
+  <div class="gs-stack" id="cards"></div>
+</div></section>
+
+<section class="gs-sec" id="roadmap"><div class="gs-wrap">
+  <div class="gs-headrow"><h2 class="gs-h2">Roadmap.</h2><span class="gs-tag" id="road-tag"></span></div>
+  <div class="filters">
+    <div class="filter-group"><div class="gs-segment chips" id="f-tag"></div><div class="gs-segment chips" id="f-when"></div></div>
+    <div class="gs-segment chips" id="f-view"></div>
+  </div>
+  <div class="gs-card gantt-card" id="gantt-view"><div class="gantt-scroll"><div id="gantt"></div></div><div class="g-tip" id="g-tip" role="tooltip" hidden></div></div>
+  <div class="gs-card list-card" id="list-view" hidden></div>
+  <div class="g-key gs-meta" id="g-key"></div>
+  <div id="ideas-block">
+    <div class="subhead"><h3 class="gs-h3">Ideas.</h3><span class="gs-meta" id="ideas-meta"></span></div>
+    <div id="ideas"></div>
+  </div>
+</div></section>
+
+<section class="gs-sec" id="library"><div class="gs-wrap">
+  <div class="gs-headrow"><h2 class="gs-h2">Library.</h2><span class="gs-tag" id="lib-tag"></span></div>
+  <div class="filters"><div class="gs-segment chips" id="f-kind"></div></div>
+  <div class="gs-grid3" id="docs"></div>
+</div></section>
+
+<footer class="gs-foot"><div class="gs-wrap"><div>QUANTT · L/S Gamma desk · aggregate results only</div><div id="built"></div></div></footer>
+
+<div class="gs-scrim" id="modal" hidden><div class="gs-dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title" id="dialog"></div></div>
+
+<script type="application/json" id="hub-data">{{DATA}}</script>
+<script src="hub.js"></script>
+</body>
+</html>

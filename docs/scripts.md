@@ -107,3 +107,16 @@ python -m lsgamma.backtest.run --exp <name> --holdout   # final run only
 
 ## 9. Changing the rules
 All numbers live in `configs/paper.toml`: the VRP bands, forecaster (`garch` or `har`), DTE window, size, exits, slippage, fill timeout and hedge band. After a stop, `stop_cooloff_days` blocks a same-side re-entry (1 = rest of that day; 0 = off). No code changes are needed.
+
+## 10. Research hub
+A static site (GSDesign style) that shows the team, then every hypothesis card, its lifecycle, summary, charts, trials and report, a roadmap Gantt and the report library. GitHub Pages rebuilds it on every push to `main` (`.github/workflows/hub.yml`), from committed files only. The site is public, like the repo.
+```bash
+python -m lsgamma.hub.export              # results/research/registry.parquet -> research/registry.csv
+python -m lsgamma.hub.build [--out _site] # build locally, then open _site/index.html
+```
+- Run `export` when committing an experiment's results, and commit `research/registry.csv` with them. It holds per-trial aggregates only (P&L, Sharpe, drawdown, ES, trades, win rate), never trade rows. It's a separate step because writing into the repo during a run would mark the following runs `-dirty`.
+- Plan work in `research/roadmap.toml` (one `[[item]]` per experiment, paper or general research piece). An item without dates goes under Ideas. Once its card exists, set `card = "<slug>"` and the real card replaces it.
+- The team section reads `research/team.toml` (name, role, GitHub handle, `photo` in `research/team/`, work-log folders). Topics come from each topic README's "Who's working on it" table; the PM card shows no topic or work log.
+- Card status, owner and dates come from the card table and `summary.md`. Charts are the committed `figures/*.png`, and the report is `<slug>.pdf` in the card folder.
+- Needs `markdown-it-py` (`pip install -e ".[hub]"`, also in `dev`). `_site/` is gitignored.
+- One-time setup: repo Settings → Pages → Source: "GitHub Actions".

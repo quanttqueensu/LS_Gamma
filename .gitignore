@@ -247,3 +247,6 @@ results/
 
 # experiment result tables (aggregates; rebuilt with --report-only)
 research/**/figures/*.csv
+
+# research hub build output
+_site/

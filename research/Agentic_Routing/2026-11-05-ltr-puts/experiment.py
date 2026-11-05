@@ -455,7 +455,7 @@ def picks_mix(path):
     keys = [SKIP, *DELTAS]
     colors = ["0.6"] + [plt.cm.viridis(i / (len(DELTAS) - 1)) for i in range(len(DELTAS))]
     for ax, v in zip(axes, ("ltr", "ltr_noskip")):
-        p = pd.read_parquet(WORK / f"picks_{v}.parquet")
+        p = pd.read_parquet(WORK / f"picks_{v}.parquet").reset_index(drop=True)
         p = p[p["date"] < "2025-01-01"]
         share = pd.crosstab(p["date"].str[:4], p["delta"], normalize="index").reindex(
             columns=keys, fill_value=0.0)

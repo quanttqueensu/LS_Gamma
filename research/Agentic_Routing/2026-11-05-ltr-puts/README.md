@@ -8,7 +8,7 @@
 | **Experiment** | `2026-11-05-ltr-puts` (config: `configs/experiments/2026-11-05-ltr-puts.toml`) |
 | **Topic** | Agentic_Routing |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed (Sharpe lower in 2014-2019; full-window Sharpe 0.84 vs 0.52 but P&L $80k vs $121k, mostly from a gate that sat out 2020) |
 | **Started** | 2026-11-05 |
 
 ## Hypothesis
@@ -131,4 +131,16 @@ There is no P&L check: the PM chose a Sharpe bar because the ranker may skip day
 `pip install lightgbm==4.7.0 --no-binary lightgbm --config-settings=cmake.define.USE_OPENMP=OFF`. The ranker runs single-threaded either way.
 
 ## Changes
-- (none yet)
+- 2026-11-05: the run was started three times; only the third registered trials.
+  - **First:** stopped while building labels. Another process switched the shared working tree to `main`, which removed this card's config.
+  - **Second:** stopped by Claude while building labels, because 12 workers each started a 14-thread pool and oversubscribed the machine.
+  - **Third:** ran from a separate checkout of this branch (commit 7964782, clean) with one thread per worker (`OMP_NUM_THREADS=1` and the BLAS equivalents; no code change).
+
+  Neither of the first two produced labels or trials. The third registered 6 trials, all tagged 7964782.
+- 2026-11-05: after the trials registered, the picks chart crashed on a duplicate index. `picks_mix` in `experiment.py` now resets the index (chart code only). The report was rebuilt with `--report-only`, which adds no trials.
+- 2026-11-05 result: **failed** at 1x and 2x on the 2014-2019 Sharpe check.
+  - `ltr`: Sharpe 0.64 vs 0.84 (1x) and 0.43 vs 0.72 (2x) in 2014-2019; full window 0.84 vs 0.52 and 0.67 vs 0.43.
+  - Max drawdown $14,810 / $19,835; ES −$1,546 / −$1,566; net P&L $80,124 / $63,822 against $121,482 / $101,172.
+  - 165 round trips.
+  - `ltr_nogate` and `ltr_noskip` came out identical: SKIP ranked first on only 1 test day.
+  - The pass bar above was not changed. See `summary.md` and `2026-11-05-ltr-puts.pdf`.

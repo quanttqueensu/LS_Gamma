@@ -410,7 +410,7 @@ function ideas() {
   $("#ideas").className = "ideas";
   $("#ideas").innerHTML = Object.keys(TAGS).map(t => {
     const mine = list.map((it, i) => [it, i]).filter(([it]) => it.tag === t);
-    return mine.length ? `<div class="idea-col c-${t}"><div class="colhead"><span class="dot"></span>${HEADS[t]}<span class="n">${mine.length}</span></div>
+    return mine.length ? `<div class="idea-col c-${t}"><div class="colhead">${HEADS[t]}<span class="n">${mine.length}</span></div>
       <div class="idea-list">${mine.map(([it, i]) => `<button class="idea" type="button" data-idea="${i}">${esc(it.title)}</button>`).join("")}</div></div>` : "";
   }).join("");
 }

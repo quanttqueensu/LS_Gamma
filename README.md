@@ -15,7 +15,7 @@ src/lsgamma/
 ├── pipeline/              # daily data snapshot: yfinance + IBKR option chain
 ├── forecasting/           # RV forecasters: GARCH, HAR (live-eligible); HAR-GK, HAR-X, RF (research only)
 ├── signals/               # signal models: VRP band
-├── trading/               # contract selection, exits, P&L, ledger, daily runner, smoke test
+├── trading/               # contract selection, exits, P&L, ledger, daily runner, smoke test, shadow books
 ├── experiments.py         # research run logger (results/research/)
 ├── history/               # replays R2 option trades into backtest snapshots (data/backtest/)
 └── backtest/              # runs the paper rules over the snapshots: engine, fills, metrics, reports
@@ -40,6 +40,7 @@ docs/
 configs/
 ├── paper.toml             # every strategy number for paper trading
 ├── backtest.toml          # backtest settings: replay grid, data window, out-of-sample window, costs, research-only flags (off by default)
+├── shadow.toml            # shadow books: ideas replayed on the live snapshots, shown on the hub
 ├── backtest_spread.toml   # bid/ask spread model fit on live IBKR quotes
 └── experiments/           # one TOML per research experiment (+ TEMPLATE.toml)
 tests/                     # offline tests (pytest, fake IBKR)

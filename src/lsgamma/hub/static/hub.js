@@ -660,6 +660,7 @@ function desk() {
   $("#desk-rule-box").open = !PHONE;
   $("#desk-rule").textContent = `Short gamma when implied vol is more than ${r.short_band * 100} pts above the ${r.forecaster.toUpperCase()} forecast, long gamma when more than ${-r.long_band * 100} pts below, otherwise flat. Options near ${r.target_dte} DTE, closed at ${r.exit_dte} DTE; stop at ${r.short_stop_mult}× the credit, profit take at ${r.short_profit_frac * 100}% on shorts.`;
   $("#desk-pos").innerHTML = positionHtml(k);
+  $("#to-strategies").hidden = !D.shadow?.books?.length;
   hoverTip($(".desk-chart"), $("#d-tip"), el => {
     const s = k.signals[Number(el.dataset.s)];
     return [`${long_day(s.date)} · ${SIDE[s.signal]}`, `VRP ${pts(s.vrp)} · IV ${pct(s.iv)} vs forecast ${pct(s.rv_forecast)} · ${s.dte} DTE`];
@@ -670,6 +671,156 @@ function desk() {
   });
 }
 
+/* live and shadow strategies */
+const SHADES = ["#2a78d6", "#1baf7a", "#6250d6", "#eda100", "#e87ba4", "#eb6834", "#7a8699"];
+const per = v => v == null ? "—" : `${Math.round(v * 100)}%`;
+const posText = p => p ? `${p.side === "short" ? "Short" : "Long"} ${+p.strike} ${p.right === "P" ? "put" : "call"}${p.qty > 1 ? ` ×${p.qty}` : ""}` : "Flat";
+
+function books() {
+  const S = D.shadow, live = D.desk;
+  let i = 0;
+  const shadow = S.books.map(b => ({ ...b, key: `b${i}`, color: b.placeholder || b.error ? null : SHADES[i++ % SHADES.length] }));
+  const paper = live ? [{ name: "Paper account", key: "paper", live: true, color: "var(--gs-ink)", book: live.book || [],
+    position: live.position, trades: live.trades, realized: live.realized, summary: S.paper }] : [];
+  return [...paper, ...shadow];
+}
+
+function linesChart(series, W) {
+  const H = 260, L = 64, R = 16, T = 16, Bm = 30;
+  const dates = [...new Set(series.flatMap(s => s.book.map(b => b.date)))].sort();
+  if (!dates.length) return `<p class="gs-meta empty">No book history yet.</p>`;
+  const vals = series.flatMap(s => s.book.map(b => b.total ?? 0)), hi = Math.max(...vals, 0), lo = Math.min(...vals, 0);
+  const pad = Math.max(10, (hi - lo) * 0.12), top = hi + pad, bot = lo - pad;
+  const at = Object.fromEntries(dates.map((d, i) => [d, i]));
+  const x = i => L + (dates.length === 1 ? (W - L - R) / 2 : i * (W - L - R) / (dates.length - 1));
+  const y = v => T + (top - v) * (H - T - Bm) / (top - bot);
+  const ticks = [...new Set([0, hi, lo].map(v => Math.round(v)))];
+  const labels = [0, Math.floor((dates.length - 1) / 2), dates.length - 1].filter((v, i, a) => a.indexOf(v) === i);
+  const step = dates.length > 1 ? (W - L - R) / (dates.length - 1) : W - L - R;
+  const lines = [...series].reverse().map(s => `<polyline points="${s.book.map(b => `${x(at[b.date])},${y(b.total ?? 0)}`).join(" ")}"
+    class="sline${s.live ? " live" : ""}" style="--c:${s.color}"/>`).join("");
+  return `<svg class="dchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Book P&L of the paper account and ${series.length - 1} shadow books over ${dates.length} days">
+    ${ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="${v === 0 ? "band" : "base"}"/>
+      <text x="${L - 8}" y="${y(v) + 4}" class="tick" text-anchor="end">${signed(v)}</text>`).join("")}
+    ${labels.map(i => `<text x="${x(i)}" y="${H - 9}" class="tick" text-anchor="${i === 0 ? "start" : i === dates.length - 1 ? "end" : "middle"}">${short_day(dates[i])}</text>`).join("")}
+    ${lines}
+    ${dates.map((d, i) => `<rect x="${x(i) - step / 2}" y="${T}" width="${step}" height="${H - T - Bm}" class="hit" data-d="${d}" tabindex="0"/>`).join("")}
+  </svg>`;
+}
+
+function compareHtml(b) {
+  const s = b.summary || {}, e = b.expect, n = s.days || 0, yr = n ? 252 / n : null;
+  const closed = b.trades?.filter(t => t.action === "close") || [];
+  const rows = [
+    ["Trades a year", yr && s.trades != null ? fixed(s.trades * yr, 1) : "—", e ? fixed(e.trades_year, 1) : "—"],
+    ["P&L a trade", closed.length ? signed(b.realized / closed.length) : "—", e ? signed(e.pnl_trade) : "—"],
+    ["Win rate", per(s.win_rate), e ? per(e.win_rate) : "—"],
+    ["P&L a year", yr && s.pnl != null ? signed(s.pnl * yr) : "—", e ? signed(e.pnl_year) : "—"],
+    ["Max drawdown", money(s.max_dd), e ? money(e.max_dd) : "—"],
+  ];
+  return `<h3 class="colh">Live vs backtest</h3>
+    <table class="trials scomp"><thead><tr><th></th><th class="num">Live, annualised</th><th class="num">Backtest, 1x</th></tr></thead>
+    <tbody>${rows.map(([k, l, r]) => `<tr><td>${k}</td><td class="num">${l}</td><td class="num">${r}</td></tr>`).join("")}</tbody></table>
+    <p class="gs-meta">${e ? `Backtest ${e.start.slice(0, 4)}–${e.end.slice(0, 4)} at 1x spreads, aggregates only.` : "No backtest on record."} Live figures use ${plural(n, "day")}, so they are noisy.</p>`;
+}
+
+function rulesText(r) {
+  const side = r.long_band == null ? (r.short_band == null ? "always short" : `short above +${fixed(r.short_band * 100, 0)} pts, never long`)
+    : `short above +${fixed(r.short_band * 100, 0)} pts, long below ${fixed(r.long_band * 100, 0)} pts`;
+  const strike = r.put_delta ? `${Math.round(r.put_delta * 100)}-delta puts` : "at-the-money options";
+  const size = r.stress_budget ? `sized to a ${Math.round(r.stress_budget * 100)}% stress budget` : plural(r.quantity, "contract");
+  return `${side} · ${strike} · ${size} · hedge band ${plural(r.min_shares, "share")} · exit at ${r.exit_dte} DTE`;
+}
+
+function fillsHtml(b) {
+  const live = D.desk?.trades || [];
+  const rows = live.map(t => [t, b.trades.find(s => s.date === t.date && s.action === t.action && s.strike === t.strike && s.right === t.right)])
+    .filter(([, s]) => s);
+  if (!rows.length) return "";
+  return `<h3 class="colh sub">Paper fills vs shadow quotes</h3>
+    <table class="trials sfills"><thead><tr><th>Date</th><th>Trade</th><th class="num">Paper</th><th class="num">Shadow</th><th class="num">Gap</th></tr></thead>
+    <tbody>${rows.map(([t, s]) => `<tr><td>${short_day(t.date)}</td><td>${t.action === "open" ? "Open" : "Close"} ${t.side} ${+t.strike}${t.right}</td>
+      <td class="num">$${t.price}</td><td class="num">$${s.price}</td><td class="num">${t.price >= s.price ? "+" : ""}${fixed(t.price - s.price)}</td></tr>`).join("")}</tbody></table>
+    <p class="gs-meta">Gap is the paper fill minus the shadow quote. The shadow book fills at the morning snapshot's quote; the paper account fills later, at IBKR's price.</p>`;
+}
+
+function bookBody(b) {
+  if (b.live) return `<div class="sgrid"><div class="pane">${positionHtml(b)}</div><div class="pane"><h3 class="colh">Paper account</h3>
+    <p class="gs-meta">Real IBKR paper fills for <code>paper.toml</code>, before commissions. The full view is on the live desk.</p>
+    <a class="gs-pill gs-pill-ghost" href="#desk">Open the live desk</a></div></div>`;
+  if (b.error) return `<p class="gs-meta">This book failed to run: ${esc(b.error)}</p>`;
+  const s = b.summary;
+  const gaps = [`${plural(s.days, "day")}`, `${plural(s.hedges, "hedge order")}`, `fees ${money(s.fees)}`,
+    s.skipped && `${s.skipped} skipped`, s.no_delta && `${s.no_delta} hedges missed (no delta)`, s.no_mark && `${s.no_mark} unmarked`].filter(Boolean);
+  return `<div class="sgrid"><div class="pane">${positionHtml(b)}${b.name === "Paper rules" ? fillsHtml(b) : ""}</div>
+    <div class="pane">${compareHtml(b)}<h3 class="colh sub">Rules</h3><p class="gs-meta">${esc(rulesText(b.rules))}</p>
+    <p class="gs-meta">${esc(gaps.join(" · "))}</p></div></div>`;
+}
+
+function bookRow(b) {
+  const s = b.summary || {}, idle = b.placeholder || b.error;
+  const sub = b.live ? "IBKR paper fills · paper.toml" : b.placeholder ? b.placeholder : b.error ? "Failed to run" : b.card ? b.card.slice(11) : "paper.toml";
+  const cells = idle ? `<span class="snum" data-l="Days">—</span><span class="snum" data-l="Trades">—</span><span class="snum" data-l="P&L">—</span><span class="snum" data-l="Max DD">—</span><span class="snow">${b.placeholder ? "Not running" : "—"}</span>`
+    : `<span class="snum" data-l="Days">${s.days ?? "—"}</span><span class="snum" data-l="Trades">${s.trades ?? 0}</span>
+      <span class="snum spnl" data-l="P&L">${signed(s.pnl)}</span><span class="snum" data-l="Max DD">${money(s.max_dd)}</span><span class="snow">${esc(posText(b.position))}</span>`;
+  const name = `<span class="sname"><i style="--c:${b.color || "var(--gs-line-hover)"}"></i><span class="smain"><span class="stitle">${esc(b.name)}</span><span class="ssub">${esc(sub)}</span></span></span>`;
+  if (b.placeholder) return `<article class="srow idle"><div class="shead">${name}${cells}<span></span></div></article>`;
+  return `<article class="srow" data-book="${b.key}"><button class="shead" type="button" aria-expanded="false">${name}${cells}<span class="chev" aria-hidden="true">›</span></button>
+    <div class="sbody" hidden></div></article>`;
+}
+
+let sDrawn = false;
+function strategies() {
+  const S = D.shadow, all = books(), byKey = Object.fromEntries(all.map(b => [b.key, b]));
+  const run = all.filter(b => !b.live && !b.placeholder && !b.error), drawn = all.filter(b => b.color && b.book?.length);
+  const days = S.snapshots.length, when = S.asof ? new Date(S.asof).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }) + " ET" : "—";
+  const draw = () => {
+    $("#sh-chart").innerHTML = linesChart(drawn, Math.max(300, Math.round($("#sh-chart").clientWidth || 900)));
+  };
+  if (!sDrawn) {
+    sDrawn = true;
+    $("#sh-tag").textContent = `${plural(run.length, "book")} · since ${short_day(S.start)}`;
+    $("#sh-meta").textContent = `Shadow books trade on the morning snapshot · no orders sent · updated ${when}`;
+    const held = run.filter(b => b.position).length;
+    $("#sh-stats").innerHTML = [
+      [String(run.length), `shadow books running${all.some(b => b.placeholder) ? " · 1 waiting" : ""}`],
+      [String(days), `snapshot days since ${short_day(S.start)}`],
+      [signed(S.paper?.pnl), "paper account P&L"],
+      [String(held), `books holding a position`],
+    ].map(([n, l]) => `<div class="dstat"><div class="dnum">${esc(n)}</div><div class="gs-meta">${esc(l)}</div></div>`).join("");
+    $("#sh-note").textContent = days < S.min_days ? `Too early to compare P&L · ${days} of ${S.min_days} trading days.`
+      : `Realized plus open P&L since ${short_day(S.start)}.`;
+    $("#sh-key").innerHTML = drawn.map(b => `<span class="${b.live ? "live" : ""}"><i style="--c:${b.color}"></i>${esc(b.name)}</span>`).join("");
+    $("#sh-books").innerHTML = all.map(bookRow).join("");
+    $("#sh-foot").textContent = `Shadow books replay each idea's exact rules on the live snapshot, filled at the quoted bid or ask and net of modelled commissions. The paper account is IBKR paper fills before commissions. Backtest columns are 1x-spread averages from the cards, aggregates only.`;
+    $("#sh-books").addEventListener("click", e => {
+      const h = e.target.closest(".shead");
+      if (!h || h.tagName !== "BUTTON") return;
+      const el = h.closest(".srow"), body = $(".sbody", el), open = body.hidden;
+      if (open && !body.dataset.ready) { body.innerHTML = bookBody(byKey[el.dataset.book]); body.dataset.ready = "1"; }
+      body.hidden = !open;
+      el.classList.toggle("open", open);
+      h.setAttribute("aria-expanded", open);
+    });
+    hoverTip($("#strategies .desk-book"), $("#s-tip"), el => {
+      const d = el.dataset.d, at = b => b.book.find(p => p.date === d)?.total;
+      return [long_day(d), drawn.filter(b => at(b) != null).map(b => `${b.name} ${signed(at(b))}`).join(" · ")];
+    });
+    let frame = 0;
+    addEventListener("resize", () => { if (!$("#strategies").hidden) { cancelAnimationFrame(frame); frame = requestAnimationFrame(draw); } });
+  }
+  draw();
+}
+
+function route() {
+  const h = location.hash, sub = h === "#strategies" && !!D.shadow;
+  document.body.classList.toggle("sub", sub);
+  $("#strategies").hidden = !sub;
+  if (sub) { strategies(); return scrollTo(0, 0); }
+  if (h.startsWith("#card-")) return openCard(h.slice(6));
+  if (h.length > 1) document.getElementById(h.slice(1))?.scrollIntoView();
+}
+
 chrome();
 team();
 week();
@@ -677,4 +828,5 @@ desk();
 experiments();
 roadmap();
 library();
-if (location.hash.startsWith("#card-")) openCard(location.hash.slice(6));
+addEventListener("hashchange", route);
+route();

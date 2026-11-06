@@ -189,3 +189,40 @@ def test_desk_snapshot(tmp_path, monkeypatch):
 def test_collect_reads_desk(repo):
     (repo / "research" / "desk.json").write_text(json.dumps({"asof": "x", "signals": [], "trades": []}))
     assert collect.collect()["desk"]["asof"] == "x"
+
+
+SHADOW = {"asof": "2026-11-06T10:14:00-05:00", "start": "2026-09-26", "capital": 250000, "min_days": 60,
+          "snapshots": [{"date": "2026-11-06", "ts": "x", "folder": "2026-11-06/1014"}],
+          "books": [{"name": "Paper rules", "exp": None, "variant": None, "error": None},
+                    {"name": "Demo", "exp": "2026-11-01-demo", "variant": "a", "error": None},
+                    {"name": "Gone", "exp": "2026-01-01-gone", "variant": "b", "placeholder": "Waiting"}]}
+
+
+def test_collect_reads_shadow(repo):
+    (repo / "research" / "shadow.json").write_text(json.dumps(SHADOW))
+    (repo / "research" / "desk.json").write_text(json.dumps({
+        "signals": [{"date": "2026-11-05"}, {"date": "2026-11-06"}],
+        "trades": [{"action": "open"}, {"action": "close", "pnl": -27.0}],
+        "book": [{"date": "2026-11-05", "total": 40.0}, {"date": "2026-11-06", "total": 15.0}]}))
+    s = collect.collect()["shadow"]
+    paper, demo, gone = s["books"]
+    assert (paper["card"], paper["expect"]) == (None, None)
+    assert demo["card"] == "2026-11-01-demo" and gone["card"] is None
+    assert demo["expect"]["trades_year"] == pytest.approx(5 / 10.58, rel=1e-2)
+    assert demo["expect"]["pnl_trade"] == pytest.approx(20.1)
+    assert s["paper"] == {"pnl": 15.0, "max_dd": 25.0, "trades": 1, "win_rate": 0.0, "days": 2}
+
+
+def test_build_has_strategies_view_and_refuses_nan(repo, tmp_path_factory):
+    (repo / "research" / "shadow.json").write_text(json.dumps(SHADOW))
+    out = tmp_path_factory.mktemp("site") / "_site"
+    build.build(out, root=repo)
+    page = (out / "index.html").read_text()
+    assert 'id="strategies"' in page and 'id="to-strategies"' in page
+    (repo / "research" / "shadow.json").write_text(json.dumps(SHADOW).replace('"capital": 250000', '"capital": NaN'))
+    with pytest.raises(ValueError):
+        build.build(out, root=repo)
+
+
+def test_clean_drops_non_finite():
+    assert desk.clean(float("-inf")) is None and desk.clean(float("nan")) is None and desk.clean(1.23456) == 1.2346

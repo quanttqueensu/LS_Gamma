@@ -288,6 +288,45 @@ def desk(root):
     return json.loads(path.read_text()) if path.exists() else None
 
 
+def expect(registry, card, variant):
+    # backtest averages at 1x, aggregates only
+    rows = [r for r in registry if r["card"] == card and r["variant"] == (variant or "")
+            and r["holdout"] == "False" and r["spread_mult"] == 1.0 and r["trades"]]
+    if not rows:
+        return None
+    r = rows[0]
+    years = (date.fromisoformat(r["end"]) - date.fromisoformat(r["start"])).days / 365.25
+    return {"trades_year": r["trades"] / years, "pnl_trade": r["pnl"] / r["trades"],
+            "pnl_year": r["pnl"] / years, "win_rate": r["win_rate"], "max_dd": r["max_dd"],
+            "start": r["start"], "end": r["end"]}
+
+
+def paper(snap):
+    # paper account summary from desk.json
+    if not snap:
+        return None
+    totals = [b["total"] or 0.0 for b in snap.get("book", [])]
+    peak, dd = 0.0, 0.0
+    for t in totals:
+        peak = max(peak, t)
+        dd = max(dd, peak - t)
+    closed = [t for t in snap.get("trades", []) if t.get("action") == "close"]
+    return {"pnl": totals[-1] if totals else 0.0, "max_dd": dd, "trades": len(closed),
+            "win_rate": sum((t.get("pnl") or 0) > 0 for t in closed) / len(closed) if closed else None,
+            "days": len({s["date"] for s in snap.get("signals", [])})}
+
+
+def shadow(root, registry, known, snap):
+    path = root / "research" / "shadow.json"
+    if not path.exists():
+        return None
+    data = json.loads(path.read_text())
+    for b in data["books"]:
+        b["card"] = b["exp"] if b["exp"] in known else None
+        b["expect"] = expect(registry, b["exp"] or "baseline", b["variant"])
+    return {**data, "paper": paper(snap)}
+
+
 def commit(root):
     sha = os.environ.get("GITHUB_SHA", "")[:7]
     if sha:
@@ -311,7 +350,9 @@ def collect(root=None):
              "oos": sum(c["stages"][4] for c in found),
              "reports": sum(d["kind"] != "Paper" for d in docs) + sum(bool(c["report"]) for c in found),
              "papers": sum(d["kind"] == "Paper" for d in docs)}
-    return {"cards": found, "library": docs, "timeline": timeline(found, docs, plan), "team": team(root, found, files), "desk": desk(root),
+    snap = desk(root)
+    return {"cards": found, "library": docs, "timeline": timeline(found, docs, plan), "team": team(root, found, files), "desk": snap,
+            "shadow": shadow(root, registry, {c["id"] for c in found}, snap),
             "topics": [[t, topic_label(t)] for t in TOPICS] + [["General", "General"]],
             "stats": stats, "build": {"commit": commit(root), "date": date.today().isoformat()},
             "repo": GITHUB.split("/blob/")[0], "files": sorted(files)}

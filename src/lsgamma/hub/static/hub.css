@@ -71,6 +71,8 @@ button { font: inherit; color: inherit; }
 .gs-meta { font-size: 14px; color: var(--gs-grey); }
 .gs-divider { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--gs-line-soft); font-size: 13px; color: var(--gs-grey); }
 
+.about { margin: 0; max-width: 760px; font-size: clamp(16px, 2.2vw, 19px); line-height: 1.62; color: var(--gs-text); }
+
 /* team */
 .team { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: var(--gs-gap); }
 .member { display: flex; flex-direction: column; }

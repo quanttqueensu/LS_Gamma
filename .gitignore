@@ -250,3 +250,6 @@ research/**/figures/*.csv
 
 # research hub build output
 _site/
+
+# cloudflare wrangler cache
+.wrangler/

@@ -123,3 +123,4 @@ python -m lsgamma.hub.build [--out _site] # build locally, then open _site/index
 - Card status, owner and dates come from the card table and `summary.md`. Charts are the committed `figures/*.png`, and the report is `<slug>.pdf` in the card folder.
 - Needs `markdown-it-py` (`pip install -e ".[hub]"`, also in `dev`). `_site/` is gitignored.
 - One-time setup: repo Settings → Pages → Source: "GitHub Actions".
+- **Cloudflare (lsgamma.quantt.ca):** a Worker serves `_site/` as static assets (`wrangler.toml`). Its `[build]` command builds the site before every `npx wrangler deploy` and preview `npx wrangler versions upload`, so the Cloudflare dashboard only needs the deploy command. The build uses `PYTHONPATH=src` because Cloudflare also runs `pip install .`, and that installed copy would look for `research/` in the wrong place.

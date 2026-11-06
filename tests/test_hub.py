@@ -98,19 +98,17 @@ def test_team(repo):
         'logs = ["work-logs/jane", "work-logs/old"]\n\n[[member]]\nname = "Sam Roe"\nrole = "PM"\n')
     (repo / "research" / "team").mkdir()
     (repo / "research" / "team" / "jane.jpg").write_bytes(b"jpg")
-    (repo / "research" / "Agentic_Routing" / "README.md").write_text(
-        "## Who's working on it\n| Name | GitHub | Role | Since |\n|---|---|---|---|\n| Jane D | jdoe | analyst | 2026-11-01 |\n\n## Code\n")
     for folder, name, text in [("jane", "2026-11.md", "# Jane\n\n## 2026-11-02 10:00 · x\n\n## 2026-11-04 09:00 · y\n"),
                                ("old", "worklog1-oct21.md", "first meeting"), ("old", "empty.md", "")]:
         (repo / "work-logs" / folder).mkdir(parents=True, exist_ok=True)
         (repo / "work-logs" / folder / name).write_text(text)
     data = collect.collect()
     jane, sam = data["team"]
-    assert jane["topics"] == ["Agentic Routing"] and jane["cards"] == 1
+    assert jane["cards"] == 1 and "topics" not in jane
     assert jane["linkedin"] == "https://www.linkedin.com/in/jdoe/" and sam["linkedin"] == ""
     assert (jane["logs"], jane["lastLog"]) == (3, "2026-11-04")
     assert jane["photo"] == "files/research/team/jane.jpg" and "research/team/jane.jpg" in data["files"]
-    assert (sam["role"], sam["photo"], sam["logs"], sam["topics"]) == ("PM", "", 0, [])
+    assert (sam["role"], sam["photo"], sam["logs"]) == ("PM", "", 0)
     assert collect.legacy_date("worklog1-oct21", collect.date(2026, 11, 5)) == "2026-10-21"
 
 

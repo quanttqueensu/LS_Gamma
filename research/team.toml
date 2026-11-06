@@ -5,7 +5,6 @@
 #   linkedin  LinkedIn profile URL (from quantt.ca/team)
 #   photo   square headshot in research/team/ (about 320px; initials show without one)
 #   logs    work-log folders (work-logs/<folder>); entries and last date come from these
-# Topics come from each topic README's "Who's working on it" table, so add yourself there.
 
 [[member]]
 name = "Gabe Soler"

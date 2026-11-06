@@ -65,13 +65,10 @@ function chrome() {
 function memberHtml(m) {
   const pm = m.role === "PM";
   const initials = m.name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
-  const topics = pm ? "" : `<div class="topics${m.topics.length ? "" : " none"}">${m.topics.length
-    ? m.topics.map(t => topicChip(TOPIC_KEY[t], t)).join(" ") : "Topic not picked yet"}</div>`;
   return `<article class="gs-card member${pm ? " pm" : ""}">
     ${m.photo ? `<img class="avatar" src="${esc(m.photo)}" alt="${esc(m.name)}" loading="lazy">` : `<div class="avatar" aria-hidden="true">${esc(initials)}</div>`}
     <div class="gs-cardh">${esc(m.name)}</div>
     <span class="vpill ${pm ? "v-pm" : "v-analyst"}">${pm ? "Portfolio manager" : "Analyst"}</span>
-    ${topics}
     <div class="mfoot"><div class="links">${m.github ? `<a class="icon-link" href="https://github.com/${esc(m.github)}" target="_blank" rel="noopener" aria-label="${esc(m.name)} on GitHub" title="@${esc(m.github)} on GitHub">${ICON.github}</a>` : ""}${m.linkedin ? `<a class="icon-link" href="${esc(m.linkedin)}" target="_blank" rel="noopener" aria-label="${esc(m.name)} on LinkedIn" title="${esc(m.name)} on LinkedIn">${ICON.linkedin}</a>` : ""}</div></div>
   </article>`;
 }

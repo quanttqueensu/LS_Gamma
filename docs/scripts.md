@@ -119,7 +119,7 @@ python -m lsgamma.hub.build [--out _site] # build locally, then open _site/index
 - **Live desk:** every real paper run (`lsgamma.trading.runner`, not `--dry-run`) ends by writing `research/desk.json`: the signal history, the open position with P&L marked from that run's chain snapshot, stop and take levels, and the trade log. Commit and push it to refresh the site. `python -m lsgamma.hub.desk` rewrites it by hand from the latest snapshot. Raw quotes are not written, only P&L. It is excluded from the `-dirty` check in `experiments.commit()`, and tests redirect it to a temporary folder.
 - **This week** shows counts for the last 7 days: experiments finished (passed/failed), trials logged, reports, paper trades and the change in book P&L.
 - **Book P&L:** each desk write also records one row per day (realized + open P&L) in `results/paper/book.parquet`; days before any position count realized only.
-- The team section reads `research/team.toml` (name, role, GitHub handle, `photo` in `research/team/`, work-log folders). Topics come from each topic README's "Who's working on it" table; the PM card shows no topic or work log.
+- The team section reads `research/team.toml` (name, role, GitHub handle, `photo` in `research/team/`, work-log folders).
 - Card status, owner and dates come from the card table and `summary.md`. Charts are the committed `figures/*.png`, and the report is `<slug>.pdf` in the card folder.
 - Needs `markdown-it-py` (`pip install -e ".[hub]"`, also in `dev`). `_site/` is gitignored.
 - One-time setup: repo Settings → Pages → Source: "GitHub Actions".

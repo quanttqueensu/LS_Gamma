@@ -240,18 +240,6 @@ def timeline(cards, docs, plan):
     return done + reports + plan
 
 
-def owners(root):
-    out = {}
-    for topic in TOPICS:
-        readme = root / "research" / topic / "README.md"
-        text = readme.read_text() if readme.exists() else ""
-        block = text.partition("## Who's working on it")[2].split("\n## ")[0]
-        rows = re.findall(r"^\|([^|]*)\|([^|]*)\|", block, re.M)
-        out[topic] = [(n.strip(), g.strip()) for n, g in rows
-                      if n.strip() not in ("Name", "TBD") and not n.strip().startswith("-")]
-    return out
-
-
 def legacy_date(stem, today):
     m = re.search(r"(" + "|".join(MONTHS) + r")[a-z]*-?(\d{1,2})", stem.lower())
     try:
@@ -280,7 +268,7 @@ def team(root, cards, files):
         return []
     with open(path, "rb") as f:
         members = tomllib.load(f).get("member", [])
-    own, today, out = owners(root), date.today(), []
+    today, out = date.today(), []
     for m in members:
         name, gh, logs = m["name"], m.get("github", ""), m.get("logs", [])
         count, last = work_logs(root, logs, today)
@@ -289,8 +277,6 @@ def team(root, cards, files):
             files.add(photo)
         out.append({"name": name, "role": m.get("role", "Analyst"), "github": gh, "linkedin": m.get("linkedin", ""),
                     "photo": "files/" + photo if photo in files else "",
-                    "topics": [topic_label(t) for t, rows in own.items()
-                               if any(n.startswith(name) or (gh and g.strip("`") == gh) for n, g in rows)],
                     "cards": sum(c["owner"].startswith(name) for c in cards),
                     "logs": count, "lastLog": last,
                     "logLink": GITHUB.replace("/blob/", "/tree/") + logs[0] if logs else ""})

@@ -38,7 +38,7 @@ The hub (GitHub Pages, rebuilt on every push to `main`) opens with the team, thi
 - **`registry.csv`:** run `python -m lsgamma.hub.export` when you commit results, and commit `research/registry.csv`. It holds per-trial aggregates only (the one committed export from `results/`).
 - **`roadmap.toml`:** add planned experiments, papers to read or write up, and general research. An item without dates shows under Ideas.
 - **`desk.json`:** written by the PM's daily paper run; it feeds the Live desk section. Don't edit it by hand.
-- **`team.toml`:** your name, role, GitHub handle, headshot (`research/team/<name>.jpg`, about 320px square) and work-log folders. Your topic comes from the topic README's "Who's working on it" table, so add yourself there.
+- **`team.toml`:** your name, role, GitHub handle, headshot (`research/team/<name>.jpg`, about 320px square) and work-log folders.
 
 Commands: `docs/scripts.md` section 10.
 

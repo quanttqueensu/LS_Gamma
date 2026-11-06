@@ -1,0 +1,9 @@
+# Cloudflare Worker that serves the research hub as static files (lsgamma.quantt.ca).
+# Cloudflare build settings:
+#   Build command:  pip install markdown-it-py==4.2.0 && PYTHONPATH=src python -m lsgamma.hub.build --out _site
+#   Deploy command: npx wrangler deploy
+name = "lsgamma-quantt-ca"
+compatibility_date = "2026-10-01"
+
+[assets]
+directory = "./_site"

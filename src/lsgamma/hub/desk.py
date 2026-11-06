@@ -16,8 +16,8 @@ TRADE_COLS = ["date", "action", "side", "right", "strike", "expiry", "qty", "pri
 def clean(value):
     if hasattr(value, "item"):
         value = value.item()
-    if isinstance(value, float) and math.isnan(value):
-        return None
+    if isinstance(value, float) and not math.isfinite(value):
+        return None  # JSON has no NaN or inf
     return round(value, 4) if isinstance(value, float) else value
 
 

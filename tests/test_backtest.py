@@ -978,3 +978,63 @@ def test_put_picks_off_by_default(bt):
     write(root, list(zip(d, [0.10, 0.10])), make=skewed)
     t = engine.backtest(cfg, d[0], d[-1], root=root)["trades"]
     assert t["date"].iloc[0] == str(d[0]) and t["strike"].iloc[0] == 600.0
+
+
+def live_plan(root, plan, feats_from):
+    # shadow layout: features beside each snapshot
+    out = []
+    for d, _ in plan:
+        asof = engine.at(d, "10:15")
+        folder = store.folder(asof, root)
+        shutil.copy(feats_from, folder / "features.parquet")
+        out.append((asof, folder))
+    return out
+
+
+def test_live_matches_backtest_when_fill_is_chain(bt):
+    cfg, root = bt
+    plan = list(zip(days("2024-03-04", len(PARITY)), PARITY))
+    write(root, plan)
+    out = engine.backtest(cfg, plan[0][0], plan[-1][0], root=root)
+    live = engine.live(cfg, live_plan(root, plan, root / "features.parquet"))
+    pd.testing.assert_frame_equal(out["signals"], live["signals"])
+    cols = ACTIONS + ["price", "qty"]
+    pd.testing.assert_frame_equal(out["trades"][cols].fillna(""), live["trades"][cols].fillna(""))
+    assert set(live["trades"]["src"]) == {engine.LIVE_SRC}
+    assert out["hedges"]["shares"].tolist() == live["hedges"]["shares"].tolist()
+    assert [p["side"] for p in live["open"]] == [live["trades"]["side"].iloc[-1]]
+
+
+def test_live_fills_at_quotes_without_embargo(bt, tmp_path):
+    cfg, root = bt
+    idx = pd.bdate_range("2021-01-01", "2026-12-31", name="date")
+    feats = tmp_path / "feats.parquet"
+    pd.DataFrame({"ret": np.random.default_rng(1).normal(0, 0.01, len(idx))}, index=idx).to_parquet(feats)
+    plan = list(zip(days("2026-09-14", 3), [0.10] * 3))
+    write(root, plan)
+    out = engine.live(no_stops(cfg), live_plan(root, plan, feats))
+    first = out["trades"].iloc[0]
+    assert (first["action"], first["side"], first["price"], first["src"]) == ("open", "short", 4.9, engine.LIVE_SRC)
+    assert not out["events"]["event"].isin(["no_fill_view", "no_entry"]).any() if len(out["events"]) else True
+    with pytest.raises(SystemExit):
+        engine.backtest(cfg, plan[0][0], plan[-1][0], root=root)
+
+
+def test_live_snaps_use_the_plan(bt):
+    cfg, root = bt
+    plan = list(zip(days("2024-03-04", 2), [0.10] * 2))
+    write(root, plan)
+    lp = live_plan(root, plan, root / "features.parquet")
+    s = engine.state(cfg, pd.read_parquet(root / "features.parquet"), None, True, {})
+    s["live"] = {a.date(): (a, f) for a, f in lp}
+    assert engine.snaps(s, plan[0][0]) == [lp[0]]
+    assert engine.snaps(s, plan[0][0] - timedelta(days=3)) == []
+
+
+def test_live_refuses_intraday_schedule(bt):
+    cfg, root = bt
+    plan = list(zip(days("2024-03-04", 1), [0.10]))
+    write(root, plan)
+    cfg["schedule"].update(signal=["10:15", "12:45"], hedge=["10:15", "12:45"])
+    with pytest.raises(SystemExit):
+        engine.live(cfg, live_plan(root, plan, root / "features.parquet"))

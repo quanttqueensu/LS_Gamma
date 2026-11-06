@@ -11,3 +11,6 @@ def desk_snapshot(tmp_path, monkeypatch):
     from lsgamma.trading import ledger
     monkeypatch.setattr(desk, "OUT", tmp_path / "desk.json")
     monkeypatch.setattr(ledger, "ROOT", tmp_path / "paper")
+    from lsgamma.trading import shadow
+    monkeypatch.setattr(shadow, "OUT", tmp_path / "shadow.json")
+    monkeypatch.setattr(shadow, "LIVE", tmp_path / "live")

@@ -14,6 +14,7 @@ from lsgamma.trading import exits, pnl, runner, selection
 
 DATA = Path(__file__).resolve().parents[3] / "data" / "backtest"
 OUTPUTS = ["signals", "trades", "hedges", "equity", "events"]
+LIVE_SRC = "live_quote"
 
 
 def day(s):
@@ -75,7 +76,7 @@ def state(cfg, feats, root, holdout, cache):
             "no_entry": hold.date() - timedelta(days=cfg["entry"]["max_dte"]),
             "last_dev": feats.index[feats.index < hold].max().date(),
             "keep": (cfg["exit"]["flat_days"] + 1) * sum(sig for _, sig in sched),
-            "last_spot": (math.nan, ""), "last_stop": None, "reset": True,
+            "last_spot": (math.nan, ""), "last_stop": None, "reset": True, "live": None,
             **{k: [] for k in OUTPUTS}}
 
 
@@ -121,15 +122,26 @@ def crash_exit(s, pos, asof):
     return "crash_time" if held >= s["cfg"]["backtest"]["crash_days"] else None
 
 
+def view(s, folder, chain):
+    # live books fill at the quoted bid/ask
+    return read(folder, "fill") if s["live"] is None else chain.assign(src=LIVE_SRC)
+
+
+def snaps(s, d):
+    # (asof, folder) on day d, latest first
+    if s["live"] is not None:
+        return [s["live"][d]] if d in s["live"] else []
+    grid = reversed(s["cfg"]["history"]["grid"])
+    return [(at(d, h), store.folder(at(d, h), s["root"])) for h in grid]
+
+
 def expiry_spot(s, expiry):
-    # last grid snapshot on expiry day, fill view first
-    for hhmm in reversed(s["cfg"]["history"]["grid"]):
-        asof = at(expiry, hhmm)
-        folder = store.folder(asof, s["root"])
+    # last snapshot on expiry day, fill view first
+    for asof, folder in snaps(s, expiry):
         chain = read(folder, "chain")
         if chain is None:
             continue
-        spot = sim.und_price(read(folder, "fill"))
+        spot = sim.und_price(view(s, folder, chain))
         if not math.isnan(spot):
             return spot, f"fill {runner.stamp(asof)}"
         return runner.spot(chain), f"decide {runner.stamp(asof)}"
@@ -391,8 +403,8 @@ def decide(s, folder, chain, asof):
     return d, runner.recent(log_, asof.date(), d["signal"], s["cfg"]["exit"]["flat_days"])
 
 
-def step(s, asof, signal_time):
-    folder = store.folder(asof, s["root"])
+def step(s, asof, signal_time, folder=None):
+    folder = folder or store.folder(asof, s["root"])
     chain = read(folder, "chain")
     if chain is None:
         return log(s, asof, "skipped", "no snapshot")
@@ -401,7 +413,7 @@ def step(s, asof, signal_time):
         d, hist = decide(s, folder, chain, asof) if signal_time else (None, [])
     except (runner.BadSnapshot, ValueError, IndexError) as e:
         return log(s, asof, "skipped", str(e))
-    act(s, chain, read(folder, "fill"), asof, d, hist)
+    act(s, chain, view(s, folder, chain), asof, d, hist)
 
 
 def note_reset(s, d):
@@ -500,3 +512,14 @@ def backtest(cfg, start, end, holdout=False, root=None, cache=None):
     span = {"first_day": str(run_days[0]) if run_days else None,
             "last_day": str(run_days[-1]) if run_days else None, "days": len(run_days)}
     return {**{k: pd.DataFrame(s[k]) for k in OUTPUTS}, "span": pd.DataFrame([span])}
+
+
+def live(cfg, plan, cache=None):
+    # shadow books: live snapshots, no embargo
+    runner.check_schedule(cfg)
+    s = state(cfg, read(plan[0][1], "features"), None, True, {} if cache is None else cache)
+    s["live"] = {asof.date(): (asof, folder) for asof, folder in plan}
+    for asof, folder in plan:
+        s["feats"] = read(folder, "features")
+        step(s, asof, True, folder)
+    return {**{k: pd.DataFrame(s[k]) for k in OUTPUTS}, "open": s["book"]["open"]}

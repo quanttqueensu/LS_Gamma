@@ -37,3 +37,10 @@ def load(exp=None):
     over = experiments.load_config(exp)
     check_pins(over, exp)
     return merge(cfg, over)
+
+
+def variant(exp, name):
+    cfg = load(exp)
+    over = cfg["variants"][name]
+    check_pins(over, f"{exp}/{name}")
+    return merge({k: v for k, v in cfg.items() if k != "variants"}, over)

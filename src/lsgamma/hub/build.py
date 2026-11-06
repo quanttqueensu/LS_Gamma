@@ -20,7 +20,7 @@ def build(out, root=None):
         dest = out / "files" / name
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(root / name, dest)
-    blob = json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
+    blob = json.dumps(data, separators=(",", ":"), allow_nan=False).replace("</", "<\\/")
     page = out / "index.html"
     page.write_text(page.read_text().replace("{{DATA}}", blob))
     return data["stats"]

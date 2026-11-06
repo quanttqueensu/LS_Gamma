@@ -1,0 +1,1592 @@
+{
+ "asof": "2026-11-06T10:14:59-05:00",
+ "start": "2026-09-26",
+ "capital": 250000,
+ "min_days": 60,
+ "snapshots": [
+  {
+   "date": "2026-09-29",
+   "ts": "2026-09-29T10:06:42-04:00",
+   "folder": "2026-09-29"
+  },
+  {
+   "date": "2026-10-01",
+   "ts": "2026-10-01T12:02:53-04:00",
+   "folder": "2026-10-01"
+  },
+  {
+   "date": "2026-10-02",
+   "ts": "2026-10-02T16:29:20-04:00",
+   "folder": "2026-10-02"
+  },
+  {
+   "date": "2026-10-05",
+   "ts": "2026-10-05T10:15:46-04:00",
+   "folder": "2026-10-05"
+  },
+  {
+   "date": "2026-10-06",
+   "ts": "2026-10-06T12:13:25-04:00",
+   "folder": "2026-10-06"
+  },
+  {
+   "date": "2026-10-07",
+   "ts": "2026-10-07T10:23:06-04:00",
+   "folder": "2026-10-07"
+  },
+  {
+   "date": "2026-10-08",
+   "ts": "2026-10-08T10:00:12-04:00",
+   "folder": "2026-10-08"
+  },
+  {
+   "date": "2026-10-09",
+   "ts": "2026-10-09T11:18:11-04:00",
+   "folder": "2026-10-09"
+  },
+  {
+   "date": "2026-10-14",
+   "ts": "2026-10-14T12:39:44-04:00",
+   "folder": "2026-10-14"
+  },
+  {
+   "date": "2026-10-15",
+   "ts": "2026-10-15T10:50:18-04:00",
+   "folder": "2026-10-15"
+  },
+  {
+   "date": "2026-10-16",
+   "ts": "2026-10-16T13:00:23-04:00",
+   "folder": "2026-10-16/1259"
+  },
+  {
+   "date": "2026-10-19",
+   "ts": "2026-10-19T10:07:29-04:00",
+   "folder": "2026-10-19/1006"
+  },
+  {
+   "date": "2026-10-20",
+   "ts": "2026-10-20T12:34:45-04:00",
+   "folder": "2026-10-20/1233"
+  },
+  {
+   "date": "2026-10-21",
+   "ts": "2026-10-21T10:06:39-04:00",
+   "folder": "2026-10-21/1005"
+  },
+  {
+   "date": "2026-10-23",
+   "ts": "2026-10-23T15:12:06-04:00",
+   "folder": "2026-10-23/1511"
+  },
+  {
+   "date": "2026-10-26",
+   "ts": "2026-10-26T11:16:13-04:00",
+   "folder": "2026-10-26/1114"
+  },
+  {
+   "date": "2026-10-27",
+   "ts": "2026-10-27T10:53:27-04:00",
+   "folder": "2026-10-27/1052"
+  },
+  {
+   "date": "2026-11-02",
+   "ts": "2026-11-02T11:45:19-05:00",
+   "folder": "2026-11-02/1144"
+  },
+  {
+   "date": "2026-11-03",
+   "ts": "2026-11-03T10:24:39-05:00",
+   "folder": "2026-11-03/1023"
+  },
+  {
+   "date": "2026-11-05",
+   "ts": "2026-11-05T12:41:23-05:00",
+   "folder": "2026-11-05/1240"
+  },
+  {
+   "date": "2026-11-06",
+   "ts": "2026-11-06T10:14:59-05:00",
+   "folder": "2026-11-06/1014"
+  }
+ ],
+ "books": [
+  {
+   "name": "Paper rules",
+   "exp": null,
+   "variant": null,
+   "error": null,
+   "rules": {
+    "forecaster": "garch",
+    "short_band": 0.02,
+    "long_band": -0.05,
+    "target_dte": 30,
+    "exit_dte": 7,
+    "short_stop_mult": 1.0,
+    "long_stop_frac": 0.5,
+    "short_profit_frac": 0.5,
+    "min_shares": 1,
+    "quantity": 1,
+    "put_delta": 0.0,
+    "stress_budget": 0.0
+   },
+   "summary": {
+    "pnl": -16.0731,
+    "max_dd": 16.0731,
+    "trades": 1,
+    "win_rate": 0.0,
+    "skipped": 1,
+    "no_fill": 0,
+    "no_delta": 0,
+    "no_mark": 0,
+    "opens": 2,
+    "hedges": 2,
+    "fees": 5.0,
+    "days": 20
+   },
+   "book": [
+    {
+     "date": "2026-09-29",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-01",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-05",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-06",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-07",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-08",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-09",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-14",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-15",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-16",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-19",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-20",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-21",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-23",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-26",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-27",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-11-02",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-11-03",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-11-05",
+     "realized": 0.0,
+     "open": -9.735,
+     "total": -9.735
+    },
+    {
+     "date": "2026-11-06",
+     "realized": -7.5381,
+     "open": -8.535,
+     "total": -16.0731
+    }
+   ],
+   "trades": [
+    {
+     "date": "2026-11-05",
+     "action": "open",
+     "side": "short",
+     "right": "P",
+     "strike": 737.0,
+     "expiry": "2026-12-04",
+     "qty": 1,
+     "price": 14.38,
+     "reason": null,
+     "pnl": null,
+     "commission": 1.0
+    },
+    {
+     "date": "2026-11-06",
+     "action": "close",
+     "side": "short",
+     "right": "P",
+     "strike": 737.0,
+     "expiry": "2026-12-04",
+     "qty": 1,
+     "price": 12.87,
+     "reason": "flip",
+     "pnl": -7.5381,
+     "commission": 1.0
+    },
+    {
+     "date": "2026-11-06",
+     "action": "open",
+     "side": "long",
+     "right": "C",
+     "strike": 741.0,
+     "expiry": "2026-12-04",
+     "qty": 1,
+     "price": 16.53,
+     "reason": null,
+     "pnl": null,
+     "commission": 1.0
+    }
+   ],
+   "realized": -7.5381,
+   "position": {
+    "side": "long",
+    "right": "C",
+    "strike": 741.0,
+    "expiry": "2026-12-04",
+    "qty": 1,
+    "entry_price": 16.53,
+    "entry_date": "2026-11-06",
+    "hedge_shares": -54,
+    "dte": 28,
+    "mark_ts": "2026-11-06T10:14:59-05:00",
+    "spot": 740.7634,
+    "premium": 1653.0,
+    "stop": -826.5,
+    "take": null,
+    "option_pnl": -6.5,
+    "hedge_pnl": -0.035,
+    "pnl": -6.535
+   },
+   "signal": "long"
+  },
+  {
+   "name": "Short only",
+   "exp": "2026-10-16-short-only",
+   "variant": "short_only",
+   "error": null,
+   "rules": {
+    "forecaster": "garch",
+    "short_band": 0.02,
+    "long_band": null,
+    "target_dte": 30,
+    "exit_dte": 7,
+    "short_stop_mult": 1.0,
+    "long_stop_frac": 0.5,
+    "short_profit_frac": 0.5,
+    "min_shares": 1,
+    "quantity": 1,
+    "put_delta": 0.0,
+    "stress_budget": 0.0
+   },
+   "summary": {
+    "pnl": -3.0581,
+    "max_dd": 9.735,
+    "trades": 0,
+    "win_rate": null,
+    "skipped": 1,
+    "no_fill": 0,
+    "no_delta": 0,
+    "no_mark": 0,
+    "opens": 1,
+    "hedges": 2,
+    "fees": 3.0,
+    "days": 20
+   },
+   "book": [
+    {
+     "date": "2026-09-29",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-01",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-05",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-06",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-07",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-08",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-09",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-14",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-15",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-16",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-19",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-20",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-21",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-23",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-26",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-27",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-11-02",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-11-03",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-11-05",
+     "realized": 0.0,
+     "open": -9.735,
+     "total": -9.735
+    },
+    {
+     "date": "2026-11-06",
+     "realized": 0.0,
+     "open": -3.0581,
+     "total": -3.0581
+    }
+   ],
+   "trades": [
+    {
+     "date": "2026-11-05",
+     "action": "open",
+     "side": "short",
+     "right": "P",
+     "strike": 737.0,
+     "expiry": "2026-12-04",
+     "qty": 1,
+     "price": 14.38,
+     "commission": 1.0
+    }
+   ],
+   "realized": 0.0,
+   "position": {
+    "side": "short",
+    "right": "P",
+    "strike": 737.0,
+    "expiry": "2026-12-04",
+    "qty": 1,
+    "entry_price": 14.38,
+    "entry_date": "2026-11-05",
+    "hedge_shares": -43,
+    "dte": 28,
+    "mark_ts": "2026-11-06T10:14:59-05:00",
+    "spot": 740.7634,
+    "premium": 1438.0,
+    "stop": -1438.0,
+    "take": 719.0,
+    "option_pnl": 155.5,
+    "hedge_pnl": -155.5581,
+    "pnl": -0.0581
+   },
+   "signal": "flat"
+  },
+  {
+   "name": "Hedge band 10",
+   "exp": "2026-10-16-hedge-band",
+   "variant": "band10",
+   "error": null,
+   "rules": {
+    "forecaster": "garch",
+    "short_band": 0.02,
+    "long_band": -0.05,
+    "target_dte": 30,
+    "exit_dte": 7,
+    "short_stop_mult": 1.0,
+    "long_stop_frac": 0.5,
+    "short_profit_frac": 0.5,
+    "min_shares": 10,
+    "quantity": 1,
+    "put_delta": 0.0,
+    "stress_budget": 0.0
+   },
+   "summary": {
+    "pnl": -15.0381,
+    "max_dd": 15.0381,
+    "trades": 1,
+    "win_rate": 0.0,
+    "skipped": 1,
+    "no_fill": 0,
+    "no_delta": 0,
+    "no_mark": 0,
+    "opens": 2,
+    "hedges": 1,
+    "fees": 4.0,
+    "days": 20
+   },
+   "book": [
+    {
+     "date": "2026-09-29",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-01",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-05",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-06",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-07",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-08",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-09",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-14",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-15",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-16",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-19",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-20",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-21",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-23",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-26",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-27",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-11-02",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-11-03",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-11-05",
+     "realized": 0.0,
+     "open": -9.735,
+     "total": -9.735
+    },
+    {
+     "date": "2026-11-06",
+     "realized": -7.5381,
+     "open": -7.5,
+     "total": -15.0381
+    }
+   ],
+   "trades": [
+    {
+     "date": "2026-11-05",
+     "action": "open",
+     "side": "short",
+     "right": "P",
+     "strike": 737.0,
+     "expiry": "2026-12-04",
+     "qty": 1,
+     "price": 14.38,
+     "reason": null,
+     "pnl": null,
+     "commission": 1.0
+    },
+    {
+     "date": "2026-11-06",
+     "action": "close",
+     "side": "short",
+     "right": "P",
+     "strike": 737.0,
+     "expiry": "2026-12-04",
+     "qty": 1,
+     "price": 12.87,
+     "reason": "flip",
+     "pnl": -7.5381,
+     "commission": 1.0
+    },
+    {
+     "date": "2026-11-06",
+     "action": "open",
+     "side": "long",
+     "right": "C",
+     "strike": 741.0,
+     "expiry": "2026-12-04",
+     "qty": 1,
+     "price": 16.53,
+     "reason": null,
+     "pnl": null,
+     "commission": 1.0
+    }
+   ],
+   "realized": -7.5381,
+   "position": {
+    "side": "long",
+    "right": "C",
+    "strike": 741.0,
+    "expiry": "2026-12-04",
+    "qty": 1,
+    "entry_price": 16.53,
+    "entry_date": "2026-11-06",
+    "hedge_shares": -47,
+    "dte": 28,
+    "mark_ts": "2026-11-06T10:14:59-05:00",
+    "spot": 740.7634,
+    "premium": 1653.0,
+    "stop": -826.5,
+    "take": null,
+    "option_pnl": -6.5,
+    "hedge_pnl": 0.0,
+    "pnl": -6.5
+   },
+   "signal": "long"
+  },
+  {
+   "name": "Short only, band 10",
+   "exp": "2026-10-16-short-only-band10",
+   "variant": "band10",
+   "error": null,
+   "rules": {
+    "forecaster": "garch",
+    "short_band": 0.02,
+    "long_band": null,
+    "target_dte": 30,
+    "exit_dte": 7,
+    "short_stop_mult": 1.0,
+    "long_stop_frac": 0.5,
+    "short_profit_frac": 0.5,
+    "min_shares": 10,
+    "quantity": 1,
+    "put_delta": 0.0,
+    "stress_budget": 0.0
+   },
+   "summary": {
+    "pnl": -2.0381,
+    "max_dd": 9.735,
+    "trades": 0,
+    "win_rate": null,
+    "skipped": 1,
+    "no_fill": 0,
+    "no_delta": 0,
+    "no_mark": 0,
+    "opens": 1,
+    "hedges": 1,
+    "fees": 2.0,
+    "days": 20
+   },
+   "book": [
+    {
+     "date": "2026-09-29",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-01",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-05",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-06",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-07",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-08",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-09",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-14",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-15",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-16",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-19",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-20",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-21",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-23",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-26",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-10-27",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-11-02",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-11-03",
+     "realized": 0.0,
+     "open": 0.0,
+     "total": 0.0
+    },
+    {
+     "date": "2026-11-05",
+     "realized": 0.0,
+     "open": -9.735,
+     "total": -9.735
+    },
+    {
+     "date": "2026-11-06",
+     "realized": 0.0,
+     "open": -2.0381,
+     "total": -2.0381
+    }
+   ],
+   "trades": [
+    {
+     "date": "2026-11-05",
+     "action": "open",
+     "side": "short",
+     "right": "P",
+     "strike": 737.0,
+     "expiry": "2026-12-04",
+     "qty": 1,
+     "price": 14.38,
+     "commission": 1.0
+    }
+   ],
+   "realized": 0.0,
+   "position": {
+    "side": "short",
+    "right": "P",
+    "strike": 737.0,
+    "expiry": "2026-12-04",
+    "qty": 1,
+    "entry_price": 14.38,
+    "entry_date": "2026-11-05",
+    "hedge_shares": -47,
+    "dte": 28,
+    "mark_ts": "2026-11-06T10:14:59-05:00",
+    "spot": 740.7634,
+    "premium": 1438.0,
+    "stop": -1438.0,
+    "take": 719.0,
+    "option_pnl": 155.5,
+    "hedge_pnl": -155.5381,
+    "pnl": -0.0381
+   },
+   "signal": "flat"
+  },
+  {
+   "name": "Stress-sized 20-delta puts",
+   "exp": "2026-11-02-lower-delta",
+   "variant": "put20",
+   "error": null,
+   "rules": {
+    "forecaster": "garch",
+    "short_band": null,
+    "long_band": null,
+    "target_dte": 30,
+    "exit_dte": 7,
+    "short_stop_mult": 1.0,
+    "long_stop_frac": 0.5,
+    "short_profit_frac": 0.5,
+    "min_shares": 10,
+    "quantity": 1,
+    "put_delta": 0.2,
+    "stress_budget": 0.35
+   },
+   "summary": {
+    "pnl": 1062.2563,
+    "max_dd": 1212.0303,
+    "trades": 1,
+    "win_rate": 1.0,
+    "skipped": 1,
+    "no_fill": 0,
+    "no_delta": 0,
+    "no_mark": 0,
+    "opens": 2,
+    "hedges": 17,
+    "fees": 33.25,
+    "days": 20
+   },
+   "book": [
+    {
+     "date": "2026-09-29",
+     "realized": 0.0,
+     "open": -19.01,
+     "total": -19.01
+    },
+    {
+     "date": "2026-10-01",
+     "realized": 0.0,
+     "open": -261.2516,
+     "total": -261.2516
+    },
+    {
+     "date": "2026-10-05",
+     "realized": 0.0,
+     "open": -146.688,
+     "total": -146.688
+    },
+    {
+     "date": "2026-10-06",
+     "realized": 0.0,
+     "open": -192.6639,
+     "total": -192.6639
+    },
+    {
+     "date": "2026-10-07",
+     "realized": 0.0,
+     "open": -197.85,
+     "total": -197.85
+    },
+    {
+     "date": "2026-10-08",
+     "realized": 0.0,
+     "open": -93.7045,
+     "total": -93.7045
+    },
+    {
+     "date": "2026-10-09",
+     "realized": 0.0,
+     "open": 119.8092,
+     "total": 119.8092
+    },
+    {
+     "date": "2026-10-14",
+     "realized": 0.0,
+     "open": 185.5601,
+     "total": 185.5601
+    },
+    {
+     "date": "2026-10-15",
+     "realized": 0.0,
+     "open": 136.4992,
+     "total": 136.4992
+    },
+    {
+     "date": "2026-10-16",
+     "realized": 0.0,
+     "open": 489.7499,
+     "total": 489.7499
+    },
+    {
+     "date": "2026-10-19",
+     "realized": 0.0,
+     "open": 668.5119,
+     "total": 668.5119
+    },
+    {
+     "date": "2026-10-20",
+     "realized": 0.0,
+     "open": 581.8575,
+     "total": 581.8575
+    },
+    {
+     "date": "2026-10-21",
+     "realized": 0.0,
+     "open": 978.7107,
+     "total": 978.7107
+    },
+    {
+     "date": "2026-10-23",
+     "realized": 983.9519,
+     "open": -25.405,
+     "total": 958.5469
+    },
+    {
+     "date": "2026-10-26",
+     "realized": 983.9519,
+     "open": 554.317,
+     "total": 1538.2689
+    },
+    {
+     "date": "2026-10-27",
+     "realized": 983.9519,
+     "open": 525.0641,
+     "total": 1509.016
+    },
+    {
+     "date": "2026-11-02",
+     "realized": 983.9519,
+     "open": 1290.3348,
+     "total": 2274.2866
+    },
+    {
+     "date": "2026-11-03",
+     "realized": 983.9519,
+     "open": 947.1367,
+     "total": 1931.0886
+    },
+    {
+     "date": "2026-11-05",
+     "realized": 983.9519,
+     "open": 156.0369,
+     "total": 1139.9888
+    },
+    {
+     "date": "2026-11-06",
+     "realized": 983.9519,
+     "open": 78.3045,
+     "total": 1062.2563
+    }
+   ],
+   "trades": [
+    {
+     "date": "2026-09-29",
+     "action": "open",
+     "side": "short",
+     "right": "P",
+     "strike": 738.0,
+     "expiry": "2026-10-30",
+     "qty": 8,
+     "price": 4.1,
+     "reason": null,
+     "pnl": null,
+     "commission": 5.2
+    },
+    {
+     "date": "2026-10-23",
+     "action": "close",
+     "side": "short",
+     "right": "P",
+     "strike": 738.0,
+     "expiry": "2026-10-30",
+     "qty": 8,
+     "price": 1.53,
+     "reason": "time",
+     "pnl": 983.9519,
+     "commission": 5.2
+    },
+    {
+     "date": "2026-10-23",
+     "action": "open",
+     "side": "short",
+     "right": "P",
+     "strike": 729.0,
+     "expiry": "2026-11-20",
+     "qty": 9,
+     "price": 4.9,
+     "reason": null,
+     "pnl": null,
+     "commission": 5.85
+    }
+   ],
+   "realized": 983.9519,
+   "position": {
+    "side": "short",
+    "right": "P",
+    "strike": 729.0,
+    "expiry": "2026-11-20",
+    "qty": 9,
+    "entry_price": 4.9,
+    "entry_date": "2026-10-23",
+    "hedge_shares": -306,
+    "dte": 14,
+    "mark_ts": "2026-11-06T10:14:59-05:00",
+    "spot": 740.7634,
+    "premium": 4410.0,
+    "stop": -4410.0,
+    "take": 2205.0,
+    "option_pnl": -2673.0,
+    "hedge_pnl": 2763.1545,
+    "pnl": 90.1545
+   },
+   "signal": "short"
+  },
+  {
+   "name": "Stress-sized 25-delta puts",
+   "exp": "2026-10-22-stress-sized-puts",
+   "variant": "hedged",
+   "error": null,
+   "rules": {
+    "forecaster": "garch",
+    "short_band": null,
+    "long_band": null,
+    "target_dte": 30,
+    "exit_dte": 7,
+    "short_stop_mult": 1.0,
+    "long_stop_frac": 0.5,
+    "short_profit_frac": 0.5,
+    "min_shares": 10,
+    "quantity": 1,
+    "put_delta": 0.25,
+    "stress_budget": 0.35
+   },
+   "summary": {
+    "pnl": 871.1752,
+    "max_dd": 1495.4418,
+    "trades": 1,
+    "win_rate": 1.0,
+    "skipped": 1,
+    "no_fill": 0,
+    "no_delta": 2,
+    "no_mark": 0,
+    "opens": 2,
+    "hedges": 18,
+    "fees": 34.26,
+    "days": 20
+   },
+   "book": [
+    {
+     "date": "2026-09-29",
+     "realized": 0.0,
+     "open": -19.22,
+     "total": -19.22
+    },
+    {
+     "date": "2026-10-01",
+     "realized": 0.0,
+     "open": -319.882,
+     "total": -319.882
+    },
+    {
+     "date": "2026-10-05",
+     "realized": 0.0,
+     "open": -203.5413,
+     "total": -203.5413
+    },
+    {
+     "date": "2026-10-06",
+     "realized": 0.0,
+     "open": -239.326,
+     "total": -239.326
+    },
+    {
+     "date": "2026-10-07",
+     "realized": 0.0,
+     "open": -268.8101,
+     "total": -268.8101
+    },
+    {
+     "date": "2026-10-08",
+     "realized": 0.0,
+     "open": -120.2945,
+     "total": -120.2945
+    },
+    {
+     "date": "2026-10-09",
+     "realized": 0.0,
+     "open": 160.7356,
+     "total": 160.7356
+    },
+    {
+     "date": "2026-10-14",
+     "realized": 0.0,
+     "open": 206.2482,
+     "total": 206.2482
+    },
+    {
+     "date": "2026-10-15",
+     "realized": 0.0,
+     "open": 147.5573,
+     "total": 147.5573
+    },
+    {
+     "date": "2026-10-16",
+     "realized": 0.0,
+     "open": 651.7,
+     "total": 651.7
+    },
+    {
+     "date": "2026-10-19",
+     "realized": 0.0,
+     "open": 846.136,
+     "total": 846.136
+    },
+    {
+     "date": "2026-10-20",
+     "realized": 0.0,
+     "open": 684.6194,
+     "total": 684.6194
+    },
+    {
+     "date": "2026-10-21",
+     "realized": 0.0,
+     "open": 1196.0946,
+     "total": 1196.0946
+    },
+    {
+     "date": "2026-10-23",
+     "realized": 1067.5663,
+     "open": -29.99,
+     "total": 1037.5763
+    },
+    {
+     "date": "2026-10-26",
+     "realized": 1067.5663,
+     "open": 615.0584,
+     "total": 1682.6246
+    },
+    {
+     "date": "2026-10-27",
+     "realized": 1067.5663,
+     "open": 539.8354,
+     "total": 1607.4017
+    },
+    {
+     "date": "2026-11-02",
+     "realized": 1067.5663,
+     "open": 1299.0507,
+     "total": 2366.617
+    },
+    {
+     "date": "2026-11-03",
+     "realized": 1067.5663,
+     "open": 832.3392,
+     "total": 1899.9055
+    },
+    {
+     "date": "2026-11-05",
+     "realized": 1067.5663,
+     "open": -12.4183,
+     "total": 1055.1479
+    },
+    {
+     "date": "2026-11-06",
+     "realized": 1067.5663,
+     "open": -196.391,
+     "total": 871.1752
+    }
+   ],
+   "trades": [
+    {
+     "date": "2026-09-29",
+     "action": "open",
+     "side": "short",
+     "right": "P",
+     "strike": 745.0,
+     "expiry": "2026-10-30",
+     "qty": 8,
+     "price": 5.19,
+     "reason": null,
+     "pnl": null,
+     "commission": 5.2
+    },
+    {
+     "date": "2026-10-23",
+     "action": "close",
+     "side": "short",
+     "right": "P",
+     "strike": 745.0,
+     "expiry": "2026-10-30",
+     "qty": 8,
+     "price": 2.4,
+     "reason": "time",
+     "pnl": 1067.5663,
+     "commission": 5.2
+    },
+    {
+     "date": "2026-10-23",
+     "action": "open",
+     "side": "short",
+     "right": "P",
+     "strike": 738.0,
+     "expiry": "2026-11-20",
+     "qty": 9,
+     "price": 6.21,
+     "reason": null,
+     "pnl": null,
+     "commission": 5.85
+    }
+   ],
+   "realized": 1067.5663,
+   "position": {
+    "side": "short",
+    "right": "P",
+    "strike": 738.0,
+    "expiry": "2026-11-20",
+    "qty": 9,
+    "entry_price": 6.209999999999999,
+    "entry_date": "2026-10-23",
+    "hedge_shares": -402,
+    "dte": 14,
+    "mark_ts": "2026-11-06T10:14:59-05:00",
+    "spot": 740.7634,
+    "premium": 5589.0,
+    "stop": -5589.0,
+    "take": 2794.5,
+    "option_pnl": -3960.0,
+    "hedge_pnl": 3776.459,
+    "pnl": -183.541
+   },
+   "signal": "short"
+  },
+  {
+   "name": "Always short, 1 contract",
+   "exp": "2026-10-17-always-short",
+   "variant": "always25",
+   "error": null,
+   "rules": {
+    "forecaster": "garch",
+    "short_band": null,
+    "long_band": null,
+    "target_dte": 30,
+    "exit_dte": 7,
+    "short_stop_mult": 1.0,
+    "long_stop_frac": 0.5,
+    "short_profit_frac": 0.5,
+    "min_shares": 10,
+    "quantity": 1,
+    "put_delta": 0.25,
+    "stress_budget": 0.0
+   },
+   "summary": {
+    "pnl": 78.0644,
+    "max_dd": 215.2091,
+    "trades": 1,
+    "win_rate": 1.0,
+    "skipped": 1,
+    "no_fill": 0,
+    "no_delta": 2,
+    "no_mark": 0,
+    "opens": 2,
+    "hedges": 4,
+    "fees": 7.0,
+    "days": 20
+   },
+   "book": [
+    {
+     "date": "2026-09-29",
+     "realized": 0.0,
+     "open": -3.625,
+     "total": -3.625
+    },
+    {
+     "date": "2026-10-01",
+     "realized": 0.0,
+     "open": -42.1252,
+     "total": -42.1252
+    },
+    {
+     "date": "2026-10-05",
+     "realized": 0.0,
+     "open": 14.3759,
+     "total": 14.3759
+    },
+    {
+     "date": "2026-10-06",
+     "realized": 0.0,
+     "open": -62.6931,
+     "total": -62.6931
+    },
+    {
+     "date": "2026-10-07",
+     "realized": 0.0,
+     "open": -67.8856,
+     "total": -67.8856
+    },
+    {
+     "date": "2026-10-08",
+     "realized": 0.0,
+     "open": -48.9986,
+     "total": -48.9986
+    },
+    {
+     "date": "2026-10-09",
+     "realized": 0.0,
+     "open": -8.8136,
+     "total": -8.8136
+    },
+    {
+     "date": "2026-10-14",
+     "realized": 0.0,
+     "open": -3.9078,
+     "total": -3.9078
+    },
+    {
+     "date": "2026-10-15",
+     "realized": 0.0,
+     "open": -16.2322,
+     "total": -16.2322
+    },
+    {
+     "date": "2026-10-16",
+     "realized": 0.0,
+     "open": 30.8547,
+     "total": 30.8547
+    },
+    {
+     "date": "2026-10-19",
+     "realized": 0.0,
+     "open": 58.9495,
+     "total": 58.9495
+    },
+    {
+     "date": "2026-10-20",
+     "realized": 0.0,
+     "open": 64.2114,
+     "total": 64.2114
+    },
+    {
+     "date": "2026-10-21",
+     "realized": 0.0,
+     "open": 127.3644,
+     "total": 127.3644
+    },
+    {
+     "date": "2026-10-23",
+     "realized": 99.4946,
+     "open": -4.57,
+     "total": 94.9246
+    },
+    {
+     "date": "2026-10-26",
+     "realized": 99.4946,
+     "open": 68.6286,
+     "total": 168.1232
+    },
+    {
+     "date": "2026-10-27",
+     "realized": 99.4946,
+     "open": 55.2292,
+     "total": 154.7238
+    },
+    {
+     "date": "2026-11-02",
+     "realized": 99.4946,
+     "open": 193.7789,
+     "total": 293.2735
+    },
+    {
+     "date": "2026-11-03",
+     "realized": 99.4946,
+     "open": 157.8103,
+     "total": 257.3049
+    },
+    {
+     "date": "2026-11-05",
+     "realized": 99.4946,
+     "open": -0.0184,
+     "total": 99.4761
+    },
+    {
+     "date": "2026-11-06",
+     "realized": 99.4946,
+     "open": -21.4302,
+     "total": 78.0644
+    }
+   ],
+   "trades": [
+    {
+     "date": "2026-09-29",
+     "action": "open",
+     "side": "short",
+     "right": "P",
+     "strike": 745.0,
+     "expiry": "2026-10-30",
+     "qty": 1,
+     "price": 5.19,
+     "reason": null,
+     "pnl": null,
+     "commission": 1.0
+    },
+    {
+     "date": "2026-10-23",
+     "action": "close",
+     "side": "short",
+     "right": "P",
+     "strike": 745.0,
+     "expiry": "2026-10-30",
+     "qty": 1,
+     "price": 2.4,
+     "reason": "time",
+     "pnl": 99.4946,
+     "commission": 1.0
+    },
+    {
+     "date": "2026-10-23",
+     "action": "open",
+     "side": "short",
+     "right": "P",
+     "strike": 738.0,
+     "expiry": "2026-11-20",
+     "qty": 1,
+     "price": 6.21,
+     "reason": null,
+     "pnl": null,
+     "commission": 1.0
+    }
+   ],
+   "realized": 99.4946,
+   "position": {
+    "side": "short",
+    "right": "P",
+    "strike": 738.0,
+    "expiry": "2026-11-20",
+    "qty": 1,
+    "entry_price": 6.209999999999999,
+    "entry_date": "2026-10-23",
+    "hedge_shares": -49,
+    "dte": 14,
+    "mark_ts": "2026-11-06T10:14:59-05:00",
+    "spot": 740.7634,
+    "premium": 621.0,
+    "stop": -621.0,
+    "take": 310.5,
+    "option_pnl": -440.0,
+    "hedge_pnl": 421.5698,
+    "pnl": -18.4302
+   },
+   "signal": "short"
+  },
+  {
+   "name": "Hourly signal",
+   "exp": "2026-10-21-signal-times",
+   "variant": "hourly",
+   "error": null,
+   "placeholder": "Waiting on hourly snapshots \u00b7 automation in progress"
+  }
+ ]
+}

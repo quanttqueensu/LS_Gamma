@@ -45,7 +45,7 @@
 </div></section>
 
 <section class="gs-sec" id="desk" hidden><div class="gs-wrap">
-  <div class="gs-headrow"><h2 class="gs-h2">Live desk.</h2></div>
+  <div class="gs-headrow"><h2 class="gs-h2">Live desk.</h2><a class="gs-pill gs-pill-ghost" id="to-strategies" href="#strategies" hidden>View live and shadow strategies</a></div>
   <p class="sec-meta gs-meta" id="desk-meta"></p>
   <div class="desk-stats" id="desk-stats"></div>
   <div class="gs-card desk-book"><h3 class="colh">Book P&amp;L</h3><p class="gs-meta book-note" id="book-note"></p><div id="book-chart"></div><div class="g-tip" id="b-tip" role="tooltip" hidden></div></div>
@@ -53,6 +53,15 @@
     <div class="gs-card desk-chart"><h3 class="colh">Signal history</h3><div id="desk-chart"></div><details class="desk-rule" id="desk-rule-box"><summary>How the signal works</summary><p class="gs-meta" id="desk-rule"></p></details><div class="g-tip" id="d-tip" role="tooltip" hidden></div></div>
     <div class="gs-card" id="desk-pos"></div>
   </div>
+</div></section>
+
+<section class="gs-sec first" id="strategies" hidden><div class="gs-wrap">
+  <div class="gs-headrow"><h2 class="gs-h2">Live and shadow strategies.</h2><div class="hacts"><span class="gs-tag" id="sh-tag"></span><a class="gs-pill gs-pill-ghost" href="#desk">← Live desk</a></div></div>
+  <p class="sec-meta gs-meta" id="sh-meta"></p>
+  <div class="desk-stats" id="sh-stats"></div>
+  <div class="gs-card desk-book"><h3 class="colh">Book P&amp;L</h3><p class="gs-meta book-note" id="sh-note"></p><div id="sh-chart"></div><div class="skey" id="sh-key"></div><div class="g-tip" id="s-tip" role="tooltip" hidden></div></div>
+  <div class="gs-card sbooks"><div class="slabels" aria-hidden="true"><span>Book</span><span>Days</span><span>Trades</span><span>P&amp;L</span><span>Max DD</span><span>Now</span><span></span></div><div id="sh-books"></div></div>
+  <p class="gs-meta sfoot" id="sh-foot"></p>
 </div></section>
 
 <section class="gs-sec" id="experiments"><div class="gs-wrap">

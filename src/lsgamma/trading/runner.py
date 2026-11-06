@@ -212,6 +212,11 @@ def publish(chain, cfg):
         print(f"desk snapshot -> {desk.write(chain, cfg)}")
     except (OSError, KeyError, ValueError) as e:
         print(f"WARNING: desk snapshot not written ({e})")
+    try:
+        from lsgamma.trading import shadow  # engine imports runner
+        print(f"shadow books -> {shadow.write()}")
+    except (Exception, SystemExit) as e:
+        print(f"WARNING: shadow books not written ({e})")
 
 
 def main():

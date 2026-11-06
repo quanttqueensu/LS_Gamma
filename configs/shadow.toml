@@ -1,0 +1,47 @@
+# Shadow books: each idea's config replayed on the daily live snapshots
+# (data/live), filled at the quoted bid/ask. No orders, no registry trials.
+# python -m lsgamma.trading.shadow writes research/shadow.json for the hub.
+
+[shadow]
+start = "2026-09-26"  # first live snapshot
+capital = 250000  # per book
+min_days = 60  # trading days before comparing P&L
+
+[[book]]
+name = "Paper rules"
+
+[[book]]
+name = "Short only"
+exp = "2026-10-16-short-only"
+variant = "short_only"
+
+[[book]]
+name = "Hedge band 10"
+exp = "2026-10-16-hedge-band"
+variant = "band10"
+
+[[book]]
+name = "Short only, band 10"
+exp = "2026-10-16-short-only-band10"
+variant = "band10"
+
+[[book]]
+name = "Stress-sized 20-delta puts"
+exp = "2026-11-02-lower-delta"
+variant = "put20"
+
+[[book]]
+name = "Stress-sized 25-delta puts"
+exp = "2026-10-22-stress-sized-puts"
+variant = "hedged"
+
+[[book]]
+name = "Always short, 1 contract"
+exp = "2026-10-17-always-short"
+variant = "always25"
+
+[[book]]
+name = "Hourly signal"
+exp = "2026-10-21-signal-times"
+variant = "hourly"
+placeholder = "Waiting on hourly snapshots · automation in progress"

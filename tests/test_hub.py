@@ -25,7 +25,9 @@ CARD = """# Hypothesis: a demo rule beats the baseline
 ## Hypothesis
 See the [report](2026-11-01-demo.pdf) and [paper](../../../docs/papers/X.pdf).
 """
-SUMMARY = "# Summary: 2026-11-01-demo\n\n**Owner:** Jane · **Date finished:** 2026-11-03 · **Verdict:** passed\n"
+SUMMARY = ("# Summary: 2026-11-01-demo\n\n> Written by Claude at the PM's request (an exception).\n"
+           "> Only aggregate numbers here.\n\n"
+           "**Owner:** Jane; run by Claude at the PM's request · **Date finished:** 2026-11-03 · **Verdict:** passed\n")
 ROADMAP = """
 [[item]]
 title = "An idea"
@@ -84,6 +86,7 @@ def test_collect_card(repo):
     assert 'href="files/research/Agentic_Routing/2026-11-01-demo/2026-11-01-demo.pdf"' in card["cardHtml"]
     assert collect.GITHUB + "docs/papers/X.pdf" in card["cardHtml"]
     assert "Fill this card" not in card["cardHtml"]
+    assert "by Claude" not in card["summaryHtml"] and "aggregate numbers" not in card["summaryHtml"]
     assert data["library"][0]["title"] == "Deep Hedging & the Desk"
     assert data["stats"]["trials"] == 2 and data["stats"]["passed"] == 1
 

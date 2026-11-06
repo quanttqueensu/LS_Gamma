@@ -25,6 +25,8 @@ button { font: inherit; color: inherit; }
 .gs-nav { position: sticky; top: 0; z-index: 10; background: #fff; }
 .gs-nav .gs-wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; padding-bottom: 14px; }
 .gs-brand { display: inline-flex; align-items: center; gap: 7px; font-family: var(--gs-font-display); font-size: 20px; font-weight: 500; letter-spacing: -.02em; white-space: nowrap; }
+.gs-brand .q-full { display: block; width: auto; height: 24px; }
+.gs-brand .sep { flex: none; width: 1px; height: 24px; margin: 0 10px 0 8px; background: var(--gs-line-hover); }
 .gs-brand .mark { font-size: 34px; font-weight: 400; line-height: 1; margin: -6px 2px -4px 0; }
 .gs-segment { display: flex; align-items: center; gap: 2px; background: var(--gs-segment); border-radius: var(--gs-pill); padding: 5px; }
 .gs-segment > a, .gs-segment > button { font-size: 14px; color: var(--gs-muted); background: none; border: 0; padding: 7px 13px; border-radius: var(--gs-pill); cursor: pointer; white-space: nowrap; transition: background var(--gs-fast), color var(--gs-fast); }
@@ -442,8 +444,10 @@ mark { background: color-mix(in srgb, var(--gs-highlight) 32%, #fff); color: inh
 }
 @media (max-width: 460px) {
   .gs-pill { padding: 11px 14px; font-size: 13px; }
-  .gs-brand { font-size: 18px; }
-  .gs-brand .mark { font-size: 28px; }
+  .gs-brand { font-size: 16px; }
+  .gs-brand .q-full { height: 20px; }
+  .gs-brand .sep { height: 20px; margin: 0 8px 0 4px; }
+  .gs-brand .mark { font-size: 24px; }
   .gs-card { padding: 18px; border-radius: 20px; }
   .gs-card.gantt-card { padding: 0; }
   .gs-card.member { padding: 14px; }

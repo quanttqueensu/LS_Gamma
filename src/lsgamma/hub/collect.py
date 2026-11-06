@@ -20,7 +20,9 @@ CAPTIONS = {"cum_pnl": "Cumulative P&L", "drawdown": "Drawdown", "yearly": "P&L 
 LIBRARY = [("research/strategy_research", "Literature report"),
            ("research/Misc_Research_Notes", "Research note"),
            ("research/general_research", "General research")]
-BOILERPLATE = ("> Fill this card in", "> If you must change it")
+BOILERPLATE = ("> Fill this card in", "> If you must change it",
+               "> Written by Claude at the PM's request", "> Only aggregate numbers here")
+RUN_BY = re.compile(r";\s*run by Claude at the PM's request")
 DAY = re.compile(r"(\d{4}-\d{2}-\d{2})")
 MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
 MD = MarkdownIt("commonmark").enable("table")
@@ -84,7 +86,8 @@ def strip(text):
     lines = text.splitlines()
     if lines and lines[0].startswith("# "):
         lines = lines[1:]
-    return "\n".join(l for l in lines if not l.startswith(BOILERPLATE))
+    # repo keeps the authorship labels; the site hides them
+    return RUN_BY.sub("", "\n".join(l for l in lines if not l.startswith(BOILERPLATE)))
 
 
 def caption(stem):

@@ -221,3 +221,14 @@ def test_stop_cooloff_blocks_same_side_that_day(env, monkeypatch):
     assert ledger.load_position() is None
     runner.run(ib, env, DAY2)
     assert ledger.load_position()["side"] == "short"
+
+
+@pytest.mark.parametrize("err", [RuntimeError("boom"), SystemExit("refused")])
+def test_shadow_failure_never_blocks_publish(monkeypatch, capsys, err):
+    from lsgamma.trading import shadow
+    def fail():
+        raise err
+    monkeypatch.setattr(runner.desk, "write", lambda chain, cfg: "desk.json")
+    monkeypatch.setattr(shadow, "write", fail)
+    runner.publish(None, None)
+    assert "shadow books not written" in capsys.readouterr().out

@@ -27,7 +27,7 @@ signal = ["10:15"]  # ET; live runner allows one time
 hedge = ["10:15"]  # ET; may differ in backtests
 
 [execution]
-slippage = 0.05
+slippage = 0.30  # option limit past mid; 0.05 missed fills
 stock_pad = 0.005  # stock limit past option-implied spot
 fill_timeout = 60  # seconds
 gateway = true  # Gateway paper port 4002

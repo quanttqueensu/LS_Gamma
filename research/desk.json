@@ -1,5 +1,5 @@
 {
- "asof": "2026-11-05T13:04:55-05:00",
+ "asof": "2026-11-10T10:57:22-05:00",
  "rules": {
   "forecaster": "garch",
   "short_band": 0.02,
@@ -172,26 +172,80 @@
    "iv": 0.2082,
    "vrp": 0.0518,
    "signal": "short"
+  },
+  {
+   "date": "2026-11-06",
+   "expiry": "2026-12-04",
+   "dte": 28,
+   "rv_forecast": 0.257,
+   "iv": 0.1857,
+   "vrp": -0.0713,
+   "signal": "long"
+  },
+  {
+   "date": "2026-11-06",
+   "expiry": "2026-12-04",
+   "dte": 28,
+   "rv_forecast": 0.257,
+   "iv": 0.1857,
+   "vrp": -0.0713,
+   "signal": "long"
+  },
+  {
+   "date": "2026-11-06",
+   "expiry": "2026-12-04",
+   "dte": 28,
+   "rv_forecast": 0.257,
+   "iv": 0.1857,
+   "vrp": -0.0713,
+   "signal": "long"
+  },
+  {
+   "date": "2026-11-06",
+   "expiry": "2026-12-04",
+   "dte": 28,
+   "rv_forecast": 0.257,
+   "iv": 0.1857,
+   "vrp": -0.0713,
+   "signal": "long"
+  },
+  {
+   "date": "2026-11-09",
+   "expiry": "2026-12-11",
+   "dte": 32,
+   "rv_forecast": 0.2389,
+   "iv": 0.1708,
+   "vrp": -0.0681,
+   "signal": "long"
+  },
+  {
+   "date": "2026-11-10",
+   "expiry": "2026-12-11",
+   "dte": 31,
+   "rv_forecast": 0.2501,
+   "iv": 0.1675,
+   "vrp": -0.0825,
+   "signal": "long"
   }
  ],
  "position": {
-  "side": "short",
-  "right": "P",
-  "strike": 737.0,
+  "side": "long",
+  "right": "C",
+  "strike": 741.0,
   "expiry": "2026-12-04",
   "qty": 1,
-  "entry_price": 14.22,
-  "entry_date": "2026-11-05",
-  "hedge_shares": -46,
-  "dte": 29,
-  "mark_ts": "2026-11-05T12:41:23-05:00",
-  "spot": 737.4591,
-  "premium": 1422.0,
-  "stop": -1422.0,
-  "take": 711.0,
-  "option_pnl": -23.5,
-  "hedge_pnl": 46.0411,
-  "pnl": 22.5411
+  "entry_price": 16.01,
+  "entry_date": "2026-11-06",
+  "hedge_shares": -60,
+  "dte": 24,
+  "mark_ts": "2026-11-10T10:55:03-05:00",
+  "spot": 746.9225,
+  "premium": 1601.0,
+  "stop": -800.5,
+  "take": null,
+  "option_pnl": 271.5,
+  "hedge_pnl": -301.1849,
+  "pnl": -29.6849
  },
  "trades": [
   {
@@ -202,10 +256,36 @@
    "strike": 737.0,
    "expiry": "2026-12-04",
    "qty": 1,
-   "price": 14.22
+   "price": 14.22,
+   "reason": null,
+   "pnl": null
+  },
+  {
+   "date": "2026-11-06",
+   "action": "close",
+   "side": "short",
+   "right": "P",
+   "strike": 737.0,
+   "expiry": "2026-12-04",
+   "qty": 1,
+   "price": 13.46,
+   "reason": "flip",
+   "pnl": -27.2242
+  },
+  {
+   "date": "2026-11-06",
+   "action": "open",
+   "side": "long",
+   "right": "C",
+   "strike": 741.0,
+   "expiry": "2026-12-04",
+   "qty": 1,
+   "price": 16.01,
+   "reason": null,
+   "pnl": null
   }
  ],
- "realized": 0,
+ "realized": -27.2242,
  "book": [
   {
    "date": "2026-10-02",
@@ -311,9 +391,27 @@
   },
   {
    "date": "2026-11-05",
-   "realized": 0,
+   "realized": 0.0,
    "open": 22.5411,
    "total": 22.5411
+  },
+  {
+   "date": "2026-11-06",
+   "realized": -27.2242,
+   "open": 42.1794,
+   "total": 14.9552
+  },
+  {
+   "date": "2026-11-09",
+   "realized": -27.2242,
+   "open": -67.8644,
+   "total": -95.0886
+  },
+  {
+   "date": "2026-11-10",
+   "realized": -27.2242,
+   "open": -29.6849,
+   "total": -56.9091
   }
  ]
 }

@@ -8,7 +8,7 @@ capital = 250000  # per book
 min_days = 60  # trading days before comparing P&L
 
 [[book]]
-name = "Paper rules"
+name = "VRP band (paper.toml)"  # traded live when no [strategy] book
 
 [[book]]
 name = "Short only"

@@ -98,3 +98,23 @@ def test_write_is_strict_json_and_isolates_errors(live, tmp_path):
     assert paper["trades"][0]["action"] == "open" and paper["position"]["side"] == "short"
     assert snap["capital"] == 100000 and [s["folder"] for s in snap["snapshots"]][-1] == "2026-10-02/1016"
     assert not (experiments.ROOT / "registry.parquet").exists()
+
+
+def test_traded_follows_the_pointer(live, tmp_path, monkeypatch):
+    root, spec = live
+    books = json.loads(shadow.write(tmp_path / "a.json", spec).read_text())["books"]
+    assert [b["traded"] for b in books] == [True, False, False]
+    monkeypatch.setattr(shadow.paper, "book", lambda path=None: "no-such-card/x")
+    books = json.loads(shadow.write(tmp_path / "b.json", spec).read_text())["books"]
+    assert [b["traded"] for b in books] == [False, True, False]
+
+
+def test_base_book_ignores_the_pointer(tmp_path, monkeypatch):
+    text = config.CONFIGS.joinpath("paper.toml").read_text()
+    if "[strategy]" not in text:
+        text = '[strategy]\nbook = "2026-11-02-lower-delta/put20"\n' + text
+    path = tmp_path / "paper.toml"
+    path.write_text(text)
+    monkeypatch.setattr(config, "BASE", [path, config.CONFIGS / "backtest.toml"])
+    cfg = shadow.book_cfg({"name": "base"}, 250000)
+    assert cfg["signal"]["short_band"] == 0.02 and "strategy" not in cfg

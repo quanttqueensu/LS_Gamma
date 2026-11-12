@@ -17,18 +17,21 @@ SPOT = 600.0
 
 
 class FakeTrade:
-    def __init__(self, contract, order, price):
+    def __init__(self, contract, order, price, filled=None):
+        n = order.totalQuantity if filled is None else filled
         self.contract, self.order = contract, order
-        self.orderStatus = SimpleNamespace(status="Filled", filled=order.totalQuantity,
-                                           avgFillPrice=price)
+        self.orderStatus = SimpleNamespace(status="Filled" if n == order.totalQuantity else "Submitted",
+                                           filled=n, avgFillPrice=price if n else 0.0)
 
     def isDone(self):
-        return True
+        return self.orderStatus.status in ("Filled", "Cancelled")
 
 
 class FakeIB:
-    def __init__(self):
-        self.book, self.orders = {}, []
+    def __init__(self, partial=None, deltas=None):
+        # partial: {secType: fills for the next order}
+        self.book, self.orders, self.trades = {}, [], []
+        self.partial, self.deltas = dict(partial or {}), deltas or {}
 
     def qualifyContracts(self, *cs):
         for c in cs:
@@ -36,7 +39,8 @@ class FakeIB:
         return cs
 
     def reqMktData(self, c, *a):
-        delta = 0.5 if getattr(c, "right", "") == "C" else -0.5
+        right = getattr(c, "right", "")
+        delta = self.deltas.get((right, getattr(c, "strike", 0)), 0.5 if right == "C" else -0.5)
         return SimpleNamespace(contract=c, midpoint=lambda: 5.0, marketPrice=lambda: 5.0,
                                modelGreeks=SimpleNamespace(delta=delta))
 
@@ -47,16 +51,21 @@ class FakeIB:
         pass
 
     def cancelOrder(self, o):
-        pass
+        for t in self.trades:
+            if t.order is o and t.orderStatus.status != "Filled":
+                t.orderStatus.status = "Cancelled"
 
     def placeOrder(self, contract, order):
         sign = 1 if order.action == "BUY" else -1
+        cap = self.partial.pop(contract.secType, None)
+        n = order.totalQuantity if cap is None else min(cap, order.totalQuantity)
         key = (contract.secType, getattr(contract, "right", ""), getattr(contract, "strike", 0))
         c = self.book.get(key, (contract, 0))[0]
-        self.book[key] = (c, self.book.get(key, (c, 0))[1] + sign * order.totalQuantity)
+        self.book[key] = (c, self.book.get(key, (c, 0))[1] + sign * n)
         self.orders.append((contract.secType, order.action, order.totalQuantity))
         price = order.lmtPrice if contract.secType == "OPT" else SPOT
-        return FakeTrade(contract, order, price)
+        self.trades.append(FakeTrade(contract, order, price, n))
+        return self.trades[-1]
 
     def positions(self):
         return [SimpleNamespace(contract=c, position=q) for c, q in self.book.values() if q]
@@ -232,3 +241,137 @@ def test_shadow_failure_never_blocks_publish(monkeypatch, capsys, err):
     monkeypatch.setattr(shadow, "write", fail)
     runner.publish(None, None)
     assert "shadow books not written" in capsys.readouterr().out
+
+
+def book(env, monkeypatch):
+    # put20 book on a chain with put skew
+    from lsgamma.backtest import config as research
+    cfg = research.variant("2026-11-02-lower-delta", "put20")
+    cfg["signal"]["forecaster"] = "fixed"
+    data = snapshot()
+    c = data["chain"]
+    data["chain"] = c.assign(delta=np.where(c["right"] == "C", 0.5, -(c["strike"] - 590) / 20), gamma=0.01)
+    monkeypatch.setattr(runner.store, "load", lambda name, asof=None: data[name])
+    return cfg, data
+
+
+SKEW = {("P", 595.0): -0.25, ("P", 600.0): -0.5, ("P", 605.0): -0.75}
+
+
+def test_book_enters_sized_otm_put(env, monkeypatch):
+    cfg, data = book(env, monkeypatch)
+    t, qty = runner.pick("short", data["chain"], cfg, DAY1)
+    assert t["strike"] == 595.0 and qty > 1
+    runner.run(FakeIB(deltas=SKEW), cfg, DAY1)
+    pos = ledger.load_position()
+    assert (pos["side"], pos["strike"], pos["qty"]) == ("short", 595.0, qty)
+    assert pos["hedges"][0]["shares"] == -25 * qty
+
+
+def test_paper_rules_still_atm_one_contract(env):
+    t, qty = runner.pick("short", snapshot()["chain"], env, DAY1)
+    assert t["strike"] == 600.0 and qty == 1
+
+
+def test_partial_open_records_filled_qty(env):
+    env["size"]["quantity"] = 9
+    Fixed.vol = 0.10
+    runner.run(FakeIB(partial={"OPT": 5}), env, DAY1)
+    pos = ledger.load_position()
+    assert pos["qty"] == 5 and pos["hedges"][0]["shares"] == -250
+    assert ledger.read_log("trades")["qty"].tolist() == [5]
+
+
+def test_partial_close_keeps_rest_open(env):
+    env["size"]["quantity"] = 9
+    ib = FakeIB()
+    Fixed.vol = 0.10
+    runner.run(ib, env, DAY1)
+    Fixed.vol = 0.25
+    ib.partial = {"OPT": 4}
+    runner.run(ib, env, DAY2)
+    pos = ledger.load_position()
+    assert (pos["side"], pos["qty"]) == ("short", 5)
+    t = ledger.read_log("trades")
+    assert t["action"].tolist() == ["open", "close"] and t["qty"].tolist() == [9, 4]
+    runner.run(ib, env, at(5))
+    t = ledger.read_log("trades")
+    assert t["action"].tolist() == ["open", "close", "close", "open"]
+    assert t["qty"].tolist() == [9, 4, 5, 9] and ledger.load_position()["side"] == "long"
+
+
+def test_nothing_filled_changes_nothing(env):
+    Fixed.vol = 0.10
+    ib = FakeIB(partial={"OPT": 0})
+    runner.run(ib, env, DAY1)
+    assert ledger.load_position() is None and ledger.read_log("trades").empty
+    assert [o[0] for o in ib.orders] == ["OPT"]
+
+
+def test_partial_hedge_logs_filled_shares(env):
+    Fixed.vol = 0.10
+    runner.run(FakeIB(partial={"STK": 20}), env, DAY1)
+    assert ledger.read_log("hedges")["shares"].tolist() == [-20]
+    assert ledger.load_position()["hedges"][0]["shares"] == -20
+
+
+def test_reconcile_compares_contracts(env, capsys):
+    ib = FakeIB()
+    Fixed.vol = 0.10
+    runner.run(ib, env, DAY1)
+    pos = ledger.load_position()
+    capsys.readouterr()
+    runner.reconcile(ib, pos)
+    assert "WARNING" not in capsys.readouterr().out
+    runner.reconcile(ib, {**pos, "qty": 2})
+    assert "WARNING: IBKR holds" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("flag, value", [("ww_band", 30.0), ("size_tilt", 0.5), ("put_picks", "x.parquet"),
+                                         ("crash_dte", [1, 10, 20]), ("fit_years", 3), ("max_positions", 2),
+                                         ("long_hedge_band", 30)])
+def test_check_book_refuses_research_flags(flag, value):
+    from lsgamma.backtest import config as research
+    cfg = research.variant("2026-11-02-lower-delta", "put20")
+    runner.check_book(cfg)
+    runner.check_book(config.read())
+    runner.check_book({**cfg, "backtest": {**cfg["backtest"], "spread_mult": 2.0}})
+    with pytest.raises(SystemExit, match=flag):
+        runner.check_book({**cfg, "backtest": {**cfg["backtest"], flag: value}})
+
+
+def test_shadow_books_are_tradable_except_hourly():
+    from lsgamma.backtest import config as research
+    from lsgamma.trading import shadow
+    for b in research.read(shadow.PATH)["book"]:
+        cfg = shadow.book_cfg(b, 250000)
+        if b.get("placeholder"):
+            with pytest.raises(SystemExit):
+                runner.check_schedule(cfg)
+        else:
+            runner.check_schedule(cfg)
+            runner.check_book(cfg)
+
+
+def test_switch_dry_run_flips_into_the_book(env, monkeypatch, capsys):
+    Fixed.vol = 0.25
+    runner.run(FakeIB(), env, DAY1)
+    assert ledger.load_position()["side"] == "long"
+    cfg, data = book(env, monkeypatch)
+    capsys.readouterr()
+    runner.run(None, cfg, DAY2, dry=True)
+    out = capsys.readouterr().out
+    _, qty = runner.pick("short", data["chain"], cfg, DAY2)
+    assert "exit flip" in out and "would close (flip)" in out
+    assert f"enter short: short_put P 595.0 2026-10-30 x{qty}" in out
+
+
+def test_main_refuses_unsupported_book_before_connecting(monkeypatch):
+    from lsgamma.backtest import config as research
+    cfg = research.variant("2026-11-02-lower-delta", "put20")
+    cfg["backtest"]["ww_band"] = 30.0
+    monkeypatch.setattr(runner.config, "load", lambda path=None: cfg)
+    monkeypatch.setattr(runner.broker, "connect", lambda **k: pytest.fail("connected"))
+    monkeypatch.setattr("sys.argv", ["runner", "--skip-pipeline"])
+    with pytest.raises(SystemExit, match="ww_band"):
+        runner.main()

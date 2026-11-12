@@ -6,6 +6,7 @@ from lsgamma import experiments
 CONFIGS = Path(__file__).resolve().parents[3] / "configs"
 BASE = [CONFIGS / "paper.toml", CONFIGS / "backtest.toml"]
 PINNED = ["holdout_start", "first_day"]  # [backtest] keys no experiment sets
+LIVE_ONLY = ["strategy"]  # paper.toml tables backtests ignore
 
 
 def read(path):
@@ -32,6 +33,7 @@ def load(exp=None):
     cfg = {}
     for path in BASE:
         cfg = merge(cfg, read(path))
+    cfg = {k: v for k, v in cfg.items() if k not in LIVE_ONLY}
     if not exp:
         return cfg
     over = experiments.load_config(exp)

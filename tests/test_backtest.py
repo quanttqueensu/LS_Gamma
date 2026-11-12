@@ -1093,3 +1093,37 @@ def test_long_hedge_band_off_by_default(bt):
     for k in ("long_hedge_band", "trend_er"):
         del saved["backtest"][k]
     assert report.same(saved, cfg)
+
+
+def skew_drift(deltas):
+    # put delta by strike, shifted per day
+    def make(asof):
+        c = chain(asof)
+        put = -(c["strike"] - 590) / 20 - deltas[asof.date()]
+        return c.assign(delta=np.where(c["right"] == "P", put, c["delta"]))
+    return make
+
+
+def test_parity_put20_book(bt, monkeypatch):
+    _, root = bt
+    cfg = config.variant("2026-11-02-lower-delta", "put20")
+    cfg["signal"]["forecaster"] = "byday"
+    d = days("2024-03-04", 3)
+    shift = dict(zip(d, [0.0, 0.003, 0.02]))  # day 2 gap < 10 shares
+    plan = list(zip(d, [0.10] * 3))
+    write(root, plan, make=skew_drift(shift))
+    out = engine.backtest(cfg, d[0], d[-1], root=root)
+    feats = pd.read_parquet(root / "features.parquet")
+    monkeypatch.setattr(runner.store, "load", lambda name, asof=None: (
+        feats if name == "features" else pd.read_parquet(store.folder(asof, root) / f"{name}.parquet")))
+    ib = FakeIB()
+    for day, _ in plan:
+        ib.deltas = {("P", k): -(k - 590) / 20 - shift[day] for k in (595.0, 600.0, 605.0)}
+        runner.run(ib, cfg, engine.at(day, "10:15"))
+    live = ledger.read_log("trades")
+    pd.testing.assert_frame_equal(out["signals"][DECISION], ledger.read_log("signals")[DECISION], check_dtype=False)
+    cols = ["date", "action", "side", "right", "strike", "expiry", "qty"]
+    pd.testing.assert_frame_equal(out["trades"][cols], live[cols], check_dtype=False)
+    assert out["trades"]["strike"].iloc[0] == 595.0 and out["trades"]["qty"].iloc[0] > 1
+    assert out["hedges"]["shares"].tolist() == ledger.read_log("hedges")["shares"].tolist()
+    assert len(out["hedges"]) == 2

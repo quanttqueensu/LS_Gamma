@@ -46,13 +46,15 @@ Check that every line says `Filled` and the account ends flat.
 
 ## 5. Daily run (paper trading)
 Run at about 10:15 ET with IB Gateway open. It runs the pipeline, forecasts, gets the signal, applies exits, enters if needed, delta hedges, and logs.
+
+**Which strategy trades:** if `configs/paper.toml` has `[strategy] book = "<exp>/<variant>"`, the runner trades that shadow book's full config (paper.toml + backtest.toml + the variant) and prints `live book: <exp>/<variant>`. Without the line it trades the rules in paper.toml. Strike by delta (`put_delta`) and stress sizing (`stress_budget`, `stress_drop`, `stress_vol`, using `[size] capital`) use the same code as the backtest (`lsgamma.trading.sizing`). Any other backtest research flag in the book is refused before connecting. Orders for several contracts record what filled: a partial open keeps the filled part, a partial close keeps the rest open. See `docs/decisions/0004-live-book-pointer-20-delta-puts.md`.
 ```bash
 python -m lsgamma.trading.runner
 ```
 | Option | What it does |
 |---|---|
 | `--skip-pipeline` | Use the latest saved snapshot |
-| `--config path.toml` | Use another config (default `configs/paper.toml`) |
+| `--config path.toml` | Use another config (default `configs/paper.toml`); a `[strategy] book` in it is built from the repo configs |
 
 ## 6. Results
 Saved in `results/paper/` (gitignored):
@@ -106,7 +108,7 @@ python -m lsgamma.backtest.run --exp <name> --holdout   # final run only
 - `[backtest] max_positions = N` (research only, default 1; live holds one position and ignores it) ladders up to N same-side positions, one per signal run. Each exits on its own; flip/flat closes all; hedges are netted into one order per run.
 
 ## 9. Changing the rules
-All numbers live in `configs/paper.toml`: the VRP bands, forecaster (`garch` or `har`), DTE window, size, exits, slippage, fill timeout and hedge band. After a stop, `stop_cooloff_days` blocks a same-side re-entry (1 = rest of that day; 0 = off). No code changes are needed.
+All numbers live in `configs/paper.toml`: the VRP bands, forecaster (`garch` or `har`), DTE window, size, exits, slippage, fill timeout and hedge band. After a stop, `stop_cooloff_days` blocks a same-side re-entry (1 = rest of that day; 0 = off). No code changes are needed. To trade a shadow book instead, set `[strategy] book = "<exp>/<variant>"` at the top of paper.toml (one line, with a decision record); delete it to go back to the rules below it.
 
 ## 10. Research hub
 A static site (GSDesign style) that shows the team, then every hypothesis card, its lifecycle, summary, charts, trials and report, a roadmap Gantt and the report library. GitHub Pages rebuilds it on every push to `main` (`.github/workflows/hub.yml`), from committed files only. The site is public, like the repo.
@@ -117,7 +119,7 @@ python -m lsgamma.hub.build [--out _site] # build locally, then open _site/index
 - Run `export` when committing an experiment's results, and commit `research/registry.csv` with them. It holds per-trial aggregates only (P&L, Sharpe, drawdown, ES, trades, win rate), never trade rows. It's a separate step because writing into the repo during a run would mark the following runs `-dirty`.
 - Plan work in `research/roadmap.toml` (one `[[item]]` per experiment, paper or general research piece). An item without dates goes under Ideas. Once its card exists, set `card = "<slug>"` and the real card replaces it.
 - **Live desk:** every real paper run (`lsgamma.trading.runner`, not `--dry-run`) ends by writing `research/desk.json`: the signal history, the open position with P&L marked from that run's chain snapshot, stop and take levels, and the trade log. Commit and push it to refresh the site. `python -m lsgamma.hub.desk` rewrites it by hand from the latest snapshot. Raw quotes are not written, only P&L. It is excluded from the `-dirty` check in `experiments.commit()`, and tests redirect it to a temporary folder.
-- **Shadow books** (`configs/shadow.toml`, `python -m lsgamma.trading.shadow`): each listed idea's exact config runs through the backtest engine (`engine.live`) on the daily live snapshots in `data/live`, from 2026-09-26, with its own $250k. Each day uses the folder the live run used (latest at or before that day's logged signal time; otherwise the first usable one). Fills are the snapshot's quoted bid or ask, net of modelled commissions. No orders go to IBKR and nothing is written to the registry. Every real paper run rewrites `research/shadow.json` after `desk.json` (a failure only prints a warning); commit it with `desk.json`. The hub's "View live and shadow strategies" button (Live desk heading, `#strategies`) shows every book against the paper account and its 1x backtest averages. A book with `placeholder` is listed but not run (the hourly signal book waits on hourly snapshots). Intraday schedules are refused.
+- **Shadow books** (`configs/shadow.toml`, `python -m lsgamma.trading.shadow`): each listed idea's exact config runs through the backtest engine (`engine.live`) on the daily live snapshots in `data/live`, from 2026-09-26, with its own $250k. Each day uses the folder the live run used (latest at or before that day's logged signal time; otherwise the first usable one). Fills are the snapshot's quoted bid or ask, net of modelled commissions. No orders go to IBKR and nothing is written to the registry. Every real paper run rewrites `research/shadow.json` after `desk.json` (a failure only prints a warning); commit it with `desk.json`. The hub's "View live and shadow strategies" button (Live desk heading, `#strategies`) shows every book against the paper account and its 1x backtest averages. A book with `placeholder` is listed but not run (the hourly signal book waits on hourly snapshots). Intraday schedules are refused. The book paper.toml's `[strategy] book` points at is marked `traded` (the "VRP band (paper.toml)" base book when there is no pointer); its row shows paper fills against its shadow quotes. The base book always uses the paper.toml rules, ignoring the pointer, as backtests do.
 - **This week** shows counts for the last 7 days: experiments finished (passed/failed), trials logged, reports, paper trades and the change in book P&L.
 - **Book P&L:** each desk write also records one row per day (realized + open P&L) in `results/paper/book.parquet`; days before any position count realized only.
 - The team section reads `research/team.toml` (name, role, GitHub handle, `photo` in `research/team/`, work-log folders).

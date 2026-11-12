@@ -226,3 +226,16 @@ def test_build_has_strategies_view_and_refuses_nan(repo, tmp_path_factory):
 
 def test_clean_drops_non_finite():
     assert desk.clean(float("-inf")) is None and desk.clean(float("nan")) is None and desk.clean(1.23456) == 1.2346
+
+
+def test_desk_rules_for_an_always_short_book(tmp_path):
+    from lsgamma.backtest import config as research
+    cfg = research.variant("2026-11-02-lower-delta", "put20")
+    r = desk.rules(cfg)
+    assert r["short_band"] is None and r["long_band"] is None
+    assert (r["put_delta"], r["stress_budget"], r["min_shares"]) == (0.2, 0.35, 10)
+    chain = pd.DataFrame({"asof": [pd.Timestamp("2026-11-05 10:30", tz="America/New_York")],
+                          "expiry": [date(2026, 12, 4)], "strike": [700.0], "right": ["P"], "mid": [9.0],
+                          "und_price": [702.0]})
+    out = desk.write(chain, cfg, tmp_path / "desk.json")
+    json.loads(out.read_text(), parse_constant=lambda c: pytest.fail(f"bad JSON constant {c}"))

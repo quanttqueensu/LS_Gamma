@@ -6,7 +6,7 @@ from lsgamma import experiments
 from lsgamma.backtest import config, engine, metrics
 from lsgamma.hub import desk
 from lsgamma.pipeline import store
-from lsgamma.trading import ledger, runner
+from lsgamma.trading import config as paper, ledger, runner
 
 PATH = config.CONFIGS / "shadow.toml"
 OUT = experiments.REPO / "research" / "shadow.json"
@@ -78,11 +78,12 @@ def book_cfg(b, capital):
 
 
 def rules(cfg):
-    bt = cfg["backtest"]
-    out = {**desk.rules(cfg), "min_shares": cfg["hedge"]["min_shares"],
-           "quantity": cfg["size"]["quantity"], "put_delta": bt.get("put_delta", 0.0),
-           "stress_budget": bt.get("stress_budget", 0.0)}
-    return {k: desk.clean(v) for k, v in out.items()}
+    return desk.rules(cfg)
+
+
+def traded(b, live):
+    # the book paper.toml points at; base if none
+    return (f"{b['exp']}/{b['variant']}" if b.get("exp") else None) == live
 
 
 def closes(out):
@@ -130,9 +131,10 @@ def book(cfg, days, cache, chain):
             "signal": s["signal"].iloc[-1] if len(s) else None}
 
 
-def entry(b, sh, days, caches, chain):
+def entry(b, sh, days, caches, chain, live=None):
     # one bad book never stops the others
-    head = {"name": b["name"], "exp": b.get("exp"), "variant": b.get("variant"), "error": None}
+    head = {"name": b["name"], "exp": b.get("exp"), "variant": b.get("variant"), "error": None,
+            "traded": traded(b, live)}
     if b.get("placeholder"):
         return {**head, "placeholder": b["placeholder"]}
     try:
@@ -153,7 +155,7 @@ def snapshot(path=None, root=None):
             "capital": sh["capital"], "min_days": sh["min_days"],
             "snapshots": [{"date": str(a.date()), "ts": runner.stamp(a), "folder": key(root, f)}
                           for a, f in days],
-            "books": [entry(b, sh, days, caches, chain) for b in spec["book"]]}
+            "books": [entry(b, sh, days, caches, chain, paper.book()) for b in spec["book"]]}
 
 
 def write(out=None, path=None, root=None):

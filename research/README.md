@@ -57,7 +57,7 @@ At the end of every session, run `/log-work` in Claude Code. See `work-logs/READ
 1. The experiment passes its pre-set bar.
 2. The code is rewritten as a clean module in `src/lsgamma/` (`forecasting/`, `signals/` or `core/Algos/Hedging/`) with tests in `tests/`, and registered (`FORECASTERS`, `SIGNALS` or `Hedging/`).
 3. It runs in **shadow mode** next to the live rule for a few weeks.
-4. The PM approves, and it goes live with one line in `configs/paper.toml`. The decision is recorded in `docs/decisions/`.
+4. The PM approves, and it goes live with one line in `configs/paper.toml`: `[strategy] book = "<exp>/<variant>"`. The decision is recorded in `docs/decisions/`.
 
 ## Starting a new topic
 Create `research/<New_Topic>/README.md` with the same sections as the others: question for the desk, who's working on it, background reading, code, and experiments.

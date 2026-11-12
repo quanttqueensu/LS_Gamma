@@ -1038,3 +1038,58 @@ def test_live_refuses_intraday_schedule(bt):
     cfg["schedule"].update(signal=["10:15", "12:45"], hedge=["10:15", "12:45"])
     with pytest.raises(SystemExit):
         engine.live(cfg, live_plan(root, plan, root / "features.parquet"))
+
+
+def calls_drifting(deltas):
+    def make(asof):
+        c = chain(asof)
+        return c.assign(delta=np.where(c["right"] == "C", deltas[asof.date()], c["delta"]))
+    return make
+
+
+def trend_feats(root, trend):
+    # steady gains trend; alternating returns chop
+    f = pd.read_parquet(root / "features.parquet")
+    f["ret"] = [0.002 if trend else (0.01 if i % 2 else -0.01) for i in range(len(f))]
+    f.to_parquet(root / "features.parquet")
+
+
+@pytest.mark.parametrize("band, er, trend, shares, held", [
+    (0, 0.0, True, [-50, -15, -20], 0), (30, 0.4, True, [-50, -35], 1),
+    (30, 0.4, False, [-50, -15, -20], 0), (30, 0.0, False, [-50, -35], 1)])
+def test_long_hedge_band_widens_in_trend(bt, band, er, trend, shares, held):
+    cfg, root = bt
+    cfg["backtest"].update(long_hedge_band=band, trend_er=er)
+    trend_feats(root, trend)
+    d = days("2024-03-04", 3)
+    write(root, list(zip(d, [0.25] * 3)), make=calls_drifting(dict(zip(d, [0.5, 0.65, 0.85]))))
+    out = engine.backtest(cfg, d[0], d[-1], root=root)
+    assert out["trades"]["right"].iloc[0] == "C"
+    assert out["hedges"]["shares"].tolist() == shares
+    ev = out["events"]
+    assert (int((ev["event"] == "trend_hold").sum()) if len(ev) else 0) == held
+
+
+def test_long_hedge_band_leaves_short_puts(bt):
+    cfg, root = bt
+    cfg["backtest"].update(long_hedge_band=30, trend_er=0.0)
+    d = days("2024-03-04", 3)
+    write(root, list(zip(d, [0.10] * 3)), make=drifting(dict(zip(d, [0.5, 0.75, 0.85]))))
+    assert engine.backtest(cfg, d[0], d[-1], root=root)["hedges"]["shares"].tolist() == [-50, -25, -10]
+
+
+def test_trending_needs_two_days(bt):
+    cfg, root = bt
+    cfg["backtest"]["trend_er"] = 0.4
+    feats = pd.read_parquet(root / "features.parquet")
+    s = engine.state(cfg, feats.iloc[:1], root, False, {})
+    assert not engine.trending(s, engine.at(days("2024-03-04", 1)[0], "10:15"))
+
+
+def test_long_hedge_band_off_by_default(bt):
+    cfg, _ = bt
+    assert cfg["backtest"]["long_hedge_band"] == 0 and cfg["backtest"]["trend_er"] == 0.0
+    saved = copy.deepcopy(cfg)
+    for k in ("long_hedge_band", "trend_er"):
+        del saved["backtest"][k]
+    assert report.same(saved, cfg)

@@ -1,0 +1,44 @@
+[experiment]
+name = "2026-11-11-trend-long-band"
+topic = "Deep_Hedging"
+owner = "Gabe Soler (PM)"
+
+# baseline is the fresh "baseline" trial on the current config
+[variants.trend30.backtest]
+long_hedge_band = 30  # primary: 30-share band on long calls in a trend
+trend_er = 0.4  # trend when 10-day efficiency ratio >= 0.4
+
+[variants.always30.backtest]
+long_hedge_band = 30  # control: same band on every long-gamma day
+trend_er = 0.0
+
+[variants.trend15.backtest]
+long_hedge_band = 15  # sensitivity: half-width band in a trend
+trend_er = 0.4
+
+[pass]
+primary = "trend30"
+against = "baseline"
+min_events = 30  # hedges the trend band held back, trend30 at 1x
+event = "trend_hold"
+
+[[pass.check]]
+metric = "pnl"
+period = "all"
+rule = "higher"
+
+[[pass.check]]
+metric = "pnl"
+period = "2014-2019"
+rule = "higher"
+
+[[pass.check]]
+metric = "pnl"
+period = "2020-2024"
+rule = "higher"
+
+[[pass.check]]
+metric = "es_5"
+period = "all"
+rule = "abs_within"
+value = 1.10

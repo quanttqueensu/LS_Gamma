@@ -38,7 +38,7 @@ docs/
 ├── commands.md            # Claude Code commands for analysts (/log-work)
 └── repo-architecture.png  # architecture diagram
 configs/
-├── paper.toml             # every strategy number for paper trading
+├── paper.toml             # every strategy number for paper trading; [strategy] book points live at a shadow book
 ├── backtest.toml          # backtest settings: replay grid, data window, out-of-sample window, costs, research-only flags (off by default)
 ├── shadow.toml            # shadow books: ideas replayed on the live snapshots, shown on the hub
 ├── backtest_spread.toml   # bid/ask spread model fit on live IBKR quotes

@@ -8,14 +8,14 @@
 | **Experiment** | `2026-11-11-trend-long-band` (config: `configs/experiments/2026-11-11-trend-long-band.toml`) |
 | **Topic** | Deep_Hedging |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed (net P&L −$2,177 vs −$2,060 at 1x; lower in both halves at 1x and 2x) · [summary](summary.md) · [report](2026-11-11-trend-long-band.pdf) |
 | **Started** | 2026-11-11 |
 
 ## Hypothesis
 When the book holds a long call and SPY is trending (10-day efficiency ratio of at least 0.4), letting the share hedge drift up to 30 shares before re-hedging gives higher net P&L than re-hedging every share, without a worse tail.
 
 ## Why it matters for the desk
-Delta-hedging a long call means shorting SPY. On the paper account, the long Dec 4 741 call hedged with 51 to 62 short shares lost $432 on the shares while SPY rallied about $8 (9 November), more than the call gained. A long-gamma book earns from re-hedging when SPY chops, but in a steady trend each re-hedge sells into the move and gives up the call's growing delta. A regime detector that spots trends could let the long call keep more of that move.
+Delta-hedging a long call means shorting SPY. On the paper account, a long December call hedged with 51 to 62 short shares lost $432 on the shares while SPY rallied about $8 (9 November), more than the call gained. A long-gamma book earns from re-hedging when SPY chops, but in a steady trend each re-hedge sells into the move and gives up the call's growing delta. A regime detector that spots trends could let the long call keep more of that move.
 
 The baseline points the other way on average. Over its 30 long-call round trips (2014-06-02 to 2024-12-31, 1x), the share hedge made +$2,115 and the calls lost $3,822. So the hedge was not the source of the long side's loss in aggregate. The test is whether hedging less **only in trends** does better than hedging every share.
 
@@ -62,4 +62,5 @@ All checks at both multiples = PASSED; otherwise FAILED. `always30` and `trend15
 3. Then port `long_hedge_band` and `trend_er` to the live runner and set them in `configs/paper.toml`, with a decision record in `docs/decisions/`.
 
 ## Changes
-- (dated notes, if the plan had to change)
+- 2026-11-11: run once (6 trials, commit a8ac9e0), after a fresh baseline (2 trials; the registered one predated the live-only `paper.toml` slippage change and is reproduced exactly). The pass bar above was not changed. Verdict: failed at 1x and 2x (`trend30` −$2,177 / −$4,239 against −$2,060 / −$4,122); the event floor was met (37 held hedges). See `summary.md` and `2026-11-11-trend-long-band.pdf`.
+- 2026-11-11 (after the run): removed a paper-trade strike from "Why it matters" (no strikes in committed files); the pass bar is unchanged. The fresh baseline differed from the old one in two live-only `[execution]` settings (option slippage and `stock_pad`), neither of which the backtest reads.

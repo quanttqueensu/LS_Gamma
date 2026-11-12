@@ -1,0 +1,1 @@
+Attended second meeting. Challenge: assigned to look into cloud hosting our python script; logging into VsCode and running our script multiple times a day is a pain, and we eventually want intraday or hourly signals (signal every hour and trade on the most recent hour). Our club wants live trading to update with our strat throughout the day. Our solution was to host on Oracle.

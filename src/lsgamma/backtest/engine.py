@@ -8,9 +8,9 @@ import pandas as pd
 from lsgamma import experiments
 from lsgamma.backtest import sim
 from lsgamma.core.Algos.broker import MULTIPLIER
-from lsgamma.history import marks
 from lsgamma.pipeline import store
 from lsgamma.trading import exits, pnl, runner, selection
+from lsgamma.trading.sizing import band, contracts, put_strike, stress_qty  # shared with live
 
 DATA = Path(__file__).resolve().parents[3] / "data" / "backtest"
 OUTPUTS = ["signals", "trades", "hedges", "equity", "events"]
@@ -194,21 +194,6 @@ def pick_skip(s, side, asof):
     return side == "short" and s["picks"] is not None and s["picks"].get(str(asof.date())) == 0.0
 
 
-def put_strike(t, chain, target):
-    # research only: put strike by delta target
-    if not target or t["right"] != "P":
-        return t["strike"]
-    rows = chain[(chain["expiry"] == selection.to_date(t["expiry"])) & (chain["right"] == "P")]
-    rows = rows.dropna(subset=["mid", "delta"])
-    return float(rows.loc[(rows["delta"].abs() - target).abs().idxmin(), "strike"])
-
-
-def band(cfg, gamma):
-    # research only: Whalley-Wilmott band on book gamma
-    k, floor = cfg["backtest"].get("ww_band", 0.0), cfg["hedge"]["min_shares"]
-    return max(floor, k * math.sqrt(gamma)) if k and not math.isnan(gamma) else floor
-
-
 def trending(s, asof):
     # research only: 10-day trend efficiency of SPY
     bt = s["cfg"]["backtest"]
@@ -233,26 +218,6 @@ def book_gamma(b, chain):
     rows = [(sim.row(chain, p["expiry"], p["strike"], p["right"]), p) for p in b["open"]]
     return sum((abs(float(r["gamma"])) * p["qty"] * MULTIPLIER if r is not None else math.nan
                 for r, p in rows), 0.0)
-
-
-def shock_vol(bt, iv):
-    # research only: stress IV floor or IV multiple
-    return max(bt["stress_vol"], max(bt.get("stress_vol_mult", 0.0), 1.0) * iv)
-
-
-def stress_qty(cfg, r, spot, years, budget, hedged=True):
-    # research only: most puts within the stress budget
-    bt = cfg["backtest"]
-    drop, vol = bt["stress_drop"], shock_vol(bt, float(r["iv"]))
-    crash = float(marks.price(spot * (1 - drop), r["strike"], years, 0.0, vol, False))
-    delta, gamma = abs(float(r["delta"])) * MULTIPLIER, abs(float(r["gamma"])) * MULTIPLIER
-    net = (crash - float(r["mid"])) * MULTIPLIER - delta * drop * spot
-    n = int(budget // net) if net > 0 else 0
-    def gap(n):
-        return min(band(cfg, n * gamma), n * delta) if hedged else n * delta
-    while n and n * net + gap(n) * drop * spot > budget:
-        n -= 1
-    return n
 
 
 def tilt(s, asof):
@@ -329,13 +294,7 @@ def crash_due(s, asof):
 
 def size(s, signal, t, chain, asof, hedged=True):
     # research only: short puts sized to stress budget
-    cfg = s["cfg"]
-    budget = cfg["backtest"].get("stress_budget", 0.0) * cfg["size"]["capital"] * tilt(s, asof)
-    if not budget or signal != "short":
-        return cfg["size"]["quantity"]
-    r = sim.row(chain, t["expiry"], t["strike"], t["right"])
-    years = float(marks.years(asof, [t["expiry"]])[0])
-    return 0 if r is None else stress_qty(cfg, r, runner.spot(chain), years, budget, hedged)
+    return contracts(s["cfg"], signal, t, chain, asof, tilt(s, asof), hedged)
 
 
 def enter(s, signal, chain, fill, asof, vrp=math.nan, crash=False):

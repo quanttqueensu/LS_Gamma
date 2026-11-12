@@ -9,10 +9,14 @@ from lsgamma.forecasting import FORECASTERS
 from lsgamma.hub import desk
 from lsgamma.pipeline import store
 from lsgamma.signals import SIGNALS
-from lsgamma.trading import config, exits, ledger, pnl, selection
+from lsgamma.trading import config, exits, ledger, pnl, selection, sizing
 
 TRADING_DAYS = 252
 MIN_IV_COVERAGE = 0.5  # delayed greeks vanish after the close
+CANCEL_WAIT = 5  # seconds for a cancel to confirm
+LIVE_FLAGS = {"put_delta", "stress_budget", "stress_drop", "stress_vol"}  # live trades these
+SIM_ONLY = {"first_day", "start", "end", "holdout_start", "spread_mult", "stress_mult",
+            "commission_contract", "commission_share", "min_per_order", "share_half_spread"}
 
 
 class BadSnapshot(RuntimeError):
@@ -27,6 +31,15 @@ def check_schedule(cfg):
     s = cfg["schedule"]
     if len(s["signal"]) != 1 or s["hedge"] != s["signal"]:
         raise SystemExit("live runner supports one run a day; intraday schedules are backtest-only")
+
+
+def check_book(cfg):
+    # refuse research flags live lacks
+    base = config.backtest_defaults()
+    off = sorted(k for k, v in cfg.get("backtest", {}).items()
+                 if k not in LIVE_FLAGS | SIM_ONLY and v != base.get(k))
+    if off:
+        raise SystemExit(f"live runner does not implement [backtest] {', '.join(off)}; refused")
 
 
 def horizon(dte):
@@ -79,14 +92,19 @@ def recent(log, today, signal, n):
 
 
 def fill(ib, trade, cfg):
+    # (avg price, filled qty); None if nothing filled
     if trade is None:
         return None
     if broker.wait_for_fill(ib, trade, cfg["execution"]["fill_timeout"]) != "Filled":
         ib.cancelOrder(trade.order)
+        broker.wait_for_fill(ib, trade, CANCEL_WAIT)  # late fills land first
         print(f"  not filled, cancelled: {broker.status(trade)}")
-        return None
-    print(f"  filled: {broker.status(trade)}")
-    return trade.orderStatus.avgFillPrice
+        if not trade.isDone():
+            print("  WARNING: cancel not confirmed; check IBKR")
+    else:
+        print(f"  filled: {broker.status(trade)}")
+    n = int(trade.orderStatus.filled)
+    return (trade.orderStatus.avgFillPrice, n) if n else None
 
 
 def close(ib, pos, chain, signal, hist, cfg, asof, dry):
@@ -105,13 +123,23 @@ def close(ib, pos, chain, signal, hist, cfg, asof, dry):
     expiry = date.fromisoformat(pos["expiry"])
     trade = algo.close_position(ib, expiry, pos["strike"], pos["qty"],
                                 cfg["execution"]["slippage"])
-    price = fill(ib, trade, cfg)
-    if price is None:
+    got = fill(ib, trade, cfg)
+    if got is None:
         return pos
+    price, n = got
+    part = n < pos["qty"]
+    done = {**pos, "qty": n}
+    total = pnl.option_pnl(done, price) if part else pnl.combined_pnl(pos, price, spot(chain))
     ledger.log("trades", {"date": str(asof.date()), "ts": stamp(asof), "action": "close",
                           "side": pos["side"], "right": pos["right"], "strike": pos["strike"],
-                          "expiry": pos["expiry"], "qty": pos["qty"], "price": price,
-                          "reason": reason, "pnl": pnl.combined_pnl(pos, price, spot(chain))})
+                          "expiry": pos["expiry"], "qty": n, "price": price,
+                          "reason": reason, "pnl": total})
+    if part:
+        # rest stays open with the hedges
+        print(f"  partial close {n} of {pos['qty']}; the rest stays open")
+        rest = {**pos, "qty": pos["qty"] - n}
+        ledger.save_position(rest)
+        return rest
     ledger.clear_position()
     return None
 
@@ -132,21 +160,33 @@ def last_stop():
     return None if stops.empty else (stops["side"].iloc[-1], stops["date"].iloc[-1])
 
 
-def enter(ib, signal, chain, cfg, asof, dry):
+def pick(signal, chain, cfg, asof):
+    # strike and size, same rules as backtests
     t = selection.trade_for(signal, chain, cfg)
-    qty = cfg["size"]["quantity"]
+    t = {**t, "strike": sizing.put_strike(t, chain, sizing.flag(cfg, "put_delta"))}
+    return t, sizing.contracts(cfg, signal, t, chain, asof)
+
+
+def enter(ib, signal, chain, cfg, asof, dry):
+    t, qty = pick(signal, chain, cfg, asof)
     print(f"enter {signal}: {t['algo'].__name__.split('.')[-1]} {t['right']} "
           f"{t['strike']} {t['expiry']} x{qty}")
+    if not qty:
+        print(f"no {signal} entry: stress budget below one contract")
+        return None
     if dry:
         return None
 
     trade = t["algo"].open_position(ib, t["expiry"], t["strike"], qty,
                                     cfg["execution"]["slippage"])
-    price = fill(ib, trade, cfg)
-    if price is None:
+    got = fill(ib, trade, cfg)
+    if got is None:
         return None
+    price, n = got
+    if n < qty:
+        print(f"  partial fill {n} of {qty}")
     pos = {"side": signal, "right": t["right"], "expiry": str(t["expiry"]),
-           "strike": t["strike"], "qty": qty, "entry_price": price,
+           "strike": t["strike"], "qty": n, "entry_price": price,
            "entry_date": str(asof.date()), "entry_ts": stamp(asof),
            "hedges": carried(portfolio.stock_position(ib), chain, asof)}
     ledger.save_position(pos)
@@ -162,12 +202,12 @@ def hedge(ib, pos, cfg, asof, ref):
     if trade is None:
         print("hedge: no trade needed")
         return
-    price = fill(ib, trade, cfg)
-    if price is None:
+    got = fill(ib, trade, cfg)
+    if got is None:
         return
+    price, n = got
     sign = 1 if trade.order.action == "BUY" else -1
-    row = {"date": str(asof.date()), "ts": stamp(asof),
-           "shares": sign * int(trade.orderStatus.filled), "price": price}
+    row = {"date": str(asof.date()), "ts": stamp(asof), "shares": sign * n, "price": price}
     ledger.log("hedges", row)
     if pos:
         pos["hedges"].append(row)
@@ -175,10 +215,13 @@ def hedge(ib, pos, cfg, asof, ref):
 
 
 def reconcile(ib, pos):
-    held = portfolio.option_positions(ib)
-    if len(held) != (1 if pos else 0):
-        print(f"WARNING: IBKR holds {len(held)} SPY options, ledger has "
-              f"{'1 position' if pos else 'none'}")
+    # IBKR vs ledger: expiry, strike, right, qty
+    held = sorted((c.lastTradeDateOrContractMonth, float(c.strike), c.right, int(q))
+                  for c, q in portfolio.option_positions(ib))
+    want = [(pos["expiry"].replace("-", ""), float(pos["strike"]), pos["right"],
+             pnl.SIGN[pos["side"]] * pos["qty"])] if pos else []
+    if held != want:
+        print(f"WARNING: IBKR holds {held or 'no SPY options'}, ledger has {want or 'none'}")
 
 
 def run(ib, cfg, asof, dry=False):
@@ -227,6 +270,9 @@ def main():
     a = p.parse_args()
     cfg = config.load(a.config)
     check_schedule(cfg)
+    check_book(cfg)
+    if config.pointer(cfg):
+        print(f"live book: {config.pointer(cfg)}")
     gateway = cfg["execution"]["gateway"]
 
     if not a.skip_pipeline:

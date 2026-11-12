@@ -15,6 +15,7 @@ from lsgamma.trading import exits, pnl, runner, selection
 DATA = Path(__file__).resolve().parents[3] / "data" / "backtest"
 OUTPUTS = ["signals", "trades", "hedges", "equity", "events"]
 LIVE_SRC = "live_quote"
+TREND_DAYS = 10  # efficiency-ratio lookback, trading days
 
 
 def day(s):
@@ -208,6 +209,26 @@ def band(cfg, gamma):
     return max(floor, k * math.sqrt(gamma)) if k and not math.isnan(gamma) else floor
 
 
+def trending(s, asof):
+    # research only: 10-day trend efficiency of SPY
+    bt = s["cfg"]["backtest"]
+    if not bt.get("trend_er", 0.0):
+        return True
+    px = (1 + runner.completed(s["feats"], asof)["ret"].tail(TREND_DAYS)).cumprod()
+    if len(px) < 2:
+        return False
+    path = px.diff().abs().sum() + abs(px.iloc[0] - 1)
+    return path > 0 and abs(px.iloc[-1] - 1) / path >= bt["trend_er"]
+
+
+def long_band(s, asof):
+    # research only: wider band for long gamma
+    k, held = s["cfg"]["backtest"].get("long_hedge_band", 0), s["book"]["open"]
+    if not k or not held or any(p["side"] != "long" for p in held):
+        return 0
+    return k if trending(s, asof) else 0
+
+
 def book_gamma(b, chain):
     rows = [(sim.row(chain, p["expiry"], p["strike"], p["right"]), p) for p in b["open"]]
     return sum((abs(float(r["gamma"])) * p["qty"] * MULTIPLIER if r is not None else math.nan
@@ -374,6 +395,8 @@ def hedge(s, chain, fill, asof):
     shares = round(sum(targets, 0.0) - b["shares"])
     if abs(shares) < band(s["cfg"], book_gamma(b, chain)):
         return
+    if abs(shares) < long_band(s, asof):
+        return log(s, asof, "trend_hold", f"hedge {shares} held")
     price = sim.share_price(fill, shares, bt["share_half_spread"] * bt["spread_mult"])
     if math.isnan(price):
         return log(s, asof, "no_fill", f"hedge {shares}")

@@ -58,3 +58,5 @@ crash_dte = []  # research only: crash call [min, target, max] DTE
 crash_days = 0  # research only: crash call holding days
 crash_premium = 0.0  # research only: crash call premium, capital share
 put_picks = ""  # research only: daily put delta file in results/research; 0 = skip; "" = off
+long_hedge_band = 0  # research only: long-gamma hedge band in a trend, shares; 0 = off
+trend_er = 0.0  # research only: trend if 10-day efficiency ratio >= this; 0 = always

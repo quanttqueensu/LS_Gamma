@@ -110,8 +110,11 @@ def test_traded_follows_the_pointer(live, tmp_path, monkeypatch):
 
 
 def test_base_book_ignores_the_pointer(tmp_path, monkeypatch):
+    text = config.CONFIGS.joinpath("paper.toml").read_text()
+    if "[strategy]" not in text:
+        text = '[strategy]\nbook = "2026-11-02-lower-delta/put20"\n' + text
     path = tmp_path / "paper.toml"
-    path.write_text('[strategy]\nbook = "2026-11-02-lower-delta/put20"\n' + config.CONFIGS.joinpath("paper.toml").read_text())
+    path.write_text(text)
     monkeypatch.setattr(config, "BASE", [path, config.CONFIGS / "backtest.toml"])
     cfg = shadow.book_cfg({"name": "base"}, 250000)
     assert cfg["signal"]["short_band"] == 0.02 and "strategy" not in cfg

@@ -541,20 +541,22 @@ const pct = v => `${(v * 100).toFixed(1)}%`;
 function deskChart(k, W) {
   const S = k.signals, r = k.rules, H = 250, L = 44, R = 12, T = 14, B = 30;
   if (!S.length) return `<p class="gs-meta empty">No signals logged yet.</p>`;
-  const vals = S.map(s => s.vrp * 100), top = Math.max(...vals, r.short_band * 100) + 2, bot = Math.min(...vals, r.long_band * 100) - 2;
+  // always-short books have null bands
+  const hi = r.short_band == null ? null : r.short_band * 100, lo = r.long_band == null ? null : r.long_band * 100;
+  const vals = S.map(s => s.vrp * 100), top = Math.max(...vals, hi ?? -Infinity, 0) + 2, bot = Math.min(...vals, lo ?? Infinity, 0) - 2;
   const x = i => L + (S.length === 1 ? (W - L - R) / 2 : i * (W - L - R) / (S.length - 1));
   const y = v => T + (top - v) * (H - T - B) / (top - bot);
-  const sb = y(r.short_band * 100), lb = y(r.long_band * 100), zero = y(0);
-  const ticks = [[r.short_band * 100, `+${r.short_band * 100}`], [0, "0"], [r.long_band * 100, `${r.long_band * 100}`.replace("-", "−")]];
+  const sb = hi == null ? null : y(hi), lb = lo == null ? null : y(lo), zero = y(0);
+  const ticks = [[hi, `+${hi}`], [0, "0"], [lo, `${lo}`.replace("-", "−")]].filter(([v]) => v != null);
   const labels = [0, Math.floor((S.length - 1) / 2), S.length - 1].filter((v, i, a) => a.indexOf(v) === i);
-  return `<svg class="dchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="VRP over the last ${S.length} signals with the short and long bands">
-    <rect x="${L}" y="${T}" width="${W - L - R}" height="${sb - T}" class="zone"/>
-    <rect x="${L}" y="${lb}" width="${W - L - R}" height="${H - B - lb}" class="zone"/>
-    <text x="${L + 8}" y="${T + 14}" class="zlab">Short gamma zone</text>
-    <text x="${L + 8}" y="${H - B - 8}" class="zlab">Long gamma zone</text>
+  return `<svg class="dchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="VRP over the last ${S.length} signals${sb == null && lb == null ? "" : " with the signal bands"}">
+    ${sb == null ? "" : `<rect x="${L}" y="${T}" width="${W - L - R}" height="${sb - T}" class="zone"/>
+    <text x="${L + 8}" y="${T + 14}" class="zlab">Short gamma zone</text>`}
+    ${lb == null ? "" : `<rect x="${L}" y="${lb}" width="${W - L - R}" height="${H - B - lb}" class="zone"/>
+    <text x="${L + 8}" y="${H - B - 8}" class="zlab">Long gamma zone</text>`}
     <line x1="${L}" x2="${W - R}" y1="${zero}" y2="${zero}" class="base"/>
-    <line x1="${L}" x2="${W - R}" y1="${sb}" y2="${sb}" class="band"/>
-    <line x1="${L}" x2="${W - R}" y1="${lb}" y2="${lb}" class="band"/>
+    ${sb == null ? "" : `<line x1="${L}" x2="${W - R}" y1="${sb}" y2="${sb}" class="band"/>`}
+    ${lb == null ? "" : `<line x1="${L}" x2="${W - R}" y1="${lb}" y2="${lb}" class="band"/>`}
     ${ticks.map(([v, t]) => `<text x="${L - 8}" y="${y(v) + 4}" class="tick" text-anchor="end">${t}</text>`).join("")}
     ${labels.map(i => `<text x="${x(i)}" y="${H - 9}" class="tick" text-anchor="${i === 0 ? "start" : i === S.length - 1 ? "end" : "middle"}">${short_day(S[i].date)}</text>`).join("")}
     <polyline points="${S.map((s, i) => `${x(i)},${y(s.vrp * 100)}`).join(" ")}" class="vline"/>
@@ -634,6 +636,19 @@ function hoverTip(box, tip, render) {
   box.addEventListener("focusout", () => { tip.hidden = true; });
 }
 
+const liveBook = () => D.shadow?.books?.find(b => b.traded)?.name;
+
+function deskRule(r) {
+  const tail = `Options near ${r.target_dte} DTE, closed at ${r.exit_dte} DTE; stop at ${r.short_stop_mult}× the credit, profit take at ${r.short_profit_frac * 100}% on shorts.`;
+  if (r.short_band == null) {
+    const strike = r.put_delta ? `a ${Math.round(r.put_delta * 100)}-delta put` : "an at-the-money put";
+    const size = r.stress_budget ? `sized to a ${Math.round(r.stress_budget * 100)}% stress budget` : plural(r.quantity, "contract");
+    return `Always short gamma: ${strike} ${size}, hedge band ${plural(r.min_shares, "share")}. ${tail}`;
+  }
+  const long = r.long_band == null ? "never long gamma" : `long gamma when more than ${-r.long_band * 100} pts below`;
+  return `Short gamma when implied vol is more than ${r.short_band * 100} pts above the ${r.forecaster.toUpperCase()} forecast, ${long}, otherwise flat. ${tail}`;
+}
+
 function desk() {
   const k = D.desk;
   if (!k) return;
@@ -641,7 +656,7 @@ function desk() {
   const last = k.signals.at(-1), p = k.position, r = k.rules, book = k.book || [];
   const total = book.at(-1)?.total ?? k.realized;
   const when = k.asof ? new Date(k.asof).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }) + " ET" : "—";
-  $("#desk-meta").textContent = `Paper account · updated ${when}`;
+  $("#desk-meta").textContent = `Paper account${liveBook() ? ` · ${liveBook()}` : ""} · updated ${when}`;
   const tiles = [
     [last ? SIDE[last.signal] : "—", last ? `${long_day(last.date)} · VRP ${pts(last.vrp)}` : "no signal yet"],
     [last ? `${pct(last.iv)} vs ${pct(last.rv_forecast)}` : "—", "implied vol vs RV forecast"],
@@ -658,7 +673,7 @@ function desk() {
   let frame = 0;
   addEventListener("resize", () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(draw); });
   $("#desk-rule-box").open = !PHONE;
-  $("#desk-rule").textContent = `Short gamma when implied vol is more than ${r.short_band * 100} pts above the ${r.forecaster.toUpperCase()} forecast, long gamma when more than ${-r.long_band * 100} pts below, otherwise flat. Options near ${r.target_dte} DTE, closed at ${r.exit_dte} DTE; stop at ${r.short_stop_mult}× the credit, profit take at ${r.short_profit_frac * 100}% on shorts.`;
+  $("#desk-rule").textContent = deskRule(r);
   $("#desk-pos").innerHTML = positionHtml(k);
   $("#to-strategies").hidden = !D.shadow?.books?.length;
   hoverTip($(".desk-chart"), $("#d-tip"), el => {
@@ -746,20 +761,21 @@ function fillsHtml(b) {
 
 function bookBody(b) {
   if (b.live) return `<div class="sgrid"><div class="pane">${positionHtml(b)}</div><div class="pane"><h3 class="colh">Paper account</h3>
-    <p class="gs-meta">Real IBKR paper fills for <code>paper.toml</code>, before commissions. The full view is on the live desk.</p>
+    <p class="gs-meta">Real IBKR paper fills, before commissions, trading ${esc(liveBook() || "the paper.toml rules")}. The full view is on the live desk.</p>
     <a class="gs-pill gs-pill-ghost" href="#desk">Open the live desk</a></div></div>`;
   if (b.error) return `<p class="gs-meta">This book failed to run: ${esc(b.error)}</p>`;
   const s = b.summary;
   const gaps = [`${plural(s.days, "day")}`, `${plural(s.hedges, "hedge order")}`, `fees ${money(s.fees)}`,
     s.skipped && `${s.skipped} skipped`, s.no_delta && `${s.no_delta} hedges missed (no delta)`, s.no_mark && `${s.no_mark} unmarked`].filter(Boolean);
-  return `<div class="sgrid"><div class="pane">${positionHtml(b)}${b.name === "Paper rules" ? fillsHtml(b) : ""}</div>
+  return `<div class="sgrid"><div class="pane">${positionHtml(b)}${b.traded ? fillsHtml(b) : ""}</div>
     <div class="pane">${compareHtml(b)}<h3 class="colh sub">Rules</h3><p class="gs-meta">${esc(rulesText(b.rules))}</p>
     <p class="gs-meta">${esc(gaps.join(" · "))}</p></div></div>`;
 }
 
 function bookRow(b) {
   const s = b.summary || {}, idle = b.placeholder || b.error;
-  const sub = b.live ? "IBKR paper fills · paper.toml" : b.placeholder ? b.placeholder : b.error ? "Failed to run" : b.card ? b.card.slice(11) : "paper.toml";
+  const sub = (b.live ? `IBKR paper fills · ${liveBook() || "paper.toml"}` : b.placeholder ? b.placeholder : b.error ? "Failed to run"
+    : b.card ? b.card.slice(11) : "paper.toml") + (b.traded ? " · traded live" : "");
   const cells = idle ? `<span class="snum" data-l="Days">—</span><span class="snum" data-l="Trades">—</span><span class="snum" data-l="P&L">—</span><span class="snum" data-l="Max DD">—</span><span class="snow">${b.placeholder ? "Not running" : "—"}</span>`
     : `<span class="snum" data-l="Days">${s.days ?? "—"}</span><span class="snum" data-l="Trades">${s.trades ?? 0}</span>
       <span class="snum spnl" data-l="P&L">${signed(s.pnl)}</span><span class="snum" data-l="Max DD">${money(s.max_dd)}</span><span class="snow">${esc(posText(b.position))}</span>`;

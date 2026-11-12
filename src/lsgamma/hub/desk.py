@@ -27,10 +27,13 @@ def rows(df, cols):
 
 
 def rules(cfg):
-    s, e, x = cfg["signal"], cfg["entry"], cfg["exit"]
-    return {"forecaster": s["forecaster"], "short_band": s["short_band"], "long_band": s["long_band"],
-            "target_dte": e["target_dte"], "exit_dte": x["exit_dte"], "short_stop_mult": x["short_stop_mult"],
-            "long_stop_frac": x["long_stop_frac"], "short_profit_frac": x["short_profit_frac"]}
+    s, e, x, bt = cfg["signal"], cfg["entry"], cfg["exit"], cfg.get("backtest", {})
+    out = {"forecaster": s["forecaster"], "short_band": s["short_band"], "long_band": s["long_band"],
+           "target_dte": e["target_dte"], "exit_dte": x["exit_dte"], "short_stop_mult": x["short_stop_mult"],
+           "long_stop_frac": x["long_stop_frac"], "short_profit_frac": x["short_profit_frac"],
+           "min_shares": cfg["hedge"]["min_shares"], "quantity": cfg["size"]["quantity"],
+           "put_delta": bt.get("put_delta", 0.0), "stress_budget": bt.get("stress_budget", 0.0)}
+    return {k: clean(v) for k, v in out.items()}  # always-short bands are inf
 
 
 def position(pos, chain, cfg):
@@ -119,7 +122,7 @@ def write(chain, cfg, path=None):
     if today:
         record(today)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(snap, indent=1, default=str) + "\n")
+    path.write_text(json.dumps(snap, indent=1, allow_nan=False, default=str) + "\n")
     return path
 
 

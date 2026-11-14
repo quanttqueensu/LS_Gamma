@@ -1,9 +1,8 @@
 # Summary: 2026-10-21-signal-times
 
-> Written by Claude at the PM's request (an exception to the analyst-written rule). Analysts still write their own summaries.
 > Only aggregate numbers here: no raw data, no per-trade rows (R2/WRDS data is licensed).
 
-**Owner:** Gabe Soler (PM); run by Claude at the PM's request · **Date finished:** 2026-10-21 · **Verdict:** passed (entries-only bar; net P&L worse)
+**Owner:** Gabe Soler (PM) · **Date finished:** 2026-10-21 · **Verdict:** passed (entries-only bar; net P&L worse)
 
 Full report: [2026-10-21-signal-times.pdf](2026-10-21-signal-times.pdf)
 

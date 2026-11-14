@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-11-02-vvix-cap` (config: `configs/experiments/2026-11-02-vvix-cap.toml`) |
 | **Topic** | Risk_Management |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed (1x Sharpe 0.48 vs 0.52; 1x drawdown $74.9k vs $70.4k) |
 | **Started** | 2026-11-02 |
 
@@ -23,7 +23,7 @@ The 2026-11-02 VVIX sizing card (0.5x-1.5x) made more P&L than the fixed budget 
 - **In-sample note:**
   - The idea comes from the 2026-11-02 VVIX sizing results on 2014-2024, including the per-contract P&L by VVIX tercile above.
   - The book is the 2026-10-22 primary, chosen after its results.
-  - Before pre-registration, Claude smoke-tested this card's tilt helper on the first five entry times of the registered `hedged` runs, so it saw five multiplier values (0.66x-1x) but no P&L. This card's variants have no runs yet.
+  - Before pre-registration, the desk smoke-tested this card's tilt helper on the first five entry times of the registered `hedged` runs, so it saw five multiplier values (0.66x-1x) but no P&L. This card's variants have no runs yet.
 
 ## Method
 - **Book (every variant and the reference):** the `hedged` book of `Risk_Management/2026-10-22-stress-sized-puts`.

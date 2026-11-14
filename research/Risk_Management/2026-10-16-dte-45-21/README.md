@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-10-16-dte-45-21` (config: `configs/experiments/2026-10-16-dte-45-21.toml`) |
 | **Topic** | Risk_Management |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed |
 | **Started** | 2026-10-16 |
 

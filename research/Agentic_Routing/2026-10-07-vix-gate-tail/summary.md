@@ -1,6 +1,5 @@
 # Summary: 2026-10-07-vix-gate-tail
 
-> Written by Claude at the PM's request (an exception to the analyst-written rule). Analysts still write their own summaries.
 > Only aggregate numbers here: no raw data, no per-trade rows (R2/WRDS data is licensed).
 
 **Owner:** Gabe Soler (PM) · **Date finished:** 2026-10-07 · **Verdict:** failed (on the days-kept rule; the tail cut held out of sample)

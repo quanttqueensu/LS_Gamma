@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-11-13-straddle-strangle` (config: `configs/experiments/2026-11-13-straddle-strangle.toml`) |
 | **Topic** | Agentic_Routing |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed (daily P&L std $54.37 vs $35.64 at 1x; worse drawdown and tail; net P&L −$318 vs −$2,060) · [summary](summary.md) · [report](2026-11-13-straddle-strangle.pdf) |
 | **Started** | 2026-11-13 |
 

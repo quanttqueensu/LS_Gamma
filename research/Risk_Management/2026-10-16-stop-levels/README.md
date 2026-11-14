@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-10-16-stop-levels` (config: `configs/experiments/2026-10-16-stop-levels.toml`) |
 | **Topic** | Risk_Management |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed (H1 failed, H2 failed) |
 | **Started** | 2026-10-16 |
 

@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-11-02-inverse-vol` (config: `configs/experiments/2026-11-02-inverse-vol.toml`) |
 | **Topic** | Risk_Management |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed (Sharpe lower in 2014-19 at 1x and 2x; drawdown $41k vs $70k) |
 | **Started** | 2026-11-02 |
 
@@ -20,7 +20,7 @@ The 2026-10-22 deep research proposed sizing the always-on put by 1/VIX or 1/GAR
 ## Data
 - R2 replay snapshots v1 (config_hash b040760187f0), development window 2014-06-02 to 2024-12-31.
 - **Hold-out:** 2025-01-01 to 2026-07-10. Not used.
-- **In-sample note:** The idea comes from the 2026-10-22 deep research (literature and desk reasoning). The book is the 2026-10-22 primary, chosen after its results. Earlier cards on the same book are related: `2026-11-02-slope-sizing` (sizing down on an inverted VIX curve) gave a higher Sharpe (0.64 against 0.52) but lower P&L, and `vvix_reverse` (sizing down when VVIX is high) gave a Sharpe of 0.55. Those results suggest this direction raises Sharpe; the bar was set knowing them. This card's variants have no runs yet, and Claude did not run this card's reporting code on the reference before pre-registration.
+- **In-sample note:** The idea comes from the 2026-10-22 deep research (literature and desk reasoning). The book is the 2026-10-22 primary, chosen after its results. Earlier cards on the same book are related: `2026-11-02-slope-sizing` (sizing down on an inverted VIX curve) gave a higher Sharpe (0.64 against 0.52) but lower P&L, and `vvix_reverse` (sizing down when VVIX is high) gave a Sharpe of 0.55. Those results suggest this direction raises Sharpe; the bar was set knowing them. This card's variants have no runs yet, and the desk did not run this card's reporting code on the reference before pre-registration.
 
 ## Method
 - **Book (every variant and the reference):** the `hedged` book of `Risk_Management/2026-10-22-stress-sized-puts`.

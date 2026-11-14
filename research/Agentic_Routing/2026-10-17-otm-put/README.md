@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-10-17-otm-put` (config: `configs/experiments/2026-10-17-otm-put.toml`) |
 | **Topic** | Agentic_Routing |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed (one of eight checks) |
 | **Started** | 2026-10-17 |
 

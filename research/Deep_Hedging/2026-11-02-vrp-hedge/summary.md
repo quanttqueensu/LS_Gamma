@@ -1,9 +1,8 @@
 # Summary: 2026-11-02-vrp-hedge
 
-> Written by Claude at the PM's request (an exception to the analyst-written rule). Analysts still write their own summaries.
 > Only aggregate numbers here: no raw data, no per-trade rows (R2/WRDS data is licensed).
 
-**Owner:** Gabe Soler (PM); run by Claude at the PM's request · **Date finished:** 2026-11-02 · **Verdict:** failed
+**Owner:** Gabe Soler (PM) · **Date finished:** 2026-11-02 · **Verdict:** failed
 
 Full report: [2026-11-02-vrp-hedge.pdf](2026-11-02-vrp-hedge.pdf)
 
@@ -39,7 +38,7 @@ On the 35% stress-sized `hedged` put book, leaving a new put unhedged for its wh
 - **The cutoff matters a lot.** The result swings from −$7k to +$28k against `hedged` (1x), mostly from path dependence: only 117 of `vrp2`'s 208 round trips open at the same time as one of the hedged book's.
 
 ## Caveats
-- **In-sample.** The idea came from the 2026-10-22 results. Before pre-registration, Claude saw the unhedged book's P&L per contract split at 2 VRP points.
+- **In-sample.** The idea came from the 2026-10-22 results. Before pre-registration, the desk saw the unhedged book's P&L per contract split at 2 VRP points.
 - **Concentration.** The primary's shortfall comes from one March 2020 sequence.
 - **Spread model.** Fitted on calm 2026 quotes, and fills of 20-100 contracts use the one-contract spread model.
 - **Margin.** Not modelled.

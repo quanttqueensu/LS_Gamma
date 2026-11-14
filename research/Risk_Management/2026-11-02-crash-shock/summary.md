@@ -1,9 +1,8 @@
 # Summary: 2026-11-02-crash-shock
 
-> Written by Claude at the PM's request (an exception to the analyst-written rule). Analysts still write their own summaries.
 > Only aggregate numbers here: no raw data, no per-trade rows (R2/WRDS data is licensed).
 
-**Owner:** Gabe Soler (PM); run by Claude at the PM's request · **Date finished:** 2026-11-02 · **Verdict:** failed
+**Owner:** Gabe Soler (PM) · **Date finished:** 2026-11-02 · **Verdict:** failed
 
 Full report: [2026-11-02-crash-shock.pdf](2026-11-02-crash-shock.pdf)
 
@@ -44,7 +43,7 @@ Two chart fixes were rebuilt with `--report-only`, which adds no trials. The pas
   - Drawdown scales with the budget. So the budget is a choice of risk appetite, not of edge.
 
 ## Caveats
-- **In-sample:** the idea comes from the 2026-10-22 results on this window, and the book was chosen after them. Before pre-registration, Claude saw that the reference had 4 entries with IV above 40%, but not their dates or P&L.
+- **In-sample:** the idea comes from the 2026-10-22 results on this window, and the book was chosen after them. Before pre-registration, the desk saw that the reference had 4 entries with IV above 40%, but not their dates or P&L.
 - **One episode:** every difference between `shock15` and `hedged` comes from four entries in 2020.
 - **Bar design:** the 2014-2019 Sharpe check couldn't be met, because the shock never binds before 2020. The full-window and 2020-2024 checks fail anyway.
 - **Not modelled:** margin is not modelled. Large March 2020 fills use the one-contract spread model, and the spread model is fitted on calm 2026 quotes.

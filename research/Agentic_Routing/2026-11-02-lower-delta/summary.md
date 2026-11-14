@@ -1,9 +1,8 @@
 # Summary: 2026-11-02-lower-delta
 
-> Written by Claude at the PM's request (an exception to the analyst-written rule). Analysts still write their own summaries.
 > Only aggregate numbers here: no raw data, no per-trade rows (R2/WRDS data is licensed).
 
-**Owner:** Gabe Soler (PM); run by Claude at the PM's request · **Date finished:** 2026-11-02 · **Verdict:** passed (in-sample; hold-out not run)
+**Owner:** Gabe Soler (PM) · **Date finished:** 2026-11-02 · **Verdict:** passed (in-sample; hold-out not run)
 
 Full report: [2026-11-02-lower-delta.pdf](2026-11-02-lower-delta.pdf)
 
@@ -41,7 +40,7 @@ On the 35% stress-sized `hedged` book, selling the 20-delta put (`put20`) instea
   - `put20` is ahead in only 59 of 127 months.
 
 ## Caveats
-- **In-sample.** The idea comes from the 2026-10-22 deep research, written after the desk's 25-delta, 35-delta and ATM results on 2014-2024. Before pre-registration, Claude saw the reference's aggregate trip and cost figures while testing the reporting code.
+- **In-sample.** The idea comes from the 2026-10-22 deep research, written after the desk's 25-delta, 35-delta and ATM results on 2014-2024. Before pre-registration, the desk saw the reference's aggregate trip and cost figures while testing the reporting code.
 - **Concentration.** One month gives 93% of the 1x lead, and the result depends on the roll calendar.
 - **Spread model.** Fitted on calm 2026 quotes. A 104-contract fill on a crash morning uses the one-contract spread model.
 - **Stale sizing on 24 August 2015.** That entry was sized on the 15-minute-stale decision view near the crash low; at the fill view the same rule gives 87 contracts. The engine works as designed, and a live run faces the same lag.

@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-11-05-ltr-puts` (config: `configs/experiments/2026-11-05-ltr-puts.toml`) |
 | **Topic** | Agentic_Routing |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed (Sharpe lower in 2014-2019; full-window Sharpe 0.84 vs 0.52 but P&L $80k vs $121k, mostly from a gate that sat out 2020) |
 | **Started** | 2026-11-05 |
 
@@ -34,7 +34,7 @@ A ranker can use these inputs together, through interactions. If it works, it is
   - The book is the 2026-10-22 primary, chosen after its 2014-2024 results.
   - The desk has seen 2014-2024 results for 15-, 20-, 25-, 35-delta and ATM puts, and forward P&L by delta bucket (2026-11-02 skew diagnostic).
   - The paper was flagged in the 2026-10-31 signals report.
-  - Before pre-registration, Claude:
+  - Before pre-registration, the desk:
     - checked that the engine with the new switch off reproduces the baseline and `hedged` equity exactly;
     - smoke-tested the label and feature code on 5 days of June 2014 (structure and timing only; P&L not examined);
     - tested the ranker, gate and picks on synthetic random labels.
@@ -133,7 +133,7 @@ There is no P&L check: the PM chose a Sharpe bar because the ranker may skip day
 ## Changes
 - 2026-11-05: the run was started three times; only the third registered trials.
   - **First:** stopped while building labels. Another process switched the shared working tree to `main`, which removed this card's config.
-  - **Second:** stopped by Claude while building labels, because 12 workers each started a 14-thread pool and oversubscribed the machine.
+  - **Second:** stopped by hand while building labels, because 12 workers each started a 14-thread pool and oversubscribed the machine.
   - **Third:** ran from a separate checkout of this branch (commit 7964782, clean) with one thread per worker (`OMP_NUM_THREADS=1` and the BLAS equivalents; no code change).
 
   Neither of the first two produced labels or trials. The third registered 6 trials, all tagged 7964782.

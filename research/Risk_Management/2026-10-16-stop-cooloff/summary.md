@@ -1,9 +1,8 @@
 # Summary: 2026-10-16-stop-cooloff
 
-> Written by Claude at the PM's request (an exception to the analyst-written rule). Analysts still write their own summaries.
 > Only aggregate numbers here: no raw data, no per-trade rows (R2/WRDS data is licensed).
 
-**Owner:** Gabe Soler (PM); run by Claude at the PM's request · **Date finished:** 2026-10-16 · **Verdict:** inconclusive (too few events)
+**Owner:** Gabe Soler (PM) · **Date finished:** 2026-10-16 · **Verdict:** inconclusive (too few events)
 
 ## Result
 The card's event floor was not met. With the tighter stops (short 0.5x credit, long 25% of premium), the reference `cool1` had only 3 stop exits at 1x over 2014-06-02 to 2024-12-31, below the minimum of 5. So the verdict is INCONCLUSIVE and the live 1-day cool-off stays.

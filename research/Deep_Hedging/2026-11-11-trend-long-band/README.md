@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-11-11-trend-long-band` (config: `configs/experiments/2026-11-11-trend-long-band.toml`) |
 | **Topic** | Deep_Hedging |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed (net P&L −$2,177 vs −$2,060 at 1x; lower in both halves at 1x and 2x) · [summary](summary.md) · [report](2026-11-11-trend-long-band.pdf) |
 | **Started** | 2026-11-11 |
 

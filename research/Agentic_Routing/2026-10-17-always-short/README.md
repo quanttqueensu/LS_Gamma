@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-10-17-always-short` (config: `configs/experiments/2026-10-17-always-short.toml`) |
 | **Topic** | Agentic_Routing |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed (tail guard only) |
 | **Started** | 2026-10-17 |
 

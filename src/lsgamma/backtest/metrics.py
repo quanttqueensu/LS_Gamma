@@ -36,7 +36,9 @@ def pairs(trades):
     c = trades[trades["action"] == "close"].reset_index(drop=True)
     if "entry_ts" not in c or c["entry_ts"].isna().any():
         return o.iloc[:len(c)], c
-    o = o.set_index("ts").loc[c["entry_ts"]].reset_index()
+    legs = [k for k in ("right", "strike") if k in c and k in o]  # legs share a time
+    key = list(zip(c["entry_ts"], *(c[k] for k in legs))) if legs else c["entry_ts"]
+    o = o.set_index(["ts", *legs]).loc[key].reset_index()
     return o, c
 
 

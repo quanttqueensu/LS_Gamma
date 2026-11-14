@@ -60,3 +60,6 @@ crash_premium = 0.0  # research only: crash call premium, capital share
 put_picks = ""  # research only: daily put delta file in results/research; 0 = skip; "" = off
 long_hedge_band = 0  # research only: long-gamma hedge band in a trend, shares; 0 = off
 trend_er = 0.0  # research only: trend if 10-day efficiency ratio >= this; 0 = always
+long_structure = ""  # research only: "straddle" = ATM call + put on long; "" = call
+short_structure = ""  # research only: "strangle" = OTM put + call on short; "" = put
+strangle_delta = 0.0  # research only: strangle legs' |delta|, with short_structure

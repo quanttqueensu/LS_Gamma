@@ -7,19 +7,16 @@
 <link rel="icon" type="image/png" href="quantt-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Manrope:wght@300;400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="hub.css">
 </head>
 <body>
-<nav class="gs-nav"><div class="gs-wrap">
-  <a class="gs-brand" href="#about"><img class="q-full" src="quantt-logo.png" alt="QUANTT" width="97" height="24"><span class="sep" aria-hidden="true"></span><span class="mark" aria-hidden="true">Γ</span>R&amp;D</a>
-  <div class="gs-segment"><a href="#team">Team</a><a href="#week">This week</a><a href="#desk">Desk</a><a href="#experiments">Experiments</a><a href="#roadmap">Roadmap</a><a href="#library">Library</a></div>
-  <div class="gs-navacts">
-    <a class="gs-pill gs-pill-ghost" id="repo" target="_blank" rel="noopener">GitHub</a>
-    <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="menu" aria-label="Open menu">
-      <svg viewBox="0 0 20 20" aria-hidden="true"><path class="m-open" d="M3 6h14M3 10h14M3 14h14"/><path class="m-close" d="M5 5l10 10M15 5L5 15"/></svg>
-    </button>
-  </div>
+<nav class="gs-nav is-over-hero" id="nav"><div class="gs-wrap">
+  <a class="gs-brand" href="#about"><img class="q-full q-dark" src="quantt-logo.png" alt="QUANTT" width="97" height="24"><img class="q-full q-light" src="quantt-logo-white.png" alt="" width="97" height="24" aria-hidden="true"><span class="sep" aria-hidden="true"></span><span class="mark" aria-hidden="true">Γ</span>R&amp;D</a>
+  <div class="nav-links"><a href="#team">Team</a><a href="#week">This week</a><a href="#desk">Desk</a><a href="#experiments">Experiments</a><a href="#roadmap">Roadmap</a><a href="#library">Library</a><a class="nav-gh" id="repo" target="_blank" rel="noopener">GitHub</a></div>
+  <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="menu" aria-label="Open menu">
+    <svg viewBox="0 0 20 20" aria-hidden="true"><path class="m-open" d="M3 6h14M3 10h14M3 14h14"/><path class="m-close" d="M5 5l10 10M15 5L5 15"/></svg>
+  </button>
 </div>
 <div class="menu" id="menu" hidden><div class="gs-wrap">
   <a href="#about">About</a><a href="#team">Team</a><a href="#week">This week</a><a href="#desk">Live desk</a><a href="#experiments">Experiments</a><a href="#roadmap">Roadmap</a><a href="#library">Library</a>
@@ -28,10 +25,18 @@
 </nav>
 
 
-<section class="gs-sec first" id="about"><div class="gs-wrap">
-  <div class="gs-headrow"><h1 class="gs-h2">Regime-switching gamma scalping.</h1></div>
-  <p class="about">The L/S Gamma desk at QUANTT trades SPY options on a paper account. Each morning we forecast how much SPY will actually move and compare it with the volatility priced into its options. When options are expensive against that forecast, we sell gamma: short options, delta-hedged with SPY shares, to collect the volatility risk premium. When they are cheap, we buy gamma: long options, delta-hedged so that large moves pay for the time decay. When the gap is small, we stay flat. The volatility regime picks the side, and the hedge keeps the bet on volatility rather than direction. Every change to the rules is tested first as a pre-registered experiment below.</p>
+<section class="hero" id="about"><div class="gs-wrap hero-body">
+  <h1 class="hero-h1">Regime-switching gamma scalping.</h1>
+  <p class="hero-lede">The L/S Gamma desk at QUANTT trades SPY options on a paper account.</p>
+  <div class="hero-acts"><a class="gs-pill gs-pill-light" href="#desk">Live desk</a><a class="gs-pill gs-pill-outline" href="#experiments">Experiments</a></div>
 </div></section>
+
+<div class="strip" id="strip" hidden><div class="gs-wrap strip-row"><span class="strip-lab">Live book</span><span class="strip-em" id="strip-book"></span><span class="strip-name" id="strip-signal"></span><span class="strip-meta" id="strip-meta"></span><a class="strip-link" id="strip-link" href="#strategies">Live and shadow strategies <span aria-hidden="true">→</span></a></div></div>
+
+<section class="gs-sec" id="how"><div class="gs-wrap"><div class="panel">
+  <h2 class="gs-h2">How the desk trades.</h2>
+  <p class="about">Each morning we forecast how much SPY will actually move and compare it with the volatility priced into its options. When options are expensive against that forecast, we sell gamma: short options, delta-hedged with SPY shares, to collect the volatility risk premium. When they are cheap, we buy gamma: long options, delta-hedged so that large moves pay for the time decay. When the gap is small, we stay flat. The volatility regime picks the side, and the hedge keeps the bet on volatility rather than direction. Every change to the rules is tested first as a pre-registered experiment below.</p>
+</div></div></section>
 
 <section class="gs-sec" id="team"><div class="gs-wrap">
   <div class="gs-headrow"><h2 class="gs-h2">The L/S Gamma team.</h2></div>
@@ -99,7 +104,10 @@
   <div class="lib-list" id="docs"></div>
 </div></section>
 
-<footer class="gs-foot"><div class="gs-wrap"><div>QUANTT · L/S Gamma desk · aggregate results only</div><div id="built"></div></div></footer>
+<footer class="gs-foot"><div class="gs-wrap">
+  <div class="foot-top"><img class="foot-logo" src="quantt-logo-white.png" alt="QUANTT" width="97" height="24"><div class="foot-col"><a href="#team">Team</a><a href="#week">This week</a><a href="#desk">Live desk</a></div><div class="foot-col"><a href="#experiments">Experiments</a><a href="#roadmap">Roadmap</a><a href="#library">Library</a></div></div>
+  <div class="foot-bar"><div>© QUANTT · Queen's University Algorithmic Network &amp; Trading Team · L/S Gamma desk · aggregate results only</div><div id="built"></div></div>
+</div></footer>
 
 <div class="gs-scrim" id="modal" hidden><div class="gs-dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title" id="dialog"></div></div>
 

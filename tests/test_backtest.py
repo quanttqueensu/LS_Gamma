@@ -1127,3 +1127,91 @@ def test_parity_put20_book(bt, monkeypatch):
     assert out["trades"]["strike"].iloc[0] == 595.0 and out["trades"]["qty"].iloc[0] > 1
     assert out["hedges"]["shares"].tolist() == ledger.read_log("hedges")["shares"].tolist()
     assert len(out["hedges"]) == 2
+
+
+def smile(put_mid=None):
+    # OTM legs at 20 delta; put mids by day
+    def make(asof):
+        c = chain(asof)
+        put = c["right"] == "P"
+        d = np.where(put, c["strike"].map({595.0: -0.2, 600.0: -0.5, 605.0: -0.8}),
+                     c["strike"].map({595.0: 0.8, 600.0: 0.5, 605.0: 0.2}))
+        c = c.assign(delta=d)
+        if put_mid and asof.date() in put_mid:
+            m = np.where(put & (c["strike"] == 595.0), put_mid[asof.date()][0],
+                         np.where(~put & (c["strike"] == 605.0), put_mid[asof.date()][1], c["mid"]))
+            c = c.assign(mid=m, bid=m - 0.1, ask=m + 0.1)
+        return c
+    return make
+
+
+def structures(cfg):
+    cfg["backtest"].update(long_structure="straddle", short_structure="strangle", strangle_delta=0.2)
+
+
+def test_straddle_on_long_signal(bt):
+    cfg, root = bt
+    structures(cfg)
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.25, 0.25])), make=smile())
+    out = engine.backtest(cfg, d[0], d[-1], root=root)
+    o = out["trades"]
+    assert o[["action", "side", "right", "strike"]].values.tolist() == [
+        ["open", "long", "C", 600.0], ["open", "long", "P", 600.0]]
+    assert o["group"].nunique() == 1 and o["qty"].tolist() == [1, 1]
+    assert o["commission"].tolist() == [0.65, 0.65]
+    assert out["hedges"].empty
+
+
+def test_strangle_on_short_signal(bt):
+    cfg, root = bt
+    structures(cfg)
+    d = days("2024-03-04", 2)
+    write(root, list(zip(d, [0.10, 0.10])), make=smile())
+    o = engine.backtest(cfg, d[0], d[-1], root=root)["trades"]
+    assert o[["side", "right", "strike"]].values.tolist() == [["short", "P", 595.0], ["short", "C", 605.0]]
+
+
+def test_structure_legs_close_together_on_flip(bt):
+    cfg, root = bt
+    structures(cfg)
+    d = days("2024-03-04", 3)
+    write(root, list(zip(d, [0.10, 0.25, 0.25])), make=smile())
+    t = engine.backtest(cfg, d[0], d[-1], root=root)["trades"]
+    closes = t[t["action"] == "close"]
+    assert len(closes) == 2 and set(closes["reason"]) == {"flip"} and closes["ts"].nunique() == 1
+    opens = t[(t["action"] == "open") & (t["date"] == str(d[1]))]
+    assert opens["right"].tolist() == ["C", "P"] and opens["strike"].tolist() == [600.0, 600.0]
+
+
+def test_structure_stop_uses_combined_credit(bt):
+    cfg, root = bt
+    structures(cfg)
+    d = days("2024-03-04", 3)
+    # put loses more than its credit; call gains
+    write(root, list(zip(d, [0.10] * 3)), make=smile({d[1]: (11.0, 1.0), d[2]: (11.0, 1.0)}))
+    t = engine.backtest(cfg, d[0], d[-1], root=root)["trades"]
+    assert (t["action"] == "close").sum() == 0
+    cfg["backtest"].update(short_structure="", put_delta=0.2)  # same put alone stops
+    t = engine.backtest(cfg, d[0], d[-1], root=root)["trades"]
+    assert t[t["action"] == "close"]["reason"].tolist()[:1] == ["stop"]
+
+
+def test_structures_off_by_default(bt):
+    cfg, _ = bt
+    bt_ = cfg["backtest"]
+    assert bt_["long_structure"] == "" and bt_["short_structure"] == "" and bt_["strangle_delta"] == 0.0
+    saved = copy.deepcopy(cfg)
+    for k in ("long_structure", "short_structure", "strangle_delta"):
+        del saved["backtest"][k]
+    assert report.same(saved, cfg)
+
+
+def test_pairs_match_structure_legs(bt):
+    cfg, root = bt
+    structures(cfg)
+    d = days("2024-03-04", 3)
+    write(root, list(zip(d, [0.10, 0.25, 0.25])), make=smile())
+    rt = report.round_trips(engine.backtest(cfg, d[0], d[-1], root=root))
+    assert len(rt) == 2 and rt["reason"].tolist() == ["flip", "flip"]
+    assert rt["premium"].notna().all() and rt["side"].tolist() == ["short", "short"]

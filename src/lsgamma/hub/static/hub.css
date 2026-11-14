@@ -460,7 +460,8 @@ button.shead { cursor: pointer; }
 .foot-bar a { color: #fff; text-decoration: underline; text-decoration-color: var(--q-on-dark-line); text-underline-offset: 3px; }
 
 /* library: paper cards with first-page thumbnails */
-#docs { display: flex; flex-direction: column; gap: clamp(48px, 5vw, 72px); }
+#docs { display: flex; flex-direction: column; gap: clamp(56px, 6vw, 88px); margin-top: clamp(40px, 4vw, 56px); }
+#lib-count:empty { display: none; }
 .lhead { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 16px; padding-bottom: 20px; margin-bottom: 28px; border-bottom: 1px solid var(--gs-line-soft); }
 .lhead .gs-meta { font-size: 16px; }
 .lmore { margin-left: auto; background: none; border: 0; padding: 0; font-size: 16px; color: var(--q-blue); cursor: pointer; }

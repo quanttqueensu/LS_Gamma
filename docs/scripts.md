@@ -111,7 +111,7 @@ python -m lsgamma.backtest.run --exp <name> --holdout   # final run only
 All numbers live in `configs/paper.toml`: the VRP bands, forecaster (`garch` or `har`), DTE window, size, exits, slippage, fill timeout and hedge band. After a stop, `stop_cooloff_days` blocks a same-side re-entry (1 = rest of that day; 0 = off). No code changes are needed. To trade a shadow book instead, set `[strategy] book = "<exp>/<variant>"` at the top of paper.toml (one line, with a decision record); delete it to go back to the rules below it.
 
 ## 10. Research hub
-A static site (GSDesign style) that shows the team, then every hypothesis card, its lifecycle, summary, charts, trials and report, a roadmap Gantt and the report library. GitHub Pages rebuilds it on every push to `main` (`.github/workflows/hub.yml`), from committed files only. The site is public, like the repo.
+A static site (in the quantt.ca design: Inter, navy and blue, square corners, ruled lists) that shows the team, then every hypothesis card, its lifecycle, summary, charts, trials and report, a roadmap Gantt and the report library. GitHub Pages rebuilds it on every push to `main` (`.github/workflows/hub.yml`), from committed files only. The site is public, like the repo.
 ```bash
 python -m lsgamma.hub.export              # results/research/registry.parquet -> research/registry.csv
 python -m lsgamma.hub.build [--out _site] # build locally, then open _site/index.html

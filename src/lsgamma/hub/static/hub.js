@@ -57,6 +57,9 @@ function chrome() {
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !menu.hidden) { set(false); btn.focus(); } });
   document.addEventListener("click", e => { if (!menu.hidden && !e.target.closest(".gs-nav")) set(false); });
   addEventListener("resize", () => { if (innerWidth > 900) set(false); });
+  const nav = $("#nav"), hero = $("#about");
+  const over = on => nav.classList.toggle("is-over-hero", on && !document.body.classList.contains("sub"));
+  new IntersectionObserver(([e]) => over(e.isIntersecting), { rootMargin: "-80px 0px 0px 0px" }).observe(hero);
   const sha = D.build.commit.replace("-dirty", "");
   $("#built").innerHTML = `Built from <a href="${D.repo}/commit/${esc(sha)}" target="_blank" rel="noopener">${esc(D.build.commit)}</a> · ${esc(D.build.date)}`;
 }
@@ -686,8 +689,19 @@ function desk() {
   });
 }
 
+/* status strip under the hero */
+function strip() {
+  const k = D.desk, last = k?.signals?.at(-1);
+  if (!k) return;
+  $("#strip").hidden = false;
+  $("#strip-book").textContent = liveBook() || "VRP band";
+  $("#strip-signal").textContent = last ? `${SIDE[last.signal]} · VRP ${pts(last.vrp)}` : "No signal yet";
+  $("#strip-meta").textContent = last ? `as of ${long_day(last.date)}` : "";
+  $("#strip-link").hidden = !D.shadow?.books?.length;
+}
+
 /* live and shadow strategies */
-const SHADES = ["#2a78d6", "#1baf7a", "#6250d6", "#eda100", "#e87ba4", "#eb6834", "#7a8699"];
+const SHADES = ["#295caa", "#1baf7a", "#6250d6", "#eda100", "#e87ba4", "#eb6834", "#7a8699"];
 const per = v => v == null ? "—" : `${Math.round(v * 100)}%`;
 const posText = p => p ? `${p.side === "short" ? "Short" : "Long"} ${+p.strike} ${p.right === "P" ? "put" : "call"}${p.qty > 1 ? ` ×${p.qty}` : ""}` : "Flat";
 
@@ -831,6 +845,7 @@ function strategies() {
 function route() {
   const h = location.hash, sub = h === "#strategies" && !!D.shadow;
   document.body.classList.toggle("sub", sub);
+  if (sub) $("#nav").classList.remove("is-over-hero");
   $("#strategies").hidden = !sub;
   if (sub) { strategies(); return scrollTo(0, 0); }
   if (h.startsWith("#card-")) return openCard(h.slice(6));
@@ -841,6 +856,7 @@ chrome();
 team();
 week();
 desk();
+strip();
 experiments();
 roadmap();
 library();

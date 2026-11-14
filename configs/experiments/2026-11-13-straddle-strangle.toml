@@ -1,0 +1,51 @@
+[experiment]
+name = "2026-11-13-straddle-strangle"
+topic = "Agentic_Routing"
+owner = "Gabe Soler (PM)"
+
+# every variant: the baseline VRP-band rules, 1 contract per leg
+# structures exit as one position (combined P&L and premium)
+
+[variants.both.backtest]
+long_structure = "straddle"  # primary: ATM call + ATM put on long
+short_structure = "strangle"  # 20-delta put + 20-delta call on short
+strangle_delta = 0.20
+
+[variants.straddle_only.backtest]
+long_structure = "straddle"  # longs only; shorts stay the ATM put
+
+[variants.strangle_only.backtest]
+short_structure = "strangle"  # shorts only; longs stay the ATM call
+strangle_delta = 0.20
+
+[pass]
+primary = "both"
+against = "baseline"
+min_events = 20  # straddles and strangles, each, in both at 1x
+event = "structure"
+[[pass.check]]
+metric = "vol"  # std of daily net P&L, USD
+period = "all"
+rule = "less_severe"
+[[pass.check]]
+metric = "vol"
+period = "2014-2019"
+rule = "less_severe"
+[[pass.check]]
+metric = "vol"
+period = "2020-2024"
+rule = "less_severe"
+[[pass.check]]
+metric = "max_dd"
+period = "all"
+rule = "less_severe"
+[[pass.check]]
+metric = "es_5"
+period = "all"
+rule = "abs_within"
+value = 1.1  # tail guard
+[[pass.check]]
+metric = "pnl"
+period = "all"
+rule = "not_below"
+value = 1000.0  # about the second leg's extra costs

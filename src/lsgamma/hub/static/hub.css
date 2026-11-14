@@ -466,6 +466,7 @@ button.shead { cursor: pointer; }
 .lmore { margin-left: auto; background: none; border: 0; padding: 0; font-size: 16px; color: var(--q-blue); cursor: pointer; }
 .lmore:hover { color: var(--q-blue-hover); text-decoration: underline; text-underline-offset: 4px; }
 .lmore:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--gs-accent-ring); }
+.lnote { margin: -12px 0 28px; max-width: 760px; font-size: 16px; line-height: 1.5; color: var(--gs-grey); }
 .lgrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 40px 24px; }
 .lcard { display: flex; flex-direction: column; min-width: 0; color: var(--gs-ink); }
 .lcard:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--gs-accent-ring); }

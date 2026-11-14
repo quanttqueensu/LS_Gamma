@@ -452,7 +452,7 @@ function roadmap() {
 }
 
 /* library */
-const KINDS = [["all", "All"], ["Literature report", "Literature"], ["Research note", "Notes"], ["General research", "General"], ["Paper", "Papers"]];
+const KINDS = [["all", "All"], ["Literature report", "Literature"], ["Research note", "Notes"], ["General research", "General"], ["Paper", "Academic papers"]];
 const KIND_C = { "Literature report": "lit", "Research note": "note", "General research": "note", Paper: "pub" };
 const LIMIT = PHONE ? 8 : 15;
 
@@ -464,15 +464,17 @@ function marked(text, words) {
   return text.split(re).map((part, i) => i % 2 ? `<mark>${esc(part)}</mark>` : esc(part)).join("");
 }
 
-const GROUPS = { "Literature report": "Literature reports", "Research note": "Research notes", "General research": "General research", Paper: "Papers" };
+const GROUPS = { "Literature report": "Literature reports", "Research note": "Research notes", "General research": "General research", Paper: "Academic papers" };
+const EXTERNAL = "Published research by outside authors, kept for reference. Not written by QUANTT.";
 const GROUP_LIMIT = PHONE ? 4 : 10;
 
 function docCard(d, words) {
-  const when = d.date ? `${short_day(d.date)}, ${d.date.slice(0, 4)}` : "on GitHub";
+  const when = d.kind === "Paper" ? "External" : d.date ? `${short_day(d.date)}, ${d.date.slice(0, 4)}` : "";
+  const kind = d.kind === "Paper" ? "Academic paper" : d.kind;
   return `<a class="lcard" href="${esc(d.href)}" target="_blank" rel="noopener">
     <span class="lthumb">${d.thumb ? `<img src="${esc(d.thumb)}" alt="" loading="lazy">` : `<span class="lblank">PDF</span>`}</span>
     <span class="ltitle">${marked(d.title, words)}</span>
-    <span class="lmeta">${esc(d.kind)} · ${when}</span></a>`;
+    <span class="lmeta">${esc(kind)}${when ? ` · ${when}` : ""}</span></a>`;
 }
 
 function docGroup(kind, list, words, cut) {
@@ -480,6 +482,7 @@ function docGroup(kind, list, words, cut) {
   const noun = kind === "Paper" ? "paper" : kind === "Research note" ? "note" : "report";
   return `<section class="lgroup"><div class="lhead"><h3 class="gs-h3">${esc(GROUPS[kind] || kind)}</h3><span class="gs-meta">${plural(list.length, noun)}</span>
     ${shown.length < list.length ? `<button class="lmore" type="button" data-kind="${esc(kind)}">Show all ${list.length} <span aria-hidden="true">→</span></button>` : ""}</div>
+    ${kind === "Paper" ? `<p class="lnote">${EXTERNAL}</p>` : ""}
     <div class="lgrid">${shown.map(d => docCard(d, words)).join("")}</div></section>`;
 }
 

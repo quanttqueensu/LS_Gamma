@@ -239,3 +239,16 @@ def test_desk_rules_for_an_always_short_book(tmp_path):
                           "und_price": [702.0]})
     out = desk.write(chain, cfg, tmp_path / "desk.json")
     json.loads(out.read_text(), parse_constant=lambda c: pytest.fail(f"bad JSON constant {c}"))
+
+
+def test_thumbs_render_page_one_and_skip_bad_pdfs(tmp_path):
+    pdfium = pytest.importorskip("pypdfium2")
+    from lsgamma.hub import thumbs
+    doc = pdfium.PdfDocument.new()
+    doc.new_page(612, 792)
+    doc.save(tmp_path / "ok.pdf")
+    (tmp_path / "bad.pdf").write_text("not a pdf")
+    docs = [{"src": "ok.pdf"}, {"src": "bad.pdf"}, {"title": "no source"}]
+    thumbs.add(docs, tmp_path, tmp_path / "out")
+    assert docs[0]["thumb"] == thumbs.name("ok.pdf") and (tmp_path / "out" / docs[0]["thumb"]).exists()
+    assert "thumb" not in docs[1] and all("src" not in d for d in docs)

@@ -56,7 +56,7 @@ function chrome() {
   menu.addEventListener("click", e => { if (e.target.closest("a")) set(false); });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !menu.hidden) { set(false); btn.focus(); } });
   document.addEventListener("click", e => { if (!menu.hidden && !e.target.closest(".gs-nav")) set(false); });
-  addEventListener("resize", () => { if (innerWidth > 900) set(false); });
+  addEventListener("resize", () => { if (innerWidth > 1100) set(false); });
   const nav = $("#nav"), hero = $("#about");
   const over = on => nav.classList.toggle("is-over-hero", on && !document.body.classList.contains("sub"));
   new IntersectionObserver(([e]) => over(e.isIntersecting), { rootMargin: "-80px 0px 0px 0px" }).observe(hero);
@@ -452,7 +452,7 @@ function roadmap() {
 }
 
 /* library */
-const KINDS = [["all", "All"], ["Literature report", "Literature"], ["Research note", "Notes"], ["General research", "General"], ["Paper", "Papers"]];
+const KINDS = [["all", "All"], ["Literature report", "Literature"], ["Research note", "Notes"], ["General research", "General"], ["Paper", "Academic papers"]];
 const KIND_C = { "Literature report": "lit", "Research note": "note", "General research": "note", Paper: "pub" };
 const LIMIT = PHONE ? 8 : 15;
 
@@ -464,22 +464,43 @@ function marked(text, words) {
   return text.split(re).map((part, i) => i % 2 ? `<mark>${esc(part)}</mark>` : esc(part)).join("");
 }
 
+const GROUPS = { "Literature report": "Literature reports", "Research note": "Research notes", "General research": "General research", Paper: "Academic papers" };
+const EXTERNAL = "Published research by outside authors, kept for reference. Not written by QUANTT.";
+const GROUP_LIMIT = PHONE ? 4 : 10;
+
+function docCard(d, words) {
+  const when = d.kind === "Paper" ? "External" : d.date ? `${short_day(d.date)}, ${d.date.slice(0, 4)}` : "";
+  const kind = d.kind === "Paper" ? "Academic paper" : d.kind;
+  return `<a class="lcard" href="${esc(d.href)}" target="_blank" rel="noopener">
+    <span class="lthumb">${d.thumb ? `<img src="${esc(d.thumb)}" alt="" loading="lazy">` : `<span class="lblank">PDF</span>`}</span>
+    <span class="ltitle">${marked(d.title, words)}</span>
+    <span class="lmeta">${esc(kind)}${when ? ` · ${when}` : ""}</span></a>`;
+}
+
+function docGroup(kind, list, words, cut) {
+  const shown = cut ? list.slice(0, GROUP_LIMIT) : list;
+  const noun = kind === "Paper" ? "paper" : kind === "Research note" ? "note" : "report";
+  return `<section class="lgroup"><div class="lhead"><h3 class="gs-h3">${esc(GROUPS[kind] || kind)}</h3><span class="gs-meta">${plural(list.length, noun)}</span>
+    ${shown.length < list.length ? `<button class="lmore" type="button" data-kind="${esc(kind)}">Show all ${list.length} <span aria-hidden="true">→</span></button>` : ""}</div>
+    ${kind === "Paper" ? `<p class="lnote">${EXTERNAL}</p>` : ""}
+    <div class="lgrid">${shown.map(d => docCard(d, words)).join("")}</div></section>`;
+}
+
 function docs() {
   const words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
   const list = D.library.filter(d => (state.kind === "all" || d.kind === state.kind)
     && words.every(w => `${d.title} ${d.kind}`.toLowerCase().includes(w)));
-  const cut = state.allDocs || words.length ? list : list.slice(0, LIMIT);
-  const scope = state.kind === "all" ? "items" : `${state.kind.toLowerCase()}s`;
-  $("#lib-count").textContent = words.length ? `${list.length} of ${D.library.length} match “${state.q.trim()}”`
-    : `${list.length} ${scope}${cut.length < list.length ? `, newest ${cut.length} shown` : ""}`;
-  $("#docs").innerHTML = cut.map(d => `<a class="lrow" href="${esc(d.href)}" target="_blank" rel="noopener">
-      <span class="kind c-${KIND_C[d.kind] || "note"}"><span class="dot"></span>${esc(d.kind)}</span>
-      <span class="ltitle">${marked(d.title, words)}</span>
-      <span class="ldate">${d.date ? short_day(d.date) + ", " + d.date.slice(0, 4) : "—"}</span>
-      <span class="lopen">${d.kind === "Paper" ? "GitHub ↗" : "Open PDF ↗"}</span></a>`).join("")
-    + (list.length ? "" : `<p class="gs-meta empty">No matches. Try fewer words or another filter.</p>`)
-    + (list.length > cut.length ? `<div class="more"><button class="gs-pill gs-pill-ghost" type="button" id="more">Show all ${list.length}</button></div>` : "");
-  $("#more")?.addEventListener("click", () => { state.allDocs = true; docs(); });
+  const kinds = Object.keys(GROUPS).filter(k => list.some(d => d.kind === k));
+  const cut = state.kind === "all" && !words.length;
+  $("#lib-count").textContent = words.length ? `${list.length} of ${D.library.length} match “${state.q.trim()}”` : "";
+  $("#docs").innerHTML = kinds.map(k => docGroup(k, list.filter(d => d.kind === k), words, cut)).join("")
+    + (list.length ? "" : `<p class="gs-meta empty">No matches. Try fewer words or another filter.</p>`);
+  $$("#docs .lmore").forEach(b => b.addEventListener("click", () => {
+    state.kind = b.dataset.kind;
+    $$("#f-kind button").forEach(c => { const on = c.dataset.v === state.kind; c.classList.toggle("is-active", on); c.setAttribute("aria-pressed", on); });
+    docs();
+    $("#library").scrollIntoView();
+  }));
 }
 
 function library() {
@@ -551,13 +572,13 @@ function deskChart(k, W) {
   const y = v => T + (top - v) * (H - T - B) / (top - bot);
   const sb = hi == null ? null : y(hi), lb = lo == null ? null : y(lo), zero = y(0);
   const ticks = [[hi, `+${hi}`], [0, "0"], [lo, `${lo}`.replace("-", "−")]].filter(([v]) => v != null);
-  const labels = [0, Math.floor((S.length - 1) / 2), S.length - 1].filter((v, i, a) => a.indexOf(v) === i);
+  const labels = dateIdx(S.length);
   return `<svg class="dchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="VRP over the last ${S.length} signals${sb == null && lb == null ? "" : " with the signal bands"}">
     ${sb == null ? "" : `<rect x="${L}" y="${T}" width="${W - L - R}" height="${sb - T}" class="zone"/>
     <text x="${L + 8}" y="${T + 14}" class="zlab">Short gamma zone</text>`}
     ${lb == null ? "" : `<rect x="${L}" y="${lb}" width="${W - L - R}" height="${H - B - lb}" class="zone"/>
     <text x="${L + 8}" y="${H - B - 8}" class="zlab">Long gamma zone</text>`}
-    <line x1="${L}" x2="${W - R}" y1="${zero}" y2="${zero}" class="base"/>
+    <line x1="${L}" x2="${W - R}" y1="${zero}" y2="${zero}" class="axis0"/>
     ${sb == null ? "" : `<line x1="${L}" x2="${W - R}" y1="${sb}" y2="${sb}" class="band"/>`}
     ${lb == null ? "" : `<line x1="${L}" x2="${W - R}" y1="${lb}" y2="${lb}" class="band"/>`}
     ${ticks.map(([v, t]) => `<text x="${L - 8}" y="${y(v) + 4}" class="tick" text-anchor="end">${t}</text>`).join("")}
@@ -596,26 +617,45 @@ function positionHtml(k) {
   return `${head}<h3 class="colh sub">Trades</h3>${table}<p class="gs-meta realized">Realized P&amp;L ${signed(k.realized)}</p>`;
 }
 
+/* chart helpers: round ticks, spread date labels */
+function scale(vals, n = 4) {
+  const lo0 = Math.min(...vals, 0), hi0 = Math.max(...vals, 0), raw = (hi0 - lo0) / n || 1;
+  const mag = 10 ** Math.floor(Math.log10(raw)), f = raw / mag;
+  const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag;
+  const lo = Math.floor(lo0 / step) * step, hi = Math.ceil(hi0 / step) * step, ticks = [];
+  for (let v = lo; v <= hi + step / 2; v += step) ticks.push(Math.round(v * 1e6) / 1e6);
+  return { lo, hi, ticks };
+}
+
+function dateIdx(n, k = 5) {
+  if (n <= 1) return [0];
+  return [...new Set(Array.from({ length: Math.min(k, n) }, (_, i) => Math.round(i * (n - 1) / (Math.min(k, n) - 1))))];
+}
+
+const anchor = (i, n) => i === 0 ? "start" : i === n - 1 ? "end" : "middle";
+
+function grid(ticks, y, L, W, R, fmt) {
+  return ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="${v === 0 ? "axis0" : "gridl"}"/>
+    <text x="${L - 10}" y="${y(v) + 4}" class="tick" text-anchor="end">${fmt(v)}</text>`).join("");
+}
+
 function bookChart(B, W) {
-  const H = 230, L = 64, R = 70, T = 16, Bm = 30;
+  const H = 260, L = 64, R = 78, T = 18, Bm = 34;
   if (!B.length) return `<p class="gs-meta empty">No book history yet.</p>`;
-  const vals = B.map(b => b.total ?? 0), span = Math.max(...vals, 0) - Math.min(...vals, 0);
-  const pad = Math.max(10, span * 0.25), top = Math.max(...vals, 0) + pad, bot = Math.min(...vals, 0) - pad;
+  const vals = B.map(b => b.total ?? 0), sc = scale(vals);
   const x = i => L + (B.length === 1 ? (W - L - R) / 2 : i * (W - L - R) / (B.length - 1));
-  const y = v => T + (top - v) * (H - T - Bm) / (top - bot);
+  const y = v => T + (sc.hi - v) * (H - T - Bm) / (sc.hi - sc.lo);
   const line = B.map((b, i) => `${x(i)},${y(b.total ?? 0)}`).join(" ");
   const area = `M${x(0)},${y(0)} L${line.replaceAll(" ", " L")} L${x(B.length - 1)},${y(0)} Z`;
-  const ticks = [...new Set([0, Math.max(...vals), Math.min(...vals)].map(v => Math.round(v)))];
-  const labels = [0, Math.floor((B.length - 1) / 2), B.length - 1].filter((v, i, a) => a.indexOf(v) === i);
   const lastV = vals.at(-1);
   return `<svg class="dchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Book P&L over ${B.length} days, now ${signed(lastV)}">
-    ${ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="${v === 0 ? "band" : "base"}"/>
-      <text x="${L - 8}" y="${y(v) + 4}" class="tick" text-anchor="end">${signed(v)}</text>`).join("")}
-    ${labels.map(i => `<text x="${x(i)}" y="${H - 9}" class="tick" text-anchor="${i === 0 ? "start" : i === B.length - 1 ? "end" : "middle"}">${short_day(B[i].date)}</text>`).join("")}
-    <path d="${area}" class="barea ${lastV < 0 ? "neg" : "pos"}"/>
+    <defs><linearGradient id="bfill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" class="gstop"/><stop offset="1" class="gstop end"/></linearGradient></defs>
+    ${grid(sc.ticks, y, L, W, R, signed)}
+    ${dateIdx(B.length).map(i => `<text x="${x(i)}" y="${H - 10}" class="tick" text-anchor="${anchor(i, B.length)}">${short_day(B[i].date)}</text>`).join("")}
+    <path d="${area}" class="barea"/>
     <polyline points="${line}" class="vline"/>
-    <circle cx="${x(B.length - 1)}" cy="${y(lastV)}" r="5" class="pt"/>
-    <text x="${x(B.length - 1) + 10}" y="${y(lastV) + 4}" class="endlab">${signed(lastV)}</text>
+    <circle cx="${x(B.length - 1)}" cy="${y(lastV)}" r="4.5" class="pt"/>
+    <g class="endtag" transform="translate(${x(B.length - 1) + 10},${y(lastV)})"><rect x="0" y="-11" width="${signed(lastV).length * 7.6 + 14}" height="22" rx="3"/><text x="7" y="4">${signed(lastV)}</text></g>
     ${B.map((b, i) => `<circle cx="${x(i)}" cy="${y(b.total ?? 0)}" r="12" class="hit" data-b="${i}" tabindex="0"/>`).join("")}
   </svg>`;
 }
@@ -701,7 +741,7 @@ function strip() {
 }
 
 /* live and shadow strategies */
-const SHADES = ["#295caa", "#1baf7a", "#6250d6", "#eda100", "#e87ba4", "#eb6834", "#7a8699"];
+const SHADES = ["#295caa", "#2a9d8f", "#7a5195", "#d99a2b", "#c8553d", "#5b8fd6", "#8a94a6"];
 const per = v => v == null ? "—" : `${Math.round(v * 100)}%`;
 const posText = p => p ? `${p.side === "short" ? "Short" : "Long"} ${+p.strike} ${p.right === "P" ? "put" : "call"}${p.qty > 1 ? ` ×${p.qty}` : ""}` : "Flat";
 
@@ -709,29 +749,25 @@ function books() {
   const S = D.shadow, live = D.desk;
   let i = 0;
   const shadow = S.books.map(b => ({ ...b, key: `b${i}`, color: b.placeholder || b.error ? null : SHADES[i++ % SHADES.length] }));
-  const paper = live ? [{ name: "Paper account", key: "paper", live: true, color: "var(--gs-ink)", book: live.book || [],
+  const paper = live ? [{ name: "Paper account", key: "paper", live: true, color: "#0f2547", book: live.book || [],
     position: live.position, trades: live.trades, realized: live.realized, summary: S.paper }] : [];
   return [...paper, ...shadow];
 }
 
 function linesChart(series, W) {
-  const H = 260, L = 64, R = 16, T = 16, Bm = 30;
+  const H = 300, L = 64, R = 16, T = 18, Bm = 34;
   const dates = [...new Set(series.flatMap(s => s.book.map(b => b.date)))].sort();
   if (!dates.length) return `<p class="gs-meta empty">No book history yet.</p>`;
-  const vals = series.flatMap(s => s.book.map(b => b.total ?? 0)), hi = Math.max(...vals, 0), lo = Math.min(...vals, 0);
-  const pad = Math.max(10, (hi - lo) * 0.12), top = hi + pad, bot = lo - pad;
+  const sc = scale(series.flatMap(s => s.book.map(b => b.total ?? 0)), 5);
   const at = Object.fromEntries(dates.map((d, i) => [d, i]));
   const x = i => L + (dates.length === 1 ? (W - L - R) / 2 : i * (W - L - R) / (dates.length - 1));
-  const y = v => T + (top - v) * (H - T - Bm) / (top - bot);
-  const ticks = [...new Set([0, hi, lo].map(v => Math.round(v)))];
-  const labels = [0, Math.floor((dates.length - 1) / 2), dates.length - 1].filter((v, i, a) => a.indexOf(v) === i);
+  const y = v => T + (sc.hi - v) * (H - T - Bm) / (sc.hi - sc.lo);
   const step = dates.length > 1 ? (W - L - R) / (dates.length - 1) : W - L - R;
   const lines = [...series].reverse().map(s => `<polyline points="${s.book.map(b => `${x(at[b.date])},${y(b.total ?? 0)}`).join(" ")}"
     class="sline${s.live ? " live" : ""}" style="--c:${s.color}"/>`).join("");
   return `<svg class="dchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Book P&L of the paper account and ${series.length - 1} shadow books over ${dates.length} days">
-    ${ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="${v === 0 ? "band" : "base"}"/>
-      <text x="${L - 8}" y="${y(v) + 4}" class="tick" text-anchor="end">${signed(v)}</text>`).join("")}
-    ${labels.map(i => `<text x="${x(i)}" y="${H - 9}" class="tick" text-anchor="${i === 0 ? "start" : i === dates.length - 1 ? "end" : "middle"}">${short_day(dates[i])}</text>`).join("")}
+    ${grid(sc.ticks, y, L, W, R, signed)}
+    ${dateIdx(dates.length).map(i => `<text x="${x(i)}" y="${H - 10}" class="tick" text-anchor="${anchor(i, dates.length)}">${short_day(dates[i])}</text>`).join("")}
     ${lines}
     ${dates.map((d, i) => `<rect x="${x(i) - step / 2}" y="${T}" width="${step}" height="${H - T - Bm}" class="hit" data-d="${d}" tabindex="0"/>`).join("")}
   </svg>`;

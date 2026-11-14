@@ -25,7 +25,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
-      - run: pip install markdown-it-py==4.2.0
+      - run: pip install markdown-it-py==4.2.0 pypdfium2==5.15.2 pillow==12.2.0
       - run: PYTHONPATH=src python -m lsgamma.hub.build --out _site
       - uses: actions/upload-pages-artifact@v5
         with:

@@ -5,7 +5,7 @@ name = "lsgamma-quantt-ca"
 compatibility_date = "2026-10-01"
 
 [build]
-command = "python3 -m pip install markdown-it-py==4.2.0 && PYTHONPATH=src python3 -m lsgamma.hub.build --out _site"
+command = "python3 -m pip install markdown-it-py==4.2.0 pypdfium2==5.15.2 pillow==12.2.0 && PYTHONPATH=src python3 -m lsgamma.hub.build --out _site"
 
 [assets]
 directory = "./_site"

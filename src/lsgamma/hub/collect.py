@@ -197,11 +197,11 @@ def library(root, files):
             files.add(rel(pdf))
             out.append({"kind": kind, "title": title or pdf.stem[11:].replace("-", " ").capitalize(),
                         "date": day.group(1) if day else None, "href": "files/" + rel(pdf),
-                        "note": "-notes-" in pdf.name})
+                        "note": "-notes-" in pdf.name, "src": rel(pdf)})
     out.sort(key=lambda d: d["date"] or "", reverse=True)
     for pdf in sorted((root / "docs" / "papers").glob("*.pdf")):
         out.append({"kind": "Paper", "title": pdf.stem.replace("-", " "), "date": None,
-                    "href": GITHUB + rel(pdf), "note": False})
+                    "href": GITHUB + rel(pdf), "note": False, "src": rel(pdf)})
     return out
 
 

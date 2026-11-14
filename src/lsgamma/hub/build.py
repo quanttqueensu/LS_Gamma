@@ -3,6 +3,7 @@ import json
 import shutil
 from pathlib import Path
 
+from lsgamma.hub import thumbs
 from lsgamma.hub.collect import REPO, collect
 
 STATIC = Path(__file__).parent / "static"
@@ -20,6 +21,7 @@ def build(out, root=None):
         dest = out / "files" / name
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(root / name, dest)
+    thumbs.add(data["library"], root, out)
     blob = json.dumps(data, separators=(",", ":"), allow_nan=False).replace("</", "<\\/")
     page = out / "index.html"
     page.write_text(page.read_text().replace("{{DATA}}", blob))

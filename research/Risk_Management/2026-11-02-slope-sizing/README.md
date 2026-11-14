@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-11-02-slope-sizing` (config: `configs/experiments/2026-11-02-slope-sizing.toml`) |
 | **Topic** | Risk_Management |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed (P&L lower at 1x and 2x; risk lower) |
 | **Started** | 2026-11-02 |
 
@@ -20,7 +20,7 @@ Johnson (2017) finds that the VIX term-structure slope predicts returns on S&P 5
 ## Data
 - R2 replay snapshots v1 (config_hash b040760187f0), development window 2014-06-02 to 2024-12-31.
 - **Hold-out:** 2025-01-01 to 2026-07-10. Not used.
-- **In-sample note:** The idea comes from the 2026-10-31 strategy research report (literature), and the book is the 2026-10-22 primary, chosen after its results. The desk's earlier gate tests showed that skipping shorts on an inverted curve removed profit, and the 2026-10-22 book made most of its profit from entries in March 2020, when the curve was inverted. Both point against this card's direction; the direction is fixed by the literature, not by those results. Before pre-registration, Claude tested this card's reporting code on the registered reference runs and so saw, for the `hedged` book: its contracts per entry by year and the multiplier path chart, but not its P&L by multiplier. This card's variants have no runs yet.
+- **In-sample note:** The idea comes from the 2026-10-31 strategy research report (literature), and the book is the 2026-10-22 primary, chosen after its results. The desk's earlier gate tests showed that skipping shorts on an inverted curve removed profit, and the 2026-10-22 book made most of its profit from entries in March 2020, when the curve was inverted. Both point against this card's direction; the direction is fixed by the literature, not by those results. Before pre-registration, the desk tested this card's reporting code on the registered reference runs and so saw, for the `hedged` book: its contracts per entry by year and the multiplier path chart, but not its P&L by multiplier. This card's variants have no runs yet.
 
 ## Method
 - **Book (every variant and the reference):** the `hedged` book of `Risk_Management/2026-10-22-stress-sized-puts`.

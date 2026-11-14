@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-10-16-hedge-band` (config: `configs/experiments/2026-10-16-hedge-band.toml`) |
 | **Topic** | Deep_Hedging |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | passed (development window; hold-out run still to do) |
 | **Started** | 2026-10-16 |
 

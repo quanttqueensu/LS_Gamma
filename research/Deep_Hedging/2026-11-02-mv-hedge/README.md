@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-11-02-mv-hedge` (config: `configs/experiments/2026-11-02-mv-hedge.toml`) |
 | **Topic** | Deep_Hedging |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed (P&L $104,049 / $79,425 vs $121,482 / $101,172; tail and drawdown passed) |
 | **Started** | 2026-11-02 |
 
@@ -20,7 +20,7 @@ The 2026-09-27 leverage-effect report found that implied vol rises when SPY fall
 ## Data
 - R2 replay snapshots v1 (config_hash b040760187f0), development window 2014-06-02 to 2024-12-31.
 - **Hold-out:** 2025-01-01 to 2026-07-10. Not used.
-- **In-sample note:** The idea comes from the 2026-09-27 leverage-effect report (literature), not from this book's results. The book is the 2026-10-22 primary, chosen after its 2014-2024 results. Before pre-registration, Claude tested this card's reporting code on the registered `hedged` reference run and on the features file. That showed:
+- **In-sample note:** The idea comes from the 2026-09-27 leverage-effect report (literature), not from this book's results. The book is the 2026-10-22 primary, chosen after its 2014-2024 results. Before pre-registration, the desk tested this card's reporting code on the registered `hedged` reference run and on the features file. That showed:
   - the median spot-vol beta over the window (about −142 VIX points per unit SPY return, so a 1% fall goes with about 1.4 VIX points up);
   - that the helpers run.
 

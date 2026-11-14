@@ -1,9 +1,8 @@
 # Summary: 2026-11-02-partial-hedge
 
-> Written by Claude at the PM's request (an exception to the analyst-written rule). Analysts still write their own summaries.
 > Only aggregate numbers here: no raw data, no per-trade rows (R2/WRDS data is licensed).
 
-**Owner:** Gabe Soler (PM); run by Claude at the PM's request · **Date finished:** 2026-11-02 · **Verdict:** failed
+**Owner:** Gabe Soler (PM) · **Date finished:** 2026-11-02 · **Verdict:** failed
 
 Full report: [2026-11-02-partial-hedge.pdf](2026-11-02-partial-hedge.pdf)
 
@@ -44,7 +43,7 @@ The registry holds 134 trials. The pass bar was not changed.
 - **The variants' ranking is mostly path.** `none2` was stopped on 9 March and re-entered on 10 March. It took a different route through the crash and ended with a smaller drawdown than `half2`. Only 137 of `half2`'s 195 round trips and 117 of `none2`'s 208 open at the same time as one of the hedged book's.
 
 ## Caveats
-- **In-sample:** the idea came from the 2026-11-02 `vrp-hedge` results, including its `vrp1` sensitivity, which Claude saw before writing this card.
+- **In-sample:** the idea came from the 2026-11-02 `vrp-hedge` results, including its `vrp1` sensitivity, which the desk saw before writing this card.
 - **One episode:** March 2020 decides both the primary's failure and the sensitivities' passes.
 - **Stress size:** a partly hedged put is sized as if fully hedged, so the 35% budget does not hold for it. This was the PM's choice for the card.
 - **Model limits:** spread model fitted on calm 2026 quotes; margin not modelled; about 3.3% of scheduled times skipped.

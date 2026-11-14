@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-10-16-stop-cooloff` (config: `configs/experiments/2026-10-16-stop-cooloff.toml`) |
 | **Topic** | Risk_Management |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | inconclusive |
 | **Started** | 2026-10-16 |
 

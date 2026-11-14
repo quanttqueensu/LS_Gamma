@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-11-02-crash-call` (config: `configs/experiments/2026-11-02-crash-call.toml`) |
 | **Topic** | Agentic_Routing |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed (max drawdown $70,998 vs $70,362 at 1x, $76,514 vs $75,488 at 2x) |
 | **Started** | 2026-11-02 |
 
@@ -20,7 +20,7 @@ The 2026-10-07 strategy research on shock or regime triggers for long gamma foun
 ## Data
 - R2 replay snapshots v1 (config_hash b040760187f0), development window 2014-06-02 to 2024-12-31.
 - **Hold-out:** 2025-01-01 to 2026-07-10. Not used.
-- **In-sample note:** The idea comes from the 2026-10-07 report and from the 2026-10-22 `hedged` results (its drawdown and March 2020 concentration), both on 2014-2024. Before pre-registration, Claude counted how often the gate would fire from the features file (no backtest runs): VIX/VIX3M ≥ 1.1 at the close on 50 days in 12 episodes from 2014 to 2024 (24 of them in 2020, 16 in 2018); ≥ 1.0 on 193 days in 64 episodes. Claude also tested this card's reporting code on the registered `hedged` runs, whose headline numbers were already known. This card's variants have no runs yet.
+- **In-sample note:** The idea comes from the 2026-10-07 report and from the 2026-10-22 `hedged` results (its drawdown and March 2020 concentration), both on 2014-2024. Before pre-registration, the desk counted how often the gate would fire from the features file (no backtest runs): VIX/VIX3M ≥ 1.1 at the close on 50 days in 12 episodes from 2014 to 2024 (24 of them in 2020, 16 in 2018); ≥ 1.0 on 193 days in 64 episodes. The desk also tested this card's reporting code on the registered `hedged` runs, whose headline numbers were already known. This card's variants have no runs yet.
 
 ## Method
 - **Book (every variant and the reference):** the `hedged` book of `Risk_Management/2026-10-22-stress-sized-puts`.

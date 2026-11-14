@@ -48,7 +48,7 @@ Repo facts used in several sections (all [REPO]):
 
 \item \texttt{README.\allowbreak{}md} performance targets: Sharpe > 1.2, Sortino > 1.5, Max DD < 15\%, Hit rate > 53\%, ``VRP Capture > 60\% of theoretical VRP''; benchmarks: ``CBOE VIX short-term futures index, SPY buy-and-hold''.
 
-\item \texttt{.\allowbreak{}gitignore} ignores \texttt{results/\allowbreak{}}, \texttt{**/\allowbreak{}data/\allowbreak{}}, \texttt{*.\allowbreak{}parquet}, and \texttt{.\allowbreak{}claude/\allowbreak{}}. \texttt{requirements.\allowbreak{}txt} has arch, ib\_async, numpy 2.4.6, pandas 3.0.3, pyarrow, pytest, yfinance. There is no plotting or tear-sheet library (no matplotlib, quantstats or pyfolio). Python 3.14.
+\item \texttt{.\allowbreak{}gitignore} ignores \texttt{results/\allowbreak{}}, \texttt{**/\allowbreak{}data/\allowbreak{}}, \texttt{*.\allowbreak{}parquet}. \texttt{requirements.\allowbreak{}txt} has arch, ib\_async, numpy 2.4.6, pandas 3.0.3, pyarrow, pytest, yfinance. There is no plotting or tear-sheet library (no matplotlib, quantstats or pyfolio). Python 3.14.
 
 \item PROGRESS caveats: close-trade \texttt{pnl} in the trades log uses the option fill only, because the hedge unwind happens in the same run's later hedge step. Limit orders at mid + \$0.05 may not fill on delayed data.
 
@@ -322,7 +322,7 @@ The live modules give the decision layer and the reason-coded exits almost for f
 
 \item [REPO] \texttt{portfolio.\allowbreak{}option\_\allowbreak{}delta} uses IBKR \texttt{modelGreeks}. Offline there is no delta source, so the backtest needs its own Black-Scholes IV inversion + delta/\allowbreak{}gamma/\allowbreak{}theta/\allowbreak{}vega, which also provides attribution.
 
-\item [TEAM] R2 has intraday SPY option \textbf{trades} 2014-06..2026-07 but no quotes and no intraday SPY price; CRSP has daily SPY. The CLAUDE.md note says intraday spot ``could be implied via put-call parity''.
+\item [TEAM] R2 has intraday SPY option \textbf{trades} 2014-06..2026-07 but no quotes and no intraday SPY price; CRSP has daily SPY. The desk's setup notes say intraday spot ``could be implied via put-call parity''.
 
 \item [REPO] Features for regime buckets already exist in \texttt{pipeline/\allowbreak{}features.\allowbreak{}py}. The walk-forward report warns that yfinance VIX is end-of-day and must be lagged a day for a \textasciitilde{}10:15 decision.
 
@@ -432,7 +432,7 @@ After, or rather alongside. The first ``dashboard'' should be a per-run static r
 
 \item [INFERENCE] Building an interactive dashboard first risks designing views around imagined data, and makes it tempting to eyeball many runs, which is exactly the uncounted-trial selection bias the DSR guards against. A registry plus static reports makes every look auditable.
 
-\item [INFERENCE] Because \texttt{results/\allowbreak{}} is gitignored and R2/\allowbreak{}WRDS data is licensed ([REPO] .gitignore, CLAUDE.md), reports stay local by default. The PM should decide whether aggregate-only reports (no raw prices) may be shared with analysts or committed. I make no assumption here.
+\item [INFERENCE] Because \texttt{results/\allowbreak{}} is gitignored and R2/\allowbreak{}WRDS data is licensed ([REPO] .gitignore, desk rules), reports stay local by default. The PM should decide whether aggregate-only reports (no raw prices) may be shared with analysts or committed. I make no assumption here.
 
 \end{itemize}
 

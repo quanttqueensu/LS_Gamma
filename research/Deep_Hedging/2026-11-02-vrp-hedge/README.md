@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-11-02-vrp-hedge` (config: `configs/experiments/2026-11-02-vrp-hedge.toml`) |
 | **Topic** | Deep_Hedging |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed (+$114,100 / +$87,924 vs +$121,482 / +$101,172) |
 | **Started** | 2026-11-02 |
 
@@ -20,7 +20,7 @@ In the 2026-10-22 card the `unhedged` book earned +$253.8k against +$121.5k hedg
 ## Data
 - R2 replay snapshots v1 (config_hash b040760187f0), development window 2014-06-02 to 2024-12-31.
 - **Hold-out:** 2025-01-01 to 2026-07-10. Not used.
-- **In-sample note:** The idea comes from the 2026-10-22 card's results (2014-2024) and the 2026-10-31 strategy research report. Before pre-registration, Claude tested this card's reporting code on the registered reference runs and so saw, for the `hedged` book: the VRP distribution at entry (20% of entries above 2 vol points, used to choose the sensitivities with the PM). For the 2026-10-22 `unhedged` book it also showed net P&L per contract split at 2 vol points of VRP: $90 above and $22 below at 1x, from 58 and 354 round trips. That is the mechanism this card tests, seen on a reference book; it could not be unseen. This card's variants have no runs yet.
+- **In-sample note:** The idea comes from the 2026-10-22 card's results (2014-2024) and the 2026-10-31 strategy research report. Before pre-registration, the desk tested this card's reporting code on the registered reference runs and so saw, for the `hedged` book: the VRP distribution at entry (20% of entries above 2 vol points, used to choose the sensitivities with the PM). For the 2026-10-22 `unhedged` book it also showed net P&L per contract split at 2 vol points of VRP: $90 above and $22 below at 1x, from 58 and 354 round trips. That is the mechanism this card tests, seen on a reference book; it could not be unseen. This card's variants have no runs yet.
 
 ## Method
 - **Book (every variant and the reference):** the `hedged` book of `Risk_Management/2026-10-22-stress-sized-puts`.

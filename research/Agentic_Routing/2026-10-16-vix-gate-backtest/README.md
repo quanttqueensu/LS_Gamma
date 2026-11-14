@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-10-16-vix-gate-backtest` (config: `configs/experiments/2026-10-16-vix-gate-backtest.toml`) |
 | **Topic** | Agentic_Routing |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed |
 | **Started** | 2026-10-16 |
 

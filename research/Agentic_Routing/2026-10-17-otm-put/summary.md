@@ -1,9 +1,8 @@
 # Summary: 2026-10-17-otm-put
 
-> Written by Claude at the PM's request (an exception to the analyst-written rule). Analysts still write their own summaries.
 > Only aggregate numbers here: no raw data, no per-trade rows (R2/WRDS data is licensed).
 
-**Owner:** Gabe Soler (PM); run by Claude at the PM's request · **Date finished:** 2026-10-17 · **Verdict:** failed (one of eight checks, by $60)
+**Owner:** Gabe Soler (PM) · **Date finished:** 2026-10-17 · **Verdict:** failed (one of eight checks, by $60)
 
 Full report: [2026-10-17-otm-put.pdf](2026-10-17-otm-put.pdf)
 

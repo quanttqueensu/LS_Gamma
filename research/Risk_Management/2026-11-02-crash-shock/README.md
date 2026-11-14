@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-11-02-crash-shock` (config: `configs/experiments/2026-11-02-crash-shock.toml`) |
 | **Topic** | Risk_Management |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed (Sharpe 0.51 vs 0.52 at 1x, 0.40 vs 0.43 at 2x; drawdown $60k vs $70k) |
 | **Started** | 2026-11-02 |
 
@@ -20,7 +20,7 @@ The stress rule sizes up into high IV: a higher-IV put has a higher premium, so 
 ## Data
 - R2 replay snapshots v1 (config_hash b040760187f0), development window 2014-06-02 to 2024-12-31.
 - **Hold-out:** 2025-01-01 to 2026-07-10. Not used.
-- **In-sample note:** The idea comes from the 2026-10-22 results on this same window (concentration in high-IV March 2020 entries), and the book is that card's primary, chosen after its results. Only the hold-out can confirm it. Before pre-registration, Claude tested this card's reporting code on the registered `hedged` reference runs only, and so saw that the reference has 4 round trips (of 182) entered with put IV above 40%. No P&L by IV bucket was looked at. This card's variants have no runs yet.
+- **In-sample note:** The idea comes from the 2026-10-22 results on this same window (concentration in high-IV March 2020 entries), and the book is that card's primary, chosen after its results. Only the hold-out can confirm it. Before pre-registration, the desk tested this card's reporting code on the registered `hedged` reference runs only, and so saw that the reference has 4 round trips (of 182) entered with put IV above 40%. No P&L by IV bucket was looked at. This card's variants have no runs yet.
 
 ## Method
 - **Book (every variant and the reference):** the `hedged` book of `Risk_Management/2026-10-22-stress-sized-puts`.

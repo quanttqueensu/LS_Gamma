@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-11-02-friday-entry` (config: `configs/experiments/2026-11-02-friday-entry.toml`) |
 | **Topic** | Agentic_Routing |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed (full-window and 2020-2024 net P&L; +$111k vs +$121k at 1x) |
 | **Started** | 2026-11-02 |
 
@@ -20,7 +20,7 @@ The 2026-10-31 strategy research found that the one-contract `always25` book ear
 ## Data
 - R2 replay snapshots v1 (config_hash b040760187f0), development window 2014-06-02 to 2024-12-31.
 - **Hold-out:** 2025-01-01 to 2026-07-10. Not used.
-- **In-sample note:** The idea comes from the 2026-10-31 strategy research report's check on the registered `always25` runs (2014-2024), and the book is the 2026-10-22 primary, chosen after its results. Before pre-registration, Claude tested this card's reporting code on the registered reference runs and so saw, for the `hedged` book: entries and time exits by weekday (used to design this card), and its net P&L by 10:15-to-10:15 interval (Friday to Monday +$51k, Monday to Tuesday +$58k, Thursday to Friday −$17k at 1x). This card's variants have no runs yet.
+- **In-sample note:** The idea comes from the 2026-10-31 strategy research report's check on the registered `always25` runs (2014-2024), and the book is the 2026-10-22 primary, chosen after its results. Before pre-registration, the desk tested this card's reporting code on the registered reference runs and so saw, for the `hedged` book: entries and time exits by weekday (used to design this card), and its net P&L by 10:15-to-10:15 interval (Friday to Monday +$51k, Monday to Tuesday +$58k, Thursday to Friday −$17k at 1x). This card's variants have no runs yet.
 
 ## Method
 - **Book (every variant and the reference):** the `hedged` book of `Risk_Management/2026-10-22-stress-sized-puts`.

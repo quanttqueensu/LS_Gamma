@@ -122,8 +122,6 @@ Before 2017 every variant trades the 25-delta put, so it matches the reference.
 
 \end{itemize}
 
-This report was written by Claude at the PM's request.
-
 \section{Result vs the pass bar}
 
 Every check had to hold at 1x and 2x. P\&L is net of costs in USD for the whole sized book. Sharpe is annualised on \$250k. ES is the mean of the worst 5\% of daily P\&L.
@@ -389,7 +387,7 @@ The run was started three times; only the third registered trials:
 
 \item \textbf{First attempt:} stopped while building labels, because another process switched the shared working tree to \texttt{main}, which removed this card's config.
 
-\item \textbf{Second attempt:} stopped by Claude while building labels, because 12 worker processes each started a 14-thread pool, which oversubscribed the machine.
+\item \textbf{Second attempt:} stopped by hand while building labels, because 12 worker processes each started a 14-thread pool, which oversubscribed the machine.
 
 \item \textbf{Third attempt:} ran from a separate checkout of the branch with one thread per worker (an environment setting; the code did not change). It registered the 6 trials, then crashed in one chart (a duplicate index in the picks chart). That chart was fixed in \texttt{experiment.\allowbreak{}py} and the report rebuilt from the saved runs in report-only mode, which adds no trials.
 

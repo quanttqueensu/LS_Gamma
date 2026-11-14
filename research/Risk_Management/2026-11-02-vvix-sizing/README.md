@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-11-02-vvix-sizing` (config: `configs/experiments/2026-11-02-vvix-sizing.toml`) |
 | **Topic** | Risk_Management |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed (drawdown $106.6k > $87.5k; ES 1.19x; 2014-19 at 1x) |
 | **Started** | 2026-11-02 |
 
@@ -20,7 +20,7 @@ Park (2015) finds that a rise in VVIX raises the prices of S&P 500 puts and lowe
 ## Data
 - R2 replay snapshots v1 (config_hash b040760187f0), development window 2014-06-02 to 2024-12-31.
 - **Hold-out:** 2025-01-01 to 2026-07-10. Not used.
-- **In-sample note:** The idea comes from the 2026-10-31 strategy research report (literature, not the desk's results), and the book is the 2026-10-22 primary, chosen after its results. VVIX tends to be high when IV is high, and that book's profit is concentrated in high-IV March 2020 entries, so a pass could partly repeat that concentration; the report will split P&L by multiplier tercile. Before pre-registration, Claude tested this card's reporting code on the registered reference runs and so saw, for the `hedged` book: its contracts per entry by year and the multiplier path chart, but not its P&L by multiplier. This card's variants have no runs yet.
+- **In-sample note:** The idea comes from the 2026-10-31 strategy research report (literature, not the desk's results), and the book is the 2026-10-22 primary, chosen after its results. VVIX tends to be high when IV is high, and that book's profit is concentrated in high-IV March 2020 entries, so a pass could partly repeat that concentration; the report will split P&L by multiplier tercile. Before pre-registration, the desk tested this card's reporting code on the registered reference runs and so saw, for the `hedged` book: its contracts per entry by year and the multiplier path chart, but not its P&L by multiplier. This card's variants have no runs yet.
 
 ## Method
 - **Book (every variant and the reference):** the `hedged` book of `Risk_Management/2026-10-22-stress-sized-puts`.

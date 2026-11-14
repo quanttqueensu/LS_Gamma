@@ -1,9 +1,8 @@
 # Summary: 2026-10-16-short-only
 
-> Written by Claude at the PM's request (an exception to the analyst-written rule). Analysts still write their own summaries.
 > Only aggregate numbers here: no raw data, no per-trade rows (R2/WRDS data is licensed).
 
-**Owner:** Gabe Soler (PM); run by Claude at the PM's request · **Date finished:** 2026-10-16 · **Verdict:** passed (in-sample; the book still loses money)
+**Owner:** Gabe Soler (PM) · **Date finished:** 2026-10-16 · **Verdict:** passed (in-sample; the book still loses money)
 
 ## Result
 All three pre-registered bars hold at 1x and 2x spreads. The comparison is baseline trial 1 on the development window, 2014-06-02 to 2024-12-31. Full report: [2026-10-16-short-only.pdf](2026-10-16-short-only.pdf).

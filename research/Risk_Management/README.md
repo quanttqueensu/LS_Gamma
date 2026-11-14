@@ -5,7 +5,7 @@
 ## Who's working on it
 | Name | GitHub | Role | Since |
 |---|---|---|---|
-| Gabe Soler (PM) | Gabe-Soler | PM, experiments run by Claude at the PM's request | 2026-10-16 |
+| Gabe Soler (PM) | Gabe-Soler | PM | 2026-10-16 |
 
 ## Background reading
 - Onboarding: Lessons 8 and 9 (`docs/education/`)

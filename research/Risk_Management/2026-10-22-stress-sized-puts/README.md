@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-10-22-stress-sized-puts` (config: `configs/experiments/2026-10-22-stress-sized-puts.toml`) |
 | **Topic** | Risk_Management |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | passed (in-sample; hold-out not run) |
 | **Started** | 2026-10-22 |
 

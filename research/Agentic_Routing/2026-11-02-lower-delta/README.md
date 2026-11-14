@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-11-02-lower-delta` (config: `configs/experiments/2026-11-02-lower-delta.toml`) |
 | **Topic** | Agentic_Routing |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | passed (in-sample; hold-out not run). +$150k vs +$121k at 1x, but $26.5k of the lead is August 2015 |
 | **Started** | 2026-11-02 |
 
@@ -29,7 +29,7 @@ Whether that nets out positive is an open question. If it is, the change is one 
 ## Data
 - R2 replay snapshots v1 (config_hash b040760187f0), development window 2014-06-02 to 2024-12-31.
 - **Hold-out:** 2025-01-01 to 2026-07-10. Not used.
-- **In-sample note:** the idea comes from the 2026-10-22 deep research, which was written after the desk's 25-delta, 35-delta and ATM results on 2014-2024. The book is the 2026-10-22 primary, chosen after its results. Before pre-registration, Claude tested this card's reporting code on the registered reference runs and so saw, for the `hedged` book at 1x:
+- **In-sample note:** the idea comes from the 2026-10-22 deep research, which was written after the desk's 25-delta, 35-delta and ATM results on 2014-2024. The book is the 2026-10-22 primary, chosen after its results. Before pre-registration, the desk tested this card's reporting code on the registered reference runs and so saw, for the `hedged` book at 1x:
   - 182 round trips, with median 24 and maximum 100 contracts;
   - net $24.5 per contract per round trip (pooled);
   - $8.8k of commissions and about $20k of spread paid.

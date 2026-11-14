@@ -18,7 +18,7 @@
 
 \textbf{Question:} Does turning long gamma off (short-only) give higher net P\&L than the live rule after costs, without a worse tail?
 
-\textbf{Method:} One variant, \texttt{short\_\allowbreak{}only}, sets \texttt{[signal] long\_\allowbreak{}band = -\allowbreak{}inf} so the long signal never fires; everything else is the live \texttt{paper.\allowbreak{}toml}. It was replayed with the live code on R2 option trades (snapshots v1, config hash b040760187f0) over the development window 2014-06-02 to 2024-12-31, at 1x and 2x modelled spreads, with costs of \$0.65 per contract, \$0.005 per share and a \$1 minimum per order. It is compared with baseline trial 1 (the live rule) at the same spread multiple, against the pass bar pre-registered on the hypothesis card (commit 8d1f0fe) before any run. The hold-out (2025-01-01 to 2026-07-10) was not used. This report was written by Claude at the PM's request.
+\textbf{Method:} One variant, \texttt{short\_\allowbreak{}only}, sets \texttt{[signal] long\_\allowbreak{}band = -\allowbreak{}inf} so the long signal never fires; everything else is the live \texttt{paper.\allowbreak{}toml}. It was replayed with the live code on R2 option trades (snapshots v1, config hash b040760187f0) over the development window 2014-06-02 to 2024-12-31, at 1x and 2x modelled spreads, with costs of \$0.65 per contract, \$0.005 per share and a \$1 minimum per order. It is compared with baseline trial 1 (the live rule) at the same spread multiple, against the pass bar pre-registered on the hypothesis card (commit 8d1f0fe) before any run. The hold-out (2025-01-01 to 2026-07-10) was not used.
 
 \section{Result vs the pass bar}
 

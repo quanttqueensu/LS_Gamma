@@ -20,8 +20,6 @@
 
 \textbf{Method:} Pre-registered backtest (hypothesis card committed before any run). The live paper rules (\texttt{configs/\allowbreak{}paper.\allowbreak{}toml}) are replayed on R2 replay snapshots v1 (config\_hash b040760187f0) over the development window 2014-06-02 to 2024-12-31. The hold-out (2025-01-01 to 2026-07-10) was not used. Three variants change only \texttt{[exit]}: \texttt{tight} (short\_stop\_mult 0.5, long\_stop\_frac 0.25; primary for H1), \texttt{profit25} (short\_profit\_frac 0.25; H2) and \texttt{both} (all three; reported only). The stop cool-off stays at the live 1 day. Each variant ran once at 1x and 2x spreads and is compared with baseline trial 1 at the same spread multiple. Costs are \$0.65 per contract and \$0.005 per share, with a \$1 minimum per order. Exits are checked once a day at 10:15 ET, as live.
 
-\begin{quote}This report was written by Claude at the PM's request.\end{quote}
-
 \section{Result vs the pass bar}
 
 Every check had to hold at both 1x and 2x. ES size is the absolute value of the daily 5\% expected shortfall in USD; P\&L is net USD for one contract.

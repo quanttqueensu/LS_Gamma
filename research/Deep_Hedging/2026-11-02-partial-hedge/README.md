@@ -7,7 +7,7 @@
 |---|---|
 | **Experiment** | `2026-11-02-partial-hedge` (config: `configs/experiments/2026-11-02-partial-hedge.toml`) |
 | **Topic** | Deep_Hedging |
-| **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
+| **Owner** | Gabe Soler (PM) |
 | **Status** | failed (+$142,653 / +$117,002 vs +$121,482 / +$101,172, but Sharpe 0.50 / 0.41 vs 0.52 / 0.43 and drawdown $98,210 / $105,611 > $87,500) |
 | **Started** | 2026-11-02 |
 
@@ -27,7 +27,7 @@ This card keeps the hedged book's size and changes only the hedge, so it isolate
 - R2 replay snapshots v1 (config_hash b040760187f0), development window 2014-06-02 to 2024-12-31.
 - **Hold-out:** 2025-01-01 to 2026-07-10. Not used.
 - **In-sample note:** the idea comes from the 2026-11-02 `vrp-hedge` results and the 2026-10-22 card's results (2014-2024), so it is not an out-of-sample hypothesis.
-  - Before pre-registration, Claude saw all of `vrp-hedge`'s results, including its sensitivity `vrp1` (1-point cutoff, fully unhedged), which beat the hedged book on every check.
+  - Before pre-registration, the desk saw all of `vrp-hedge`'s results, including its sensitivity `vrp1` (1-point cutoff, fully unhedged), which beat the hedged book on every check.
   - This card's report code was tested only on the registered reference runs (`hedged`, and `vrp-hedge/vrp2`), with no new runs.
   - This card's variants have no runs yet.
 

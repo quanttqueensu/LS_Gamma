@@ -8,7 +8,7 @@
 | **Experiment** | `2026-11-13-straddle-strangle` (config: `configs/experiments/2026-11-13-straddle-strangle.toml`) |
 | **Topic** | Agentic_Routing |
 | **Owner** | Gabe Soler (PM); run by Claude at the PM's request |
-| **Status** | planned |
+| **Status** | failed (daily P&L std $54.37 vs $35.64 at 1x; worse drawdown and tail; net P&L −$318 vs −$2,060) · [summary](summary.md) · [report](2026-11-13-straddle-strangle.pdf) |
 | **Started** | 2026-11-13 |
 
 ## Hypothesis
@@ -75,4 +75,5 @@ All checks at both multiples = PASSED; otherwise FAILED. `straddle_only` and `st
 3. Then the live runner needs multi-leg orders (`broker.submit` already sends a `Bag` combo for multiple legs) and the structure exit, with a decision record in `docs/decisions/`.
 
 ## Changes
-- (none yet)
+- 2026-11-13: run once (6 trials, commit 7d70155). The pass bar above was not changed. Verdict: failed at 1x and 2x on volatility, drawdown and ES; the net P&L floor and the event floor (30 straddles, 102 strangles) held. See `summary.md` and `2026-11-13-straddle-strangle.pdf`.
+- 2026-11-13 (after the run): the Method says both legs always close together. In the run, 1 of 102 strangles (early 2016) closed its legs separately: one leg had no mark and could not be filled for about two weeks, so it stayed open alone until expiry (about −$11). The engine sends both closes, but a leg whose fill is missing stays open. This is disclosed in the report and summary; the pass bar is unchanged. The comparison was the 2026-11-11 baseline pair (the first matching the current config), which reproduces baseline trial 1 exactly.

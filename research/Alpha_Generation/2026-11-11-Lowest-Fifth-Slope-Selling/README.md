@@ -30,4 +30,4 @@ Changes how and when we trade
 The concrete next step, e.g. "set `forecaster = "har"` in `configs/paper.toml` after shadow mode".
 
 ## Changes
-- (dated notes, if the plan had to change)
+- (dated notes, if the plan had to change)dd d

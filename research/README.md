@@ -15,7 +15,7 @@ How the desk tests ideas. Work is organized **by topic**. Each topic's README li
 3. **Write the hypothesis card first** (`README.md`): one falsifiable sentence, the data, the hold-out, the metric, and the **pass bar**, all before running anything.
 4. **Add a row** to the topic README's experiment table (status: planned).
 5. **Run it:** `python research/<Topic>/<experiment>/experiment.py`. Every run is logged automatically.
-6. **Write `summary.md` yourself.** Summaries are written by the analyst who ran the experiment, in their own words. **No AI-written summaries.**
+6. **Write `summary.md` yourself.** Summaries are written by the analyst who ran the experiment, in their own words. **No AI-written summaries**, except for experiments run with `/research-for-analysts` (below), where the analyst owns the summary and report Claude writes.
 7. **Update the status** in the topic README: passed, failed, inconclusive or promoted.
 
 A finished example: `RV_Forecasting/2026-10-05-har-vs-garch/`.
@@ -28,7 +28,8 @@ To test a rule change on real option trades (R2, 2014-06-02 to 2026-07-10) with 
 4. **The hold-out is 2025-01-01 to 2026-07-10.** It needs `--holdout` and is run once, at the end. Development runs make no entries in the last `[entry] max_dte` (45) days before it.
 5. **A result that only passes at 1x spreads does not pass.**
 6. **Variants and reports:** list variants as `[variants.<label>]` in the TOML and run them with `lsgamma.backtest.run.variants`. Charts and the two-halves table come from `lsgamma.backtest.report`. Example: `Risk_Management/2026-10-16-stop-levels/`.
-7. **PM-run experiments:** the PM can run a whole experiment end to end with Claude (`/run-experiment-with-report`, a PM-only skill kept on the PM's machine, not in this repo). It follows this same process: card committed before the run, development window only, a labelled summary and a report PDF. Analysts keep the manual workflow above.
+7. **PM-run experiments:** the PM can run a whole experiment end to end with Claude (`/run-experiment-with-report`, a PM-only skill kept on the PM's machine, not in this repo). It follows this same process: card committed before the run, development window only, a labelled summary and a report PDF.
+8. **Analyst-run experiments with Claude:** `/research-for-analysts research/<Topic>/<experiment>` (in this repo, analysts only). **You write the hypothesis card yourself first** (`README.md` from `_template/`, every section, including a pass bar with numbers at 1x and 2x). Claude checks the card and, if anything is missing, tells you what and asks questions, but won't write it for you. Once the card is complete, Claude writes the config and `experiment.py`, shows you the plan to approve, pre-registers it, runs it once, and writes the report PDF and `summary.md` in your name. It commits on `Research/<experiment>`; you push and open a PR for the PM. Out-of-sample runs stay with the PM.
 
 Commands and data build steps: `docs/scripts.md` section 8. Rules: `docs/decisions/0002-backtest-data-and-timing-rules.md`.
 

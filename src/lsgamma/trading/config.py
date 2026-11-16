@@ -20,13 +20,21 @@ def book(path=None):
     return pointer(read(path))
 
 
+def live(cfg, strategy):
+    # live-only account size over [size] capital
+    cap = strategy.get("capital")
+    size = {**cfg["size"], "capital": cap} if cap else cfg["size"]
+    return {**cfg, "size": size, **({"strategy": strategy} if strategy else {})}
+
+
 def load(path=None):
     # the live book's config, else paper.toml
-    label = book(path)
+    raw, label = read(path), book(path)
+    strategy = {**raw.get("strategy", {}), "book": label} if label else raw.get("strategy", {})
     if not label:
-        return read(path)
+        return live(raw, strategy)
     exp, name = label.split("/")
-    return {**research.variant(exp, name), "strategy": {"book": label}}
+    return live(research.variant(exp, name), strategy)
 
 
 def backtest_defaults():

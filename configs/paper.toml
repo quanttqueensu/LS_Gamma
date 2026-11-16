@@ -1,5 +1,7 @@
 [strategy]
 book = "2026-11-02-lower-delta/put20"  # trade this shadow book; delete = rules below
+capital = 175000  # live only: IBKR paper ~251k CAD in USD (2026-11-16)
+max_margin = 0.8  # live only: puts + hedge initial margin <= this x equity
 
 [signal]
 model = "vrp_band"

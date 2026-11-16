@@ -48,6 +48,8 @@ Check that every line says `Filled` and the account ends flat.
 Run at about 10:15 ET with IB Gateway open. It runs the pipeline, forecasts, gets the signal, applies exits, enters if needed, delta hedges, and logs.
 
 **Which strategy trades:** if `configs/paper.toml` has `[strategy] book = "<exp>/<variant>"`, the runner trades that shadow book's full config (paper.toml + backtest.toml + the variant) and prints `live book: <exp>/<variant>`. Without the line it trades the rules in paper.toml. Strike by delta (`put_delta`) and stress sizing (`stress_budget`, `stress_drop`, `stress_vol`, using `[size] capital`) use the same code as the backtest (`lsgamma.trading.sizing`). Any other backtest research flag in the book is refused before connecting. Orders for several contracts record what filled: a partial open keeps the filled part, a partial close keeps the rest open. See `docs/decisions/0004-live-book-pointer-20-delta-puts.md`.
+
+**Account size and margin (live only, `[strategy]`):** `capital` replaces `[size] capital` for the live run only, set to the IBKR paper account's equity in USD (backtests and shadow books keep $250k). Before an entry, the runner asks IBKR for a what-if margin preview of the option order and of the share hedge it will need (`broker.preview`, `broker.preview_stock`; no order is sent). It sizes the entry down until that initial margin is at most `max_margin` × equity with loan, and skips the entry if not even one contract fits or IBKR returns no preview. Dry runs skip the check. See `docs/decisions/0005-live-account-size-and-margin-check.md`.
 ```bash
 python -m lsgamma.trading.runner
 ```

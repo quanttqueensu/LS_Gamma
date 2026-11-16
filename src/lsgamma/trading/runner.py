@@ -1,8 +1,10 @@
 import argparse
+import math
 from datetime import date
 
 import pandas as pd
 
+from lsgamma.backtest import sim
 from lsgamma.core.Algos import broker
 from lsgamma.core.Algos.Hedging import delta_hedge, portfolio
 from lsgamma.forecasting import FORECASTERS
@@ -167,6 +169,46 @@ def pick(signal, chain, cfg, asof):
     return t, sizing.contracts(cfg, signal, t, chain, asof)
 
 
+def num(x):
+    # IBKR sends 1.8e308 when unknown
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return math.nan
+    return math.nan if abs(v) > 1e300 else v
+
+
+def margin(ib, t, qty, signal, chain, cfg):
+    # IBKR what-if: option plus its hedge
+    ex = cfg["execution"]
+    opt = broker.preview(ib, t["algo"].legs(t["expiry"], t["strike"]), qty, ex["slippage"])
+    pos = {"side": signal, "expiry": t["expiry"], "strike": t["strike"], "right": t["right"], "qty": qty}
+    target = sim.target_shares(pos, chain) if "delta" in chain else math.nan
+    shares = 0 if math.isnan(target) else round(target - portfolio.stock_position(ib))
+    stock = broker.preview_stock(ib, shares, spot(chain), pad=ex["stock_pad"]) if shares else None
+    change = num(opt.initMarginChange) + (num(stock.initMarginChange) if stock else 0.0)
+    return num(opt.initMarginBefore), change, num(opt.equityWithLoanBefore)
+
+
+def afford(ib, t, qty, signal, chain, cfg):
+    # size down to [strategy] max_margin of equity
+    cap = cfg.get("strategy", {}).get("max_margin", 0.0)
+    while cap and qty:
+        before, change, equity = margin(ib, t, qty, signal, chain, cfg)
+        if math.isnan(before + change + equity) or equity <= 0:
+            print("no entry: IBKR margin preview unavailable")
+            return 0
+        after, limit = before + change, cap * equity
+        print(f"  margin x{qty}: {after:,.0f} of {equity:,.0f} equity ({after / equity:.0%}, cap {cap:.0%})")
+        if after <= limit:
+            return qty
+        per = change / qty
+        qty = max(0, min(qty - 1, int((limit - before) // per))) if per > 0 else 0
+    if cap and not qty:
+        print(f"no {signal} entry: margin cap below one contract")
+    return qty
+
+
 def enter(ib, signal, chain, cfg, asof, dry):
     t, qty = pick(signal, chain, cfg, asof)
     print(f"enter {signal}: {t['algo'].__name__.split('.')[-1]} {t['right']} "
@@ -175,6 +217,9 @@ def enter(ib, signal, chain, cfg, asof, dry):
         print(f"no {signal} entry: stress budget below one contract")
         return None
     if dry:
+        return None
+    qty = afford(ib, t, qty, signal, chain, cfg)
+    if not qty:
         return None
 
     trade = t["algo"].open_position(ib, t["expiry"], t["strike"], qty,
@@ -272,7 +317,9 @@ def main():
     check_schedule(cfg)
     check_book(cfg)
     if config.pointer(cfg):
-        print(f"live book: {config.pointer(cfg)}")
+        s = cfg["strategy"]
+        cap = f" · margin cap {s['max_margin']:.0%}" if s.get("max_margin") else ""
+        print(f"live book: {config.pointer(cfg)} · capital ${cfg['size']['capital']:,.0f}{cap}")
     gateway = cfg["execution"]["gateway"]
 
     if not a.skip_pipeline:

@@ -13,7 +13,8 @@ def write(tmp_path, head=""):
     lines = config.PATH.read_text().splitlines()
     if "[strategy]" in lines:
         i = lines.index("[strategy]")
-        lines = lines[:i] + lines[i + 2:]
+        j = lines.index("", i)  # whole table, up to a blank line
+        lines = lines[:i] + lines[j + 1:]
     path = tmp_path / "paper.toml"
     path.write_text(head + "\n".join(lines) + "\n")
     return path
@@ -56,3 +57,15 @@ def test_backtests_ignore_the_pointer(tmp_path, monkeypatch):
     cfg = research.load()
     assert "strategy" not in cfg and cfg["signal"]["short_band"] == 0.02
     assert report.same(base, cfg)
+
+
+def test_live_capital_and_margin_cap_stay_out_of_backtests(tmp_path, real):
+    head = POINTER + "capital = 175000\nmax_margin = 0.8\n"
+    cfg = config.load(write(tmp_path, head))
+    assert cfg["size"]["capital"] == 175000 and cfg["strategy"]["max_margin"] == 0.8
+    assert research.load()["size"]["capital"] == 250000 and "strategy" not in research.load()
+
+
+def test_repo_live_book_is_sized_to_the_account():
+    raw = config.read()["strategy"]
+    assert raw["capital"] < 250000 and 0 < raw["max_margin"] < 1

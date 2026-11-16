@@ -28,10 +28,19 @@ class FakeTrade:
 
 
 class FakeIB:
-    def __init__(self, partial=None, deltas=None):
+    def __init__(self, partial=None, deltas=None, equity=1e9, per=1000.0):
         # partial: {secType: fills for the next order}
         self.book, self.orders, self.trades = {}, [], []
         self.partial, self.deltas = dict(partial or {}), deltas or {}
+        self.equity, self.per, self.previews = equity, per, []
+
+    def whatIfOrder(self, contract, order):
+        # option margin per contract; stock 50% Reg T
+        n = order.totalQuantity
+        change = self.per * n if contract.secType == "OPT" else 0.5 * n * SPOT
+        self.previews.append((contract.secType, n))
+        return SimpleNamespace(initMarginBefore="0", initMarginChange=str(change),
+                               equityWithLoanBefore=str(self.equity))
 
     def qualifyContracts(self, *cs):
         for c in cs:
@@ -375,3 +384,51 @@ def test_main_refuses_unsupported_book_before_connecting(monkeypatch):
     monkeypatch.setattr("sys.argv", ["runner", "--skip-pipeline"])
     with pytest.raises(SystemExit, match="ww_band"):
         runner.main()
+
+
+def capped(env, monkeypatch, cap=0.8):
+    cfg, data = book(env, monkeypatch)
+    cfg["strategy"] = {"max_margin": cap}
+    return cfg, runner.pick("short", data["chain"], cfg, DAY1)[1]
+
+
+def test_margin_check_passes_when_room(env, monkeypatch):
+    cfg, qty = capped(env, monkeypatch)
+    ib = FakeIB(deltas=SKEW)
+    runner.run(ib, cfg, DAY1)
+    assert ledger.load_position()["qty"] == qty
+    assert ib.previews == [("OPT", qty), ("STK", 25 * qty)]
+
+
+def test_margin_check_sizes_down_with_hedge(env, monkeypatch):
+    cfg, qty = capped(env, monkeypatch)
+    per = 1000.0 + 0.5 * 25 * SPOT  # option + hedge shares
+    ib = FakeIB(deltas=SKEW, equity=2 * per / 0.8 + 100)
+    runner.run(ib, cfg, DAY1)
+    assert qty > 2 and ledger.load_position()["qty"] == 2
+    assert ("OPT", "SELL", 2) in ib.orders
+
+
+def test_margin_check_below_one_contract_skips(env, monkeypatch, capsys):
+    cfg, _ = capped(env, monkeypatch)
+    ib = FakeIB(deltas=SKEW, equity=5000.0)
+    runner.run(ib, cfg, DAY1)
+    assert ledger.load_position() is None and not any(o[0] == "OPT" for o in ib.orders)
+    assert "margin cap below one contract" in capsys.readouterr().out
+
+
+def test_margin_check_fails_closed_without_preview(env, monkeypatch, capsys):
+    cfg, _ = capped(env, monkeypatch)
+    ib = FakeIB(deltas=SKEW)
+    ib.whatIfOrder = lambda c, o: SimpleNamespace(initMarginBefore="1.7976931348623157E308",
+                                                  initMarginChange="0", equityWithLoanBefore="1e6")
+    runner.run(ib, cfg, DAY1)
+    assert ledger.load_position() is None
+    assert "margin preview unavailable" in capsys.readouterr().out
+
+
+def test_no_margin_cap_sends_no_preview(env, monkeypatch):
+    cfg, _ = book(env, monkeypatch)
+    ib = FakeIB(deltas=SKEW)
+    runner.run(ib, cfg, DAY1)
+    assert ib.previews == [] and ledger.load_position() is not None

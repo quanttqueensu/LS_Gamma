@@ -140,7 +140,15 @@ def round_tick(price):
 #orders
 
 def submit(ib, legs, quantity, slippage=0.0, underlying=UNDERLYING, tif="DAY"):
-    
+    return ib.placeOrder(*order_for(ib, legs, quantity, slippage, underlying, tif))
+
+
+def preview(ib, legs, quantity, slippage=0.0, underlying=UNDERLYING):
+    # IBKR what-if margin; sends no order
+    return ib.whatIfOrder(*order_for(ib, legs, quantity, slippage, underlying))
+
+
+def order_for(ib, legs, quantity, slippage=0.0, underlying=UNDERLYING, tif="DAY"):
     if quantity <= 0:
         raise ValueError("quantity must be positive")
 
@@ -165,12 +173,20 @@ def submit(ib, legs, quantity, slippage=0.0, underlying=UNDERLYING, tif="DAY"):
 
     pad = slippage if action == "BUY" else -slippage
     price = max(round_tick(abs(net) + pad), TICK)
-    order = LimitOrder(action, quantity, price, tif=tif)
-    return ib.placeOrder(contract, order)
+    return contract, LimitOrder(action, quantity, price, tif=tif)
 
 
 def submit_stock(ib, shares, ref, underlying=UNDERLYING, pad=0.0):
     """Limit order for `shares` at ref +/- pad. Positive = buy, negative = sell."""
+    return ib.placeOrder(*stock_order(ib, shares, ref, underlying, pad))
+
+
+def preview_stock(ib, shares, ref, underlying=UNDERLYING, pad=0.0):
+    # IBKR what-if margin; sends no order
+    return ib.whatIfOrder(*stock_order(ib, shares, ref, underlying, pad))
+
+
+def stock_order(ib, shares, ref, underlying=UNDERLYING, pad=0.0):
     if shares == 0:
         raise ValueError("shares must be non-zero")
     stock = Stock(underlying, EXCHANGE, CURRENCY)
@@ -179,8 +195,7 @@ def submit_stock(ib, shares, ref, underlying=UNDERLYING, pad=0.0):
     action = "BUY" if shares > 0 else "SELL"
     price = round_tick(ref * (1 + pad if action == "BUY" else 1 - pad))
     # explicit TIF avoids IBKR warning 10349
-    order = LimitOrder(action, abs(shares), price, tif="DAY")
-    return ib.placeOrder(stock, order)
+    return stock, LimitOrder(action, abs(shares), price, tif="DAY")
 
 
 def wait_for_fill(ib, trade, timeout=30):

@@ -63,3 +63,4 @@ trend_er = 0.0  # research only: trend if 10-day efficiency ratio >= this; 0 = a
 long_structure = ""  # research only: "straddle" = ATM call + put on long; "" = call
 short_structure = ""  # research only: "strangle" = OTM put + call on short; "" = put
 strangle_delta = 0.0  # research only: strangle legs' |delta|, with short_structure
+deep_hedge = ""  # research only: deep hedger policy file in results/research; "" = off

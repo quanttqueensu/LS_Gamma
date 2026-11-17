@@ -1,0 +1,95 @@
+[experiment]
+name = "2026-11-17-deep-hedger"
+topic = "Deep_Hedging"
+owner = "Ben Gorenc (PM)"
+
+# every variant: the live put20 book (2026-11-02-lower-delta/put20), rerun here
+# deep_hedge points engine.target() at walk-forward models in results/research
+
+[train]
+first_year = 2017  # first walk-forward model; earlier years hedge full delta
+last_year = 2024
+hidden = [16, 16]
+lr = 0.003
+epochs = 300
+weight_decay = 0.001
+kappa = 10.0  # penalty on CVaR95 above the delta hedge's
+seeds = [0, 1, 2, 3, 4]  # ensemble members
+const_step = 0.05  # const grid 0 to 1.5
+
+[variants.put20.signal]
+long_band = -inf  # no long entries
+short_band = -inf  # always short: signal ignored
+[variants.put20.exit]
+flat_days = 999  # flat exit off
+[variants.put20.hedge]
+min_shares = 10
+[variants.put20.backtest]
+put_delta = 0.20
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+
+[variants.const.signal]
+long_band = -inf
+short_band = -inf
+[variants.const.exit]
+flat_days = 999
+[variants.const.hedge]
+min_shares = 10
+[variants.const.backtest]
+put_delta = 0.20
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+deep_hedge = "2026-11-17-deep-hedger/policy_const.json"  # control: one share per year
+
+[variants.deep.signal]
+long_band = -inf
+short_band = -inf
+[variants.deep.exit]
+flat_days = 999
+[variants.deep.hedge]
+min_shares = 10
+[variants.deep.backtest]
+put_delta = 0.20
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+deep_hedge = "2026-11-17-deep-hedger/policy_deep.json"  # primary
+
+[pass]
+primary = "deep"
+against = "put20"
+min_events = 100  # round trips closed 2017-2024
+[[pass.check]]
+metric = "pnl"
+period = "all"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2017-2020"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2021-2024"
+rule = "higher"
+[[pass.check]]
+metric = "sharpe"
+period = "all"
+rule = "higher"
+[[pass.check]]
+metric = "es_5"
+period = "all"
+rule = "abs_within"
+value = 1.1
+[[pass.check]]
+metric = "max_dd"
+period = "all"
+rule = "at_most"
+value = 87500.0
+[[pass.check]]
+metric = "pnl"
+period = "2017-2024"
+rule = "higher"
+against = "const"  # the net must beat a constant hedge share

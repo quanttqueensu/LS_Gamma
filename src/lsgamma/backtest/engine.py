@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 from lsgamma import experiments
-from lsgamma.backtest import sim
+from lsgamma.backtest import deep_hedge, sim
 from lsgamma.core.Algos.broker import MULTIPLIER
 from lsgamma.pipeline import store
 from lsgamma.trading import exits, pnl, runner, selection
@@ -289,10 +289,39 @@ def mv_shares(s, p, chain, asof):
     return -k * vega * beta(s, asof) / runner.spot(chain) * p["qty"] * MULTIPLIER * pnl.SIGN[p["side"]]
 
 
+def policy(s):
+    # research only: deep hedger models by year
+    name = s["cfg"]["backtest"].get("deep_hedge", "")
+    if not name:
+        return None
+    if "policy" not in s:
+        s["policy"] = deep_hedge.load(experiments.ROOT / name)
+    return s["policy"]
+
+
+def deep_ratio(s, p, chain, asof):
+    # research only: learned share of the put's delta
+    models = policy(s)
+    model = None if models is None else models.get(asof.year)
+    r = sim.row(chain, p["expiry"], p["strike"], p["right"])
+    if model is None or p["side"] != "short" or p["right"] != "P" or r is None:
+        return 1.0
+    mkt = s.setdefault("mkt", {})
+    if asof.date() not in mkt:
+        mkt[asof.date()] = deep_hedge.market(runner.completed(s["feats"], asof))
+    frac = pnl.combined_pnl(p, held_mark(s, p, chain, asof), runner.spot(chain)) / pnl.premium(p)
+    days = (date.fromisoformat(p["expiry"]) - asof.date()).days
+    x = deep_hedge.features(abs(float(r["delta"])), days, float(r["iv"]), mkt[asof.date()], frac)
+    k = deep_hedge.ratio(model, x)
+    log(s, asof, "deep_ratio", f"{k:.4f}")
+    return k
+
+
 def target(s, p, chain, asof):
     if p.get("unhedged"):
         return 0.0
-    return p.get("hedge_ratio", 1.0) * (sim.target_shares(p, chain) + mv_shares(s, p, chain, asof))
+    base = p.get("hedge_ratio", 1.0) * (sim.target_shares(p, chain) + mv_shares(s, p, chain, asof))
+    return base * deep_ratio(s, p, chain, asof)
 
 
 def crash_cfg(cfg):

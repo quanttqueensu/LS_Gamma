@@ -8,7 +8,7 @@
 | **Experiment** | `2026-11-17-deep-hedger` (config: `configs/experiments/2026-11-17-deep-hedger.toml`) |
 | **Topic** | Deep_Hedging |
 | **Owner** | Ben Gorenc (PM) |
-| **Status** | planned |
+| **Status** | failed |
 | **Started** | 2026-11-17 |
 
 Designed and run with Claude for Ben. Pre-registered by committing this card, the config and the code before any walk-forward model was scored.

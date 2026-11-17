@@ -1,0 +1,361 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{float}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\title{How to Build an RL (Deep) Hedger for the Desk's SPY Options}
+\author{Strategy research \textperiodcentered{} L/S Gamma Desk, QUANTT}
+\date{2026-11-11}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Question:} How to build an RL (deep) hedger for the LS Gamma desk: how RL can be used to hedge the delta of the desk's SPY option positions. Cover the problem formulation (state, action, reward and risk measure, transaction costs), algorithm choices, training data, how to keep it from turning into directional speculation, the baselines it must beat, the evidence on real S\&P 500 options, and a concrete first implementation plan.
+
+\textbf{Method:} Searched all 36 papers in \texttt{docs/\allowbreak{}papers/\allowbreak{}} (page-tagged index) + web search. Quotes verified against the cited PDF pages. Page numbers are PDF pages; printed page numbers are given where they differ.
+
+\textbf{Previous research:} \href{2026-09-27-deep-hedging-as-gamma-scalping-pnl-driver.pdf}{Deep hedging as the gamma scalping P\&L driver} covers \emph{why} an RL hedger could add value and the OPHR hedger-routing idea. This report covers \emph{how to build one}.
+
+\section{Short answer}
+
+An RL hedger is a neural network that maps the current state (spot, time to expiry, option Greeks, IV, current share holding) to a target share holding. It is trained on many price paths to minimize a risk measure of final hedged P\&L after transaction costs. The simplest and most proven way to train it is Buehler's original ``deep hedging'': simulate paths, run the policy through every path, and back-propagate the risk measure directly. This needs no Q-functions or actor-critic machinery. Actor-critic methods (DDPG, TD3, D4PG, Deep Bellman Hedging) matter when you want to train on historical data, or want one model for any portfolio.
+
+The two design choices that decide success are (1) the \textbf{risk measure}: CVaR with a high confidence level keeps the agent hedging instead of speculating, and (2) the \textbf{information in the state}: on real S\&P 500 data, RL beat practitioner hedges only when it saw implied-volatility information. Evidence on real S\&P 500 options is positive but modest. Gains are largest under transaction costs and in the tails. Simple regressions that capture the leverage effect get much of the benefit.
+
+For the desk, the realistic first step is a single short SPY put, about 30 DTE, hedged daily. Train on simulated paths and compare against three baselines: delta hedging, the 10-share band that already passed, and a Whalley-Wilmott band. Only then wire the policy into \texttt{backtest/\allowbreak{}engine.\allowbreak{}py} and test it on R2.
+
+\section{What the papers say}
+
+\subsection{How the problem is set up}
+
+\begin{itemize}
+
+\item \textbf{The original framework trains directly on simulated paths, with no Greeks and no market model inside the policy.} The network only sees samples, so any simulator can be swapped in.
+
+\begin{quote}``Our approach is greek-free. Instead, we can focus our modeling effort on realistic market dynamics and the actual out-of-sample performance of our hedging signal.'' (Buehler, Gonon, Teichmann \& Wood, \emph{Deep Hedging}, p. 2)\end{quote}
+
+\begin{quote}``the algorithm is model independent in the sense that no information about the Heston model is used except for the (weighted) samples of the price and variance process.'' (\emph{Deep Hedging}, p. 20)\end{quote}
+
+Their test market was Heston with transaction costs:
+
+\begin{quote}``We illustrate our approach by showing the effect on hedging under transaction costs in a synthetic market driven by the Heston model, where we outperform the standard ``complete market'' solution.'' (\emph{Deep Hedging}, p. 1)\end{quote}
+
+The network is small. At each date it is a feed-forward net with two hidden layers that takes the market features and the previous hedge as inputs (``semi-recurrent''), trained with Adam at learning rate 0.005 and batch size 256 (\emph{Deep Hedging}, pp. 19-20).
+
+\item \textbf{The minimal state is three numbers, and the action is the new holding.} Cao, Chen, Hull \& Poulos define the state as the previous holding of the asset, the asset price and the time to maturity (p. 11). The action:
+
+\begin{quote}``is the amount of the asset to be held for the next period'' (Cao, Chen, Hull \& Poulos 2021, \emph{Deep Hedging of Derivatives Using RL}, p. 11)\end{quote}
+
+The previous holding has to be in the state. Without it, the agent can't know what a trade will cost.
+
+\item \textbf{Reward each step with the mark-to-market P\&L, not only the final cash flows.}
+
+\begin{quote}``We find that the accounting P\&L approach gives much better results than the cash flow approach.'' (Cao et al. 2021, p. 3)\end{quote}
+
+Their per-step reward is the change in option value plus the hedge gain minus a proportional cost on the shares traded (p. 11). The valuation model used for the marks can be simpler than the model that generated the prices (p. 1).
+
+\item \textbf{The learned behaviour is a smart no-trade zone.}
+
+\begin{quote}``When the current holding is close to the holding required for delta hedging, it is optimal for the trader to be close-to-delta hedged.'' (Cao et al. 2021, p. 16)\end{quote}
+
+Further from delta, the agent under-hedges when it would have to buy and over-hedges when it would have to sell (p. 19). Their headline result:
+
+\begin{quote}``our reinforcement learning approach outperforms delta hedging when there are trading costs.'' (Cao et al. 2021, p. 4)\end{quote}
+
+\end{itemize}
+
+\subsection{Which algorithm}
+
+\begin{itemize}
+
+\item \textbf{Direct policy optimization (Buehler 2019):} simulate N paths, compute final P\&L for each, back-propagate the risk measure through the whole path. It's the simplest option and works with any convex risk measure, but it needs a simulator, and the model must be retrained when the portfolio changes.
+
+\item \textbf{Deep Bellman Hedging (actor-critic) removes both limits:}
+
+\begin{quote}``That means it needs to be re-trained, say, daily to reflect changes in our trading universe or the market.'' (Buehler, Murray \& Wood, \emph{Deep Bellman Hedging}, p. 3, describing the original method)\end{quote}
+
+\begin{quote}``Most importantly, the trained model provides an optimal hedge for arbitrary initial portfolios and market states without the need for re-training.'' (\emph{Deep Bellman Hedging}, p. 1)\end{quote}
+
+\begin{quote}``This means it does not require the development of a market simulator'' (\emph{Deep Bellman Hedging}, p. 3)\end{quote}
+
+\item \textbf{TD3 on real data:} Bracha et al. used TD3, an actor-critic algorithm for continuous actions:
+
+\begin{quote}``We develop an agent based on the Twin Delayed Deep Deterministic Policy Gradient (TD3) algorithm'' (Bracha, Sakowski \& Michańków 2025, \emph{DRL for ATM S\&P 500 Options Hedging}, p. 2, printed p. 1)\end{quote}
+
+Its state:
+
+\begin{quote}``using a single time series of six predictor variables: option price, underlying asset price, moneyness, time to maturity, realized volatility, and current hedge position.'' (same, p. 2, printed p. 1)\end{quote}
+
+\item \textbf{Distributional actor-critic (D4PG with quantile regression)} is the natural fit when the objective is a tail measure:
+
+\begin{quote}``For the hedging problem at hand QR is an attractive solution as it is straightforward to measure value at risk (VaR) and conditional value at risk (CVaR) directly on the quantile-based representation that it generates.'' (Cao et al. 2022, \emph{Gamma and Vega Hedging Using Deep Distributional RL}, p. 6)\end{quote}
+
+They chose actor-critic because simulation was cheap:
+
+\begin{quote}``In our setting, simulating the portfolio is a fast process and not the bottleneck'' (same, p. 6)\end{quote}
+
+\item \textbf{Policy-gradient with an LSTM.} The IV-surface papers use a recurrent network (two LSTM cells plus feed-forward layers) trained on simulated paths:
+
+\begin{quote}``Agents are trained as described in Section 2.3 on a training set of 400,000 independent simulated paths'' (François, Gauthier, Godin \& Pérez-Mendoza 2025, \emph{Deep Hedging with Options Using the IV Surface}, p. 14, printed p. 13)\end{quote}
+
+\end{itemize}
+
+\subsection{Training data: simulated vs historical}
+
+\begin{itemize}
+
+\item \textbf{Real data is too short to train on directly.}
+
+\begin{quote}``if we take a sampling interval of one day, ten years of option prices translates into only a few thousand samples.'' (Wiese, Bai, Wood \& Buehler 2019, \emph{Deep Hedging: Learning to Simulate Equity Option Markets}, p. 1)\end{quote}
+
+That paper builds GAN-based option market simulators to extend the data.
+
+\item \textbf{A simulator with arbitrage in it will be exploited.} From Buehler's TU Munich course slides:
+
+\begin{quote}``Static arbitrage = positive returns for free \ensuremath{\rightarrow} Deep Hedging will exploit it emphatically'' (Buehler \& Horvath, \emph{Learning to Trade II: Deep Hedging}, p. 17)\end{quote}
+
+\item \textbf{Training on simulated data, then testing on real data, can work.}
+
+\begin{quote}``These findings demonstrate that RL agents achieve consistent and competitive performance when applied to unseen historical market conditions, despite being trained on simulated data.'' (François et al. 2025, p. 31, printed p. 30)\end{quote}
+
+\item \textbf{Mixing several price models makes the policy robust to model error.}
+
+\begin{quote}``Another is to use a mixture model where several stochastic processes are specified and the decision maker samples randomly to determine which process will apply before each episode is generated.'' (Cao et al. 2021, p. 19)\end{quote}
+
+\item \textbf{If you use real data, split it in time order.}
+
+\begin{quote}``Another important source for information leakage is introduced if the dataset is split into in-sample and out-of-sample sets without paying respect to the time series structure.'' (Ruf \& Wang 2021, \emph{Hedging with Linear Regressions and Neural Networks}, p. 15)\end{quote}
+
+\end{itemize}
+
+\subsection{Keeping it a hedger, not a speculator}
+
+\begin{itemize}
+
+\item \textbf{The risk measure is the control.}
+
+\begin{quote}``Nevertheless, a suitable choice of risk measure can prevent the deep hedging agent from engaging in speculation.'' (François, Gauthier, Godin \& Pérez Mendoza 2024, \emph{Is the Difference \ldots{} a Statistical Arbitrage?}, p. 1)\end{quote}
+
+\begin{quote}``when using a proper risk measure (the CVaR with sufficiently high α in our case) within the optimization problem, the difference between deep hedging and delta hedging does not exhibit statistical arbitrage-like behavior'' (same, p. 12, printed p. 11)\end{quote}
+
+\item \textbf{The safest objectives cost profit.}
+
+\begin{quote}``A possibility could be to use risk measures that do not provide any reward for gains, such as the semi-RMSE used in Carbonneau and Godin (2023). However, this would come with the cost of negatively impacting the profitability of the strategy.'' (same, p. 12, printed p. 11)\end{quote}
+
+\item \textbf{Explicit penalty terms help too.}
+
+\begin{quote}``to ensure that the RL agent learns a true hedging strategy rather than engaging in speculative behavior, we introduce penalty terms in the reward function that discourages excessive risk-taking.'' (François et al. 2025, p. 3, printed p. 2)\end{quote}
+
+\item \textbf{A profit-seeking reward makes results sensitive to the risk setting.} Bracha et al. maximize mean minus a penalty on P\&L (p. 17, printed p. 16), and found:
+
+\begin{quote}``While the agent consistently outperforms delta hedging, its performance deteriorates when the risk-awareness parameter is higher.'' (Bracha et al. 2025, p. 2, printed p. 1)\end{quote}
+
+\end{itemize}
+
+\subsection{Baselines it must beat}
+
+\begin{itemize}
+
+\item \textbf{Delta hedging} is the standard benchmark in every paper above.
+
+\item \textbf{No-trade bands.} Sepp's closed-form analysis supports bands over fixed-schedule hedging:
+
+\begin{quote}``In practice, using price- or delta-bands is more efficient than deterministic hedging as it allows to save on the transaction cost and reduce P\&L volatility if bands are chosen wide enough.'' (Sepp 2013, \emph{When You Hedge Discretely}, p. 8)\end{quote}
+
+The classic form is Whalley \& Wilmott (1997): a band around Black-Scholes delta whose width depends on gamma, risk aversion and costs (web source, see Sources). The desk's backtest already has a \texttt{ww\_\allowbreak{}band} option.
+
+\item \textbf{Leverage-effect regressions} (minimum-variance style), which a neural network may not beat:
+
+\begin{quote}``However, a similar benefit arises by simple linear regressions that incorporate the leverage effect.'' (Ruf \& Wang 2021, p. 1)\end{quote}
+
+\end{itemize}
+
+\subsection{Evidence on real S\&P 500 data}
+
+\begin{itemize}
+
+\item \textbf{François et al. 2025:} OptionMetrics straddles, December 2020 to October 2023, trained on simulated paths:
+
+\begin{quote}``Tested on a historical out-of-sample set of straddles from 2020 to 2023, our method consistently outperforms traditional delta-gamma hedging strategies across a range of market conditions.'' (p. 1)\end{quote}
+
+The detail is more nuanced:
+
+\begin{quote}``The main conclusion is that RL approaches do not necessarily dominate traditional methods; their performance critically depends on the information provided to the algorithm.'' (p. 29, printed p. 28)\end{quote}
+
+\begin{quote}``However, in terms of tail risk, the RL algorithms clearly outperform the practitioners' delta-gamma approach.'' (p. 29, printed p. 28)\end{quote}
+
+\begin{quote}``The RL algorithms without IV information do not outperform the practitioners' delta-gamma approach in terms of mean squared hedging errors.'' (p. 4, printed p. 3)\end{quote}
+
+\item \textbf{The companion paper}, on S\&P 500 options with IV-surface feedback:
+
+\begin{quote}``The outperformance is more pronounced in the presence of transaction costs.'' (François et al., \emph{Enhancing Deep Hedging \ldots{} IV Surface Feedback}, p. 1)\end{quote}
+
+\item \textbf{Bracha et al. 2025:} TD3, walk-forward, about 17 years out of sample on ATM S\&P 500 calls of about 30 days. It beat delta hedging, but:
+
+\begin{quote}``However, we observe that the DRL model is also very sensitive to environment parameters, such as volatility, transaction costs and risk-awareness.'' (p. 31, printed p. 30)\end{quote}
+
+\item \textbf{The SPY ``practical framework'' paper is weaker evidence for this question.} It hedges a normalized exposure and is benchmarked against no-hedge, momentum and volatility targeting, not delta hedging:
+
+\begin{quote}``the learned policy improves risk-adjusted performance versus no-hedge, momentum, and volatility-targeting baselines'' (Lucius et al. 2025, \emph{Deep Hedging with RL: A Practical Framework}, p. 1)\end{quote}
+
+\begin{quote}``only the GAE policy's test-sample Sharpe is statistically distinguishable from zero, although confidence intervals overlap with a long-SPY benchmark so we stop short of claiming formal dominance.'' (same, p. 1)\end{quote}
+
+\end{itemize}
+
+\section{How the papers connect}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Paper} & \textbf{Builds on /\allowbreak{} agrees with} & \textbf{Differs from} & \textbf{Key contribution} \\
+\midrule
+Buehler et al. 2019, \emph{Deep Hedging} & Convex risk measures & Needs a simulator; retrain per portfolio & Direct policy optimization of a risk measure on simulated paths \\
+Cao, Chen, Hull \& Poulos 2021 & Buehler; Kolm \& Ritter & Mean + std objective; DDPG with two Q-functions & Minimal state; per-step accounting P\&L beats cash flows; no-trade zone behaviour \\
+Cao et al. 2022 (distributional) & Cao 2021 & D4PG with quantile critic & CVaR read directly from the critic \\
+Buehler, Murray \& Wood, \emph{Deep Bellman Hedging} & Buehler 2019 & Actor-critic on historic data & No retraining; no simulator required \\
+Wiese et al. 2019 & Buehler 2019 & Generative, not a hedger & GAN option-market simulators to extend scarce data \\
+François et al. 2024 (stat. arb.) & Horikawa \& Nakagawa & GARCH market & High-α CVaR stops the speculative overlay \\
+François et al. 2025 (IV surface) & Buehler; François 2024 & Hedges with options too; LSTM & Trained on simulated paths, works on real S\&P 500 straddles; IV information is what makes the gain \\
+Bracha et al. 2025 & Buehler; Cao & TD3 on historical data; profit-seeking reward & 17-year walk-forward on S\&P 500; sensitive to risk and cost settings \\
+Ruf \& Wang 2021 & Leverage effect & Skeptical of neural nets & Linear regressions match nets on S\&P options \\
+Sepp 2013 & Whalley \& Wilmott & Closed form, not RL & Bands beat fixed schedules; the analytical benchmark \\
+Lucius et al. 2025 & Buehler & Overlay, not option hedging & Leak-free SPY pipeline; weak significance \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{itemize}
+
+\item \textbf{Two families.} Direct policy optimization on simulated paths (Buehler 2019, François 2024/\allowbreak{}2025) vs actor-critic or Bellman methods that can learn from logged data (Cao 2021/\allowbreak{}2022, Deep Bellman Hedging, Bracha). The first is simpler. The second fits data you can't simulate.
+
+\item \textbf{Agreement on behaviour.} Cao, Sepp and the IV-surface papers all find the optimal hedge trades less than delta hedging: a no-trade zone around delta, wider when costs are higher.
+
+\item \textbf{Disagreement on the objective.} Risk-minimizing papers (Buehler, Cao, François) report better tails. Profit-seeking ones (Bracha, Lucius) report better returns, but more sensitivity and weaker statistics. The 2024 stat-arb paper explains why the second group needs care.
+
+\item \textbf{Lineage.} Buehler 2019 leads to Deep Bellman Hedging and the simulator work (Wiese) in one line, and to the François group's CVaR and IV-surface papers in another. Kolm \& Ritter (2019, web) lead to Cao 2021 and Cao 2022.
+
+\end{itemize}
+
+\section{Relevance to the LS Gamma desk}
+
+Facts about the desk, from the repo:
+
+\begin{itemize}
+
+\item \texttt{configs/\allowbreak{}paper.\allowbreak{}toml} still runs \texttt{vrp\_\allowbreak{}band} on both sides with GARCH. Live hedging is \texttt{Hedging/\allowbreak{}delta\_\allowbreak{}hedge.\allowbreak{}py}, once a day at 10:15 ET, with \texttt{min\_\allowbreak{}shares = 1}.
+
+\item In backtests, short-only and the 10-share hedge band passed in-sample (hold-out not run). The VRP-based unhedge, partial-hedge and minimum-variance hedge experiments failed (\texttt{research/\allowbreak{}Deep\_\allowbreak{}Hedging/\allowbreak{}README.\allowbreak{}md}).
+
+\item The backtest charges \$0.005 per share in commission, a \$1 minimum per order, and fills hedges \$0.005 from spot at 1x. Every run repeats at 2x spreads. R2 data starts 2014-06-02, and the hold-out from 2025-01-01 is locked.
+
+\item A hedger exposes \texttt{target\_\allowbreak{}shares()}. In the backtest, per-position share targets are set in \texttt{engine.\allowbreak{}target()}.
+
+\end{itemize}
+
+Suggestions, not decisions the desk has made:
+
+\begin{itemize}
+
+\item \textbf{Start with one short SPY put, about 30 DTE, held to the 7-DTE exit, hedged once a day.} This matches the book the backtests point to, keeps episodes about 23 steps long, and makes simulation cheap.
+
+\item \textbf{Use Buehler-style direct policy optimization first,} not TD3 or PPO. With about 23 daily steps and a fast simulator, back-propagating through the whole path is simple and stable. Hull's group chose actor-critic because simulation was cheap (Cao 2022, p. 6). That applies equally to direct optimization.
+
+\item \textbf{State:} time to expiry, log-moneyness, Black-Scholes delta and gamma at current IV, ATM IV, VRP, the previous share holding, and recent realized vol. IV is included because François et al. found RL without IV information did not beat the practitioner hedge (p. 4, printed p. 3).
+
+\item \textbf{Action:} the target shares for the next period, parameterized as delta + a bounded adjustment (e.g. tanh-scaled). The network then starts at delta hedging and only learns deviations. This is an inference from the no-trade-zone behaviour in Cao 2021, not a method from a paper.
+
+\item \textbf{Objective:} CVaR at 95-99\% of final hedged P\&L after costs. Use the same cost model as \texttt{configs/\allowbreak{}backtest.\allowbreak{}toml}, and train and test at 1x and 2x costs. Don't reward profit directly at first.
+
+\item \textbf{Training data:} a mixture of Heston (or GARCH) paths whose parameters are fitted to SPY data before 2025. Include a jump or crash regime, because short puts lose in crashes. Make sure the simulated option prices have no static arbitrage. Keep R2 for testing only.
+
+\item \textbf{Baselines, in order:} delta hedge, 10-share band, \texttt{ww\_\allowbreak{}band}, minimum-variance (\texttt{mv\_\allowbreak{}hedge}), then the RL policy. The RL hedger is only interesting if it beats the band at 2x costs.
+
+\item \textbf{Then wire it in.} Add a research-only option to \texttt{engine.\allowbreak{}target()} that calls the trained policy, run it through \texttt{lsgamma.\allowbreak{}backtest.\allowbreak{}run} on the development window, and report the trial count as \texttt{research/\allowbreak{}README.\allowbreak{}md} requires. A live \texttt{Hedging/\allowbreak{}deep\_\allowbreak{}hedge.\allowbreak{}py} with \texttt{target\_\allowbreak{}shares()} comes only after a pass, with shadow mode and PM sign-off.
+
+\end{itemize}
+
+\section{Gaps and open questions}
+
+\begin{itemize}
+
+\item \textbf{No paper hedges a short put book on SPY with IBKR-style per-share costs.} Bracha uses ATM calls; François uses straddles hedged with options. Whether the cost savings show up at the desk's small size (1 contract, about 50 shares of delta) is untested. With a \$1 minimum per order, cost savings may dominate everything else.
+
+\item \textbf{Daily rehedging leaves little room to optimize.} Cao 2021 found the gain over delta hedging grows with hedging frequency (p. 16). The desk hedges once a day live. The backtest grid allows half-hourly hedging, but live rehedging would need runner changes.
+
+\item \textbf{Crash risk.} Simulators fitted to calm data understate the gaps that dominate short-put P\&L. Whether a CVaR-trained hedger behaves sensibly in August 2015, February 2018 or March 2020 has to be checked in R2. The papers don't test SPY crash days specifically.
+
+\item \textbf{Statistical power.} About 10 years of development data gives roughly 120 monthly put episodes. Small hedging improvements may not be distinguishable from noise. Lucius et al. hit the same problem.
+
+\item \textbf{Overlap with the hand-built hedges.} The failed VRP-unhedge and partial-hedge experiments are hand-made versions of what a profit-seeking RL hedger would learn. Their failure is evidence to keep the objective risk-focused.
+
+\end{itemize}
+
+\section{Sources}
+
+\textbf{Repo papers used} (\texttt{docs/\allowbreak{}papers/\allowbreak{}}):
+
+\begin{itemize}
+
+\item \texttt{Deep-\allowbreak{}Hedging.\allowbreak{}pdf}: Buehler, Gonon, Teichmann \& Wood, \emph{Deep Hedging} (pp. 1, 2, 19-20)
+
+\item \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}of-\allowbreak{}Derivatives-\allowbreak{}Using-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf}: Cao, Chen, Hull \& Poulos 2021 (pp. 1, 3, 4, 11, 16, 19)
+
+\item \texttt{Gamma-\allowbreak{}and-\allowbreak{}Vega-\allowbreak{}Hedging-\allowbreak{}Using-\allowbreak{}Deep-\allowbreak{}Distributional-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf}: Cao et al. 2022 (p. 6)
+
+\item \texttt{Deep-\allowbreak{}Bellman-\allowbreak{}Hedging.\allowbreak{}pdf}: Buehler, Murray \& Wood (pp. 1, 3)
+
+\item \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}Simulate-\allowbreak{}Equity-\allowbreak{}Option-\allowbreak{}Markets.\allowbreak{}pdf}: Wiese, Bai, Wood \& Buehler 2019 (p. 1)
+
+\item \texttt{Learning-\allowbreak{}to-\allowbreak{}Trade-\allowbreak{}II-\allowbreak{}Deep-\allowbreak{}Hedging.\allowbreak{}pdf}: Buehler \& Horvath, TU Munich 2022 slides (p. 17)
+
+\item \texttt{Is-\allowbreak{}the-\allowbreak{}Difference-\allowbreak{}between-\allowbreak{}Deep-\allowbreak{}Hedging-\allowbreak{}and-\allowbreak{}Delta-\allowbreak{}Hedging-\allowbreak{}a-\allowbreak{}Statistical-\allowbreak{}Arbitrage.\allowbreak{}pdf}: François et al. 2024 (pp. 1, 12)
+
+\item \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}with-\allowbreak{}Options-\allowbreak{}Using-\allowbreak{}the-\allowbreak{}Implied-\allowbreak{}Volatility-\allowbreak{}Surface.\allowbreak{}pdf}: François et al. 2025 (pp. 1, 3, 4, 14, 29, 31)
+
+\item \texttt{Enhancing-\allowbreak{}Deep-\allowbreak{}Hedging-\allowbreak{}of-\allowbreak{}Options-\allowbreak{}with-\allowbreak{}Implied-\allowbreak{}Volatility-\allowbreak{}Surface-\allowbreak{}Feedback-\allowbreak{}Information.\allowbreak{}pdf}: François et al. (p. 1)
+
+\item \texttt{Application-\allowbreak{}of-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning-\allowbreak{}to-\allowbreak{}At-\allowbreak{}the-\allowbreak{}Money-\allowbreak{}S\&P-\allowbreak{}500-\allowbreak{}Options-\allowbreak{}Hedging.\allowbreak{}pdf}: Bracha, Sakowski \& Michańków 2025 (pp. 2, 17, 31)
+
+\item \texttt{Deep-\allowbreak{}Hedging-\allowbreak{}with-\allowbreak{}Reinforcement-\allowbreak{}Learning-\allowbreak{}A-\allowbreak{}Practical-\allowbreak{}Framework-\allowbreak{}for-\allowbreak{}Option-\allowbreak{}Risk-\allowbreak{}Management.\allowbreak{}pdf}: Lucius et al. 2025 (p. 1)
+
+\item \texttt{Hedging-\allowbreak{}with-\allowbreak{}Linear-\allowbreak{}Regressions-\allowbreak{}and-\allowbreak{}Neural-\allowbreak{}Networks.\allowbreak{}pdf}: Ruf \& Wang 2021 (pp. 1, 15)
+
+\item \texttt{When-\allowbreak{}You-\allowbreak{}Hedge-\allowbreak{}Discretely-\allowbreak{}Optimization-\allowbreak{}of-\allowbreak{}Sharpe-\allowbreak{}Ratio-\allowbreak{}for-\allowbreak{}Delta-\allowbreak{}Hedging-\allowbreak{}Strategy-\allowbreak{}under-\allowbreak{}Discrete-\allowbreak{}Hedging-\allowbreak{}and-\allowbreak{}Transaction-\allowbreak{}Costs.\allowbreak{}pdf}: Sepp 2013 (p. 8)
+
+\end{itemize}
+
+\textbf{Repo papers checked with nothing new for this question:} \texttt{OPHR-\allowbreak{}Mastering-\allowbreak{}Volatility-\allowbreak{}Trading-\allowbreak{}with-\allowbreak{}Multi-\allowbreak{}Agent-\allowbreak{}Deep-\allowbreak{}Reinforcement-\allowbreak{}Learning.\allowbreak{}pdf} and \texttt{PRISM-\allowbreak{}\ldots{}} (hedger routing and adaptive bands, covered in the previous report). Also checked: the volatility-forecasting, regime, agent and backtesting-methodology papers. They have no hedging formulation.
+
+\textbf{Web sources (outside the repo):}
+
+\begin{itemize}
+
+\item Whalley \& Wilmott 1997, \emph{An Asymptotic Analysis of an Optimal Hedging Model for Option Pricing with Transaction Costs}, Mathematical Finance 7(3): \href{https://ideas.repec.org/a/bla/mathfi/v7y1997i3p307-324.html}{IDEAS/\allowbreak{}RePEc}
+
+\item Kolm \& Ritter 2019, \emph{Dynamic Replication and Hedging: A Reinforcement Learning Approach}, JFDS 1(1): \href{https://papers.ssrn.com/abstract=3281235}{SSRN}
+
+\item pfhedge, an open-source PyTorch deep hedging library with Black-Scholes delta and Whalley-Wilmott baselines built in: \href{https://github.com/pfnet-research/pfhedge}{GitHub} \textperiodcentered{} \href{https://pypi.org/project/pfhedge}{PyPI}
+
+\item Lucius et al. code: \href{https://github.com/tlucius16/deep-hedging-rl}{github.com/\allowbreak{}tlucius16/\allowbreak{}deep-hedging-rl}
+
+\end{itemize}
+
+\textbf{Suggested papers to add to \texttt{docs/\allowbreak{}papers/\allowbreak{}}:}
+
+\begin{itemize}
+
+\item Kolm \& Ritter 2019: the first RL replication paper, which Cao 2021 builds on.
+
+\item Whalley \& Wilmott 1997: the band baseline the desk's \texttt{ww\_\allowbreak{}band} option implements.
+
+\item Carbonneau \& Godin (2023) on semi-RMSE hedging objectives: the ``no reward for gains'' alternative cited by François et al. 2024.
+
+\end{itemize}
+
+\end{document}

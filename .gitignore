@@ -15,6 +15,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!research/Deep_Hedging/lib/
 lib64/
 parts/
 sdist/

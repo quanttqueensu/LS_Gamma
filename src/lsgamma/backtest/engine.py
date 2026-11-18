@@ -309,9 +309,15 @@ def deep_ratio(s, p, chain, asof):
     mkt = s.setdefault("mkt", {})
     if asof.date() not in mkt:
         mkt[asof.date()] = deep_hedge.market(runner.completed(s["feats"], asof))
-    frac = pnl.combined_pnl(p, held_mark(s, p, chain, asof), runner.spot(chain)) / pnl.premium(p)
+    spot = runner.spot(chain)
+    frac = pnl.combined_pnl(p, held_mark(s, p, chain, asof), spot) / pnl.premium(p)
     days = (date.fromisoformat(p["expiry"]) - asof.date()).days
-    x = deep_hedge.features(abs(float(r["delta"])), days, float(r["iv"]), mkt[asof.date()], frac)
+    base = sim.target_shares(p, chain)
+    # entry day: carried orphan shares are not this put's hedge (training starts at 0)
+    entry = p["entry_ts"] == runner.stamp(asof)
+    hold = sim.held(p) / base if base and not entry else 0.0
+    x = deep_hedge.inputs(float(r["delta"]), days, float(r["iv"]), float(r["vega"]), spot,
+                          mkt[asof.date()], frac, hold)
     k = deep_hedge.ratio(model, x)
     log(s, asof, "deep_ratio", f"{k:.4f}")
     return k

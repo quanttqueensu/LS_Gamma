@@ -1,0 +1,150 @@
+[experiment]
+name = "2026-11-17-deep-hedger-v2"
+topic = "Deep_Hedging"
+owner = "Ben Gorenc (PM)"
+
+# every variant: the live put20 book (2026-11-02-lower-delta/put20)
+# reference: registered 2026-11-17-deep-hedger/put20 (same config; reused, not rerun)
+# deep_hedge points engine.target() at walk-forward models in results/research
+
+[train]
+first_year = 2017  # first walk-forward model; earlier years hedge full delta
+last_year = 2024
+targets = [0.15, 0.20, 0.25]  # training episodes per day; the book trades 0.20
+lo = 0.8  # hedge ratio box, every learned or baseline policy
+hi = 1.2
+hidden = [16, 16]  # deep; linear has none
+lr = 0.003
+epochs = 400
+eval_every = 20  # early stopping on the inner validation set
+weight_decay = 0.001
+val_share = 0.2  # last 20% of each training window (by entry date)
+seeds = [0, 1, 2, 3, 4]  # ensemble members
+robust_seeds = [[5, 6, 7, 8, 9], [10, 11, 12, 13, 14]]  # seed check, episodes only
+block = 6  # bootstrap block, months
+n_boot = 10000
+boot_seed = 0
+
+[lam]  # objective: mean - lam x CVaR95, per variant
+linear = 0.5
+deep = 0.5  # primary
+deep_l025 = 0.25  # sensitivity
+deep_l1 = 1.0  # sensitivity
+
+[variants.hw.signal]
+long_band = -inf
+short_band = -inf
+[variants.hw.exit]
+flat_days = 999
+[variants.hw.hedge]
+min_shares = 10
+[variants.hw.backtest]
+put_delta = 0.20
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+deep_hedge = "2026-11-17-deep-hedger-v2/policy_hw.json"  # baseline: Hull-White, in the box
+
+[variants.linear.signal]
+long_band = -inf
+short_band = -inf
+[variants.linear.exit]
+flat_days = 999
+[variants.linear.hedge]
+min_shares = 10
+[variants.linear.backtest]
+put_delta = 0.20
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+deep_hedge = "2026-11-17-deep-hedger-v2/policy_linear.json"  # baseline: linear policy
+
+[variants.deep.signal]
+long_band = -inf
+short_band = -inf
+[variants.deep.exit]
+flat_days = 999
+[variants.deep.hedge]
+min_shares = 10
+[variants.deep.backtest]
+put_delta = 0.20
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+deep_hedge = "2026-11-17-deep-hedger-v2/policy_deep.json"  # primary
+
+[variants.deep_l025.signal]
+long_band = -inf
+short_band = -inf
+[variants.deep_l025.exit]
+flat_days = 999
+[variants.deep_l025.hedge]
+min_shares = 10
+[variants.deep_l025.backtest]
+put_delta = 0.20
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+deep_hedge = "2026-11-17-deep-hedger-v2/policy_deep_l025.json"
+
+[variants.deep_l1.signal]
+long_band = -inf
+short_band = -inf
+[variants.deep_l1.exit]
+flat_days = 999
+[variants.deep_l1.hedge]
+min_shares = 10
+[variants.deep_l1.backtest]
+put_delta = 0.20
+stress_budget = 0.35
+stress_drop = 0.20
+stress_vol = 0.60
+deep_hedge = "2026-11-17-deep-hedger-v2/policy_deep_l1.json"
+
+[pass]
+primary = "deep"
+against = "put20"
+reference = "2026-11-17-deep-hedger/put20"  # registered runs, reused
+min_events = 100  # round trips closed 2017-2024
+[[pass.check]]
+metric = "pnl"
+period = "all"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2017-2020"
+rule = "higher"
+[[pass.check]]
+metric = "pnl"
+period = "2021-2024"
+rule = "higher"
+[[pass.check]]
+metric = "paired_lo"
+period = "2017-2024"
+rule = "above"
+value = 0.0  # bootstrap 95% lower bound of the paired per-trade gain
+[[pass.check]]
+metric = "sharpe"
+period = "2017-2024"
+rule = "not_below"
+value = 0.05  # at most 0.05 below put20
+[[pass.check]]
+metric = "es_5"
+period = "2017-2024"
+rule = "abs_within"
+value = 1.25
+[[pass.check]]
+metric = "max_dd"
+period = "2017-2024"
+rule = "at_most"
+value = 87500.0
+[[pass.check]]
+metric = "pnl"
+period = "2017-2024"
+rule = "higher"
+against = "hw"
+[[pass.check]]
+metric = "pnl"
+period = "2017-2024"
+rule = "higher"
+against = "linear"

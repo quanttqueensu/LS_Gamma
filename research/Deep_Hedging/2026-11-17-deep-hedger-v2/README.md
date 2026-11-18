@@ -8,7 +8,7 @@
 | **Experiment** | `2026-11-17-deep-hedger-v2` (config: `configs/experiments/2026-11-17-deep-hedger-v2.toml`) |
 | **Topic** | Deep_Hedging |
 | **Owner** | Ben Gorenc (PM) |
-| **Status** | planned |
+| **Status** | failed |
 | **Started** | 2026-11-17 |
 
 Designed and run with Claude for Ben. Follows [v1](../2026-11-17-deep-hedger/README.md), which failed: its net learned to under-hedge in selloffs, and its whole lead was March-April 2020. Each change below answers a v1 failure. Code and the pass bar were reviewed by an independent agent before pre-registration; its findings and what was done about each are under Changes.

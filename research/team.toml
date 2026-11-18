@@ -19,7 +19,7 @@ role = "Analyst"
 github = "benjaminGorenc11"
 linkedin = "https://www.linkedin.com/in/bengorenc/"
 photo = "research/team/ben-gorenc.jpg"
-logs = ["work-logs/benjaminGorenc11", "work-logs/BenWorkLog"]
+logs = ["work-logs/benjaminGorenc11"]
 
 [[member]]
 name = "Brandon Scheidler"

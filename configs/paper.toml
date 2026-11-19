@@ -1,7 +1,8 @@
 [strategy]
-book = "2026-11-02-lower-delta/put20"  # trade this shadow book; delete = rules below
+# book = "<exp>/<variant>" trades that shadow book; none = rules below
 capital = 175000  # live only: IBKR paper ~251k CAD in USD (2026-11-16)
-max_margin = 0.8  # live only: puts + hedge initial margin <= this x equity
+max_margin = 0.75  # live only: option + hedge initial margin <= this x equity
+fill_margin = true  # live only: size each entry up to max_margin, not [size] quantity
 
 [signal]
 model = "vrp_band"
@@ -16,7 +17,7 @@ max_dte = 45
 
 [size]
 capital = 250000  # paper money (USD), not real; sizes stress books
-quantity = 1  # contracts per leg
+quantity = 5  # contracts per leg
 max_positions = 1
 
 [exit]
@@ -38,4 +39,4 @@ fill_timeout = 60  # seconds
 gateway = true  # Gateway paper port 4002
 
 [hedge]
-min_shares = 1  # skip smaller rebalances
+min_shares = 10  # hedge band: skip smaller rebalances (2026-10-16-hedge-band)

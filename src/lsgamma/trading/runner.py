@@ -190,9 +190,21 @@ def margin(ib, t, qty, signal, chain, cfg):
     return num(opt.initMarginBefore), change, num(opt.equityWithLoanBefore)
 
 
+def filled(ib, t, signal, chain, cfg, cap):
+    # contracts that fill the cap, from a 1-lot preview
+    before, change, equity = margin(ib, t, 1, signal, chain, cfg)
+    if math.isnan(before + change + equity) or change <= 0:
+        return 1
+    return max(1, int((cap * equity - before) // change))
+
+
 def afford(ib, t, qty, signal, chain, cfg):
-    # size down to [strategy] max_margin of equity
-    cap = cfg.get("strategy", {}).get("max_margin", 0.0)
+    # size to [strategy] max_margin of equity
+    s = cfg.get("strategy", {})
+    cap = s.get("max_margin", 0.0)
+    if cap and s.get("fill_margin"):
+        qty = filled(ib, t, signal, chain, cfg, cap)
+        print(f"  fill to {cap:.0%} of equity: x{qty}")
     while cap and qty:
         before, change, equity = margin(ib, t, qty, signal, chain, cfg)
         if math.isnan(before + change + equity) or equity <= 0:

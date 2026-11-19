@@ -75,6 +75,7 @@ def bt(tmp_path, monkeypatch):
     monkeypatch.setattr(ledger, "ROOT", tmp_path / "paper")
     cfg = config.load()
     cfg["signal"]["forecaster"] = "byday"
+    cfg["size"]["quantity"], cfg["hedge"]["min_shares"] = 1, 1  # tests: 1 lot, every share
     root = tmp_path / "v1"
     root.mkdir()
     idx = pd.bdate_range("2018-01-01", "2024-12-31", name="date")
@@ -516,7 +517,7 @@ def test_baseline_matches_config_and_takes_first(bt):
     assert sorted(first) == [1.0, 2.0] and not report.stale(cfg)
     assert first[1.0]["equity"].equals(report.load(reg["run"].iloc[0])["equity"])
     changed = copy.deepcopy(cfg)
-    changed["hedge"]["min_shares"] = 10
+    changed["hedge"]["min_shares"] += 5  # any change makes it stale
     assert report.stale(changed) and report.stale(cfg, holdout=True)
 
 

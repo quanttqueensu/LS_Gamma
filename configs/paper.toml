@@ -1,7 +1,8 @@
 [strategy]
 # book = "<exp>/<variant>" trades that shadow book; none = rules below
 capital = 175000  # live only: IBKR paper ~251k CAD in USD (2026-11-16)
-max_margin = 0.8  # live only: puts + hedge initial margin <= this x equity
+max_margin = 0.75  # live only: option + hedge initial margin <= this x equity
+fill_margin = true  # live only: size each entry up to max_margin, not [size] quantity
 
 [signal]
 model = "vrp_band"

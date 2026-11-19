@@ -117,6 +117,7 @@ def env(tmp_path, monkeypatch):
     cfg = config.load()
     cfg["signal"]["forecaster"] = "fixed"
     cfg["size"]["quantity"], cfg["hedge"]["min_shares"] = 1, 1  # tests: 1 lot, every share
+    cfg.pop("strategy", None)  # no live sizing or margin cap
     return cfg
 
 
@@ -433,3 +434,21 @@ def test_no_margin_cap_sends_no_preview(env, monkeypatch):
     ib = FakeIB(deltas=SKEW)
     runner.run(ib, cfg, DAY1)
     assert ib.previews == [] and ledger.load_position() is not None
+
+
+def test_fill_margin_sizes_up_to_the_cap(env, monkeypatch, capsys):
+    cfg, _ = book(env, monkeypatch)
+    cfg["strategy"] = {"max_margin": 0.75, "fill_margin": True}
+    per = 1000.0 + 0.5 * 25 * SPOT  # option + hedge shares
+    ib = FakeIB(deltas=SKEW, equity=13 * per / 0.75 + 100)
+    runner.run(ib, cfg, DAY1)
+    assert ledger.load_position()["qty"] == 13
+    assert ib.previews[:2] == [("OPT", 1), ("STK", 25)] and ("OPT", "SELL", 13) in ib.orders
+    assert "fill to 75% of equity: x13" in capsys.readouterr().out
+
+
+def test_fill_margin_off_keeps_quantity(env, monkeypatch):
+    cfg, qty = capped(env, monkeypatch)
+    ib = FakeIB(deltas=SKEW)
+    runner.run(ib, cfg, DAY1)
+    assert ledger.load_position()["qty"] == qty

@@ -116,6 +116,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setitem(runner.FORECASTERS, "fixed", Fixed)
     cfg = config.load()
     cfg["signal"]["forecaster"] = "fixed"
+    cfg["size"]["quantity"], cfg["hedge"]["min_shares"] = 1, 1  # tests: 1 lot, every share
     return cfg
 
 

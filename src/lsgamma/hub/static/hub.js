@@ -27,8 +27,8 @@ const resultPill = v => `<span class="result r-${RESULT[v][1]}"><span class="ri"
 const date = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
 const days = (a, b) => Math.round((b - a) / DAY);
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
-const money = v => v == null ? "—" : `${v < 0 ? "−" : ""}$${Math.round(Math.abs(v)).toLocaleString("en-US")}`;
-const fixed = (v, d = 2) => v == null ? "—" : `${v < 0 ? "−" : ""}${Math.abs(v).toFixed(d)}`;
+const money = v => v == null ? "—" : `${v < 0 ? "−\u2060" : ""}$${Math.round(Math.abs(v)).toLocaleString("en-US")}`;
+const fixed = (v, d = 2) => v == null ? "—" : `${v < 0 ? "−\u2060" : ""}${Math.abs(v).toFixed(d)}`;
 const href = l => /^(https?:|files\/)/.test(l) ? l : `${D.repo}/blob/main/${l}`;
 
 /* chips */
@@ -83,13 +83,11 @@ function team() {
 /* experiments */
 function cardHtml(c) {
   const when = date(c.started).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  const done = c.stages.filter(Boolean).length;
   const search = [c.id.slice(11), c.title, c.topicLabel, VERDICTS[c.verdict], c.detail, c.owner].join(" ").toLowerCase();
   return `<article class="xrow" id="card-${c.id}" data-id="${c.id}" data-topic="${c.topic}" data-verdict="${c.verdict}" data-search="${esc(search)}">
     <button class="xhead" type="button" aria-expanded="false" aria-controls="body-${c.id}">
       ${topicChip(c.topic, c.topicLabel)}
-      <span class="xmain"><span class="xname">${esc(c.id.slice(11))}</span><span class="hyp">${esc(c.title)}</span></span>
-      <span class="dots" role="img" aria-label="${done} of 7 stages">${c.stages.map(on => `<i class="${on ? "on" : ""}"></i>`).join("")}</span>
+      <span class="xmain"><span class="xname">${esc(c.title)}</span><span class="hyp">${esc(c.id.slice(11))}</span></span>
       <span class="ldate">${when}</span>
       ${resultPill(c.verdict)}
       <span class="chev" aria-hidden="true">›</span>
@@ -160,8 +158,8 @@ function filterCards() {
     el.hidden = !ok || (!state.allCards && !words.length && match > CARD_LIMIT);
     if (ok) {
       const c = byId[el.dataset.id];
-      $(".xname", el).innerHTML = marked(c.id.slice(11), words);
-      $(".hyp", el).innerHTML = marked(c.title, words);
+      $(".xname", el).innerHTML = marked(c.title, words);
+      $(".hyp", el).innerHTML = marked(c.id.slice(11), words);
     }
   });
   const capped = !state.allCards && !words.length && match > CARD_LIMIT;
@@ -194,6 +192,7 @@ function experiments() {
     if (t) {
       const el = t.closest(".xrow");
       toggle(el);
+      history.replaceState(null, "", el.classList.contains("open") ? `#card-${el.dataset.id}` : "#experiments");
       return el.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
     const tab = e.target.closest("[data-tab]");
@@ -261,7 +260,8 @@ function lightbox(c, i) {
   };
 }
 
-const whenText = it => it.start ? (it.end && it.end !== it.start ? `${it.start} → ${it.end}` : it.start) : "Not scheduled";
+const fullDay = s => date(s).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+const whenText = it => it.start ? (it.end && it.end !== it.start ? `${fullDay(it.start)} → ${fullDay(it.end)}` : fullDay(it.start)) : "Not scheduled";
 const statusText = it => it.verdict ? VERDICTS[it.verdict] : STATUS[it.status] || it.status;
 
 function itemModal(it) {
@@ -351,7 +351,7 @@ function gantt() {
       <div class="g-track" style="height:${lanes * LANE + 16}px">${html || `<span class="g-empty">—</span>`}</div></div>`;
   }).join("");
   const none = gantt.items.length ? "" : `<div class="g-none">${state.when === "done" ? "Nothing finished in this window."
-    : "Nothing scheduled yet. The ideas below have no dates: add a start and end in research/roadmap.toml to place them here."}</div>`;
+    : "Nothing scheduled yet."}</div>`;
   const day = today.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   root.innerHTML = `<div class="g-future" style="left:${lab + at}px"></div>
     <div class="g-row g-head"><div class="g-label"></div><div class="g-track">${head.join("")}</div></div>${none || rows}
@@ -406,7 +406,7 @@ function ideas() {
   const list = roadItems().filter(it => !it.start);
   ideas.list = list;
   $("#ideas-block").hidden = state.view === "list" || state.when === "done";
-  $("#ideas-meta").textContent = list.length ? `${plural(list.length, "undated item")} · add dates in research/roadmap.toml` : "No undated items";
+  $("#ideas-meta").textContent = list.length ? `${plural(list.length, "idea")} not yet scheduled` : "No unscheduled ideas";
   $("#ideas").className = "ideas";
   $("#ideas").innerHTML = Object.keys(TAGS).map(t => {
     const mine = list.map((it, i) => [it, i]).filter(([it]) => it.tag === t);
@@ -431,7 +431,7 @@ function roadmap() {
   chips($("#f-when"), [["all", "Any time"], ["next", "Up next"], ["done", "Done"]], state.when, v => { state.when = v; road(); });
   chips($("#f-view"), [["timeline", "Timeline"], ["list", "List"]], state.view, v => { state.view = v; road(); });
   $("#g-key").innerHTML = `<span><i class="k-dot"></i>Finished</span><span><i class="k-next"></i><i class="k-bar"></i>Scheduled</span>
-    <span><b class="g-pass">✓</b>Passed card</span><span><i class="k-past"></i>Before today</span><span>Hover for details · click to open</span>`;
+    <span><b class="g-pass">✓</b>Passed card</span><span><i class="k-past"></i>Before today</span><span>Select an item for details</span>`;
   road();
   const g = $("#gantt");
   g.addEventListener("click", e => { const b = e.target.closest(".g-item"); if (b) itemModal(gantt.items[Number(b.dataset.i)]); });
@@ -519,7 +519,7 @@ function library() {
 /* this week */
 const short_day = s => date(s).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 const long_day = s => date(s).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-const signed = v => v == null ? "—" : `${Math.round(v) < 0 ? "−" : Math.round(v) > 0 ? "+" : ""}$${Math.round(Math.abs(v)).toLocaleString("en-US")}`;
+const signed = v => v == null ? "—" : `${Math.round(v) < 0 ? "−\u2060" : Math.round(v) > 0 ? "+\u2060" : ""}$${Math.round(Math.abs(v)).toLocaleString("en-US")}`;
 const contract = t => `${t.side} ${+t.strike} ${t.right === "P" ? "put" : "call"} (${short_day(t.expiry)})`;
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -546,6 +546,13 @@ function week() {
   const before = book.filter(b => b.date < lo).at(-1)?.total ?? 0;
   const now = book.filter(b => b.date <= hi).at(-1)?.total;
   $("#week-meta").textContent = `${short_day(lo)} – ${short_day(hi)}`;
+  const moved = now != null && Math.round(now - before) !== 0;
+  if (!done.length && !trials && !reports.length && !trades.length && !moved) {
+    const last = D.cards.map(c => c.finished).filter(Boolean).sort().at(-1);
+    $("#week-stats").className = "wquiet";
+    $("#week-stats").textContent = `A quiet week: no experiments finished, and no new trials, reports or paper trades.${last ? ` The last experiment finished on ${fullDay(last)}.` : ""}`;
+    return;
+  }
   $("#week-stats").innerHTML = [
     weekTile("#experiments", done.length, done.length === 1 ? "experiment finished" : "experiments finished",
       `${passed} passed · ${failed} failed${other ? ` · ${other} other` : ""}`),
@@ -559,11 +566,11 @@ function week() {
 
 /* live desk */
 const SIDE = { short: "Short gamma", long: "Long gamma", flat: "Flat" };
-const pts = v => `${v < 0 ? "−" : "+"}${Math.abs(v * 100).toFixed(1)} pts`;
+const pts = v => `${v < 0 ? "−\u2060" : "+\u2060"}${Math.abs(v * 100).toFixed(1)}\u00a0pts`;
 const pct = v => `${(v * 100).toFixed(1)}%`;
 
 function deskChart(k, W) {
-  const S = k.signals, r = k.rules, H = 250, L = 44, R = 12, T = 14, B = 30;
+  const S = k.signals, r = k.rules, H = 320, L = 44, R = 12, T = 14, B = 30;
   if (!S.length) return `<p class="gs-meta empty">No signals logged yet.</p>`;
   // always-short books have null bands
   const hi = r.short_band == null ? null : r.short_band * 100, lo = r.long_band == null ? null : r.long_band * 100;
@@ -572,7 +579,7 @@ function deskChart(k, W) {
   const y = v => T + (top - v) * (H - T - B) / (top - bot);
   const sb = hi == null ? null : y(hi), lb = lo == null ? null : y(lo), zero = y(0);
   const ticks = [[hi, `+${hi}`], [0, "0"], [lo, `${lo}`.replace("-", "−")]].filter(([v]) => v != null);
-  const labels = dateIdx(S.length);
+  const labels = dateIdx(S.length, fitTicks(W - L - R));
   return `<svg class="dchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="VRP over the last ${S.length} signals${sb == null && lb == null ? "" : " with the signal bands"}">
     ${sb == null ? "" : `<rect x="${L}" y="${T}" width="${W - L - R}" height="${sb - T}" class="zone"/>
     <text x="${L + 8}" y="${T + 14}" class="zlab">Short gamma zone</text>`}
@@ -611,7 +618,7 @@ function positionHtml(k) {
   const head = p ? `<h3 class="colh">Open position</h3>
     <div class="pos-name">${esc(SIDE[p.side].split(" ")[0])} ${+p.strike} ${p.right === "P" ? "put" : "call"} · ${short_day(p.expiry)}</div>
     <dl class="drows"><dt>Entry</dt><dd>$${p.entry_price} on ${short_day(p.entry_date)}</dd><dt>Size</dt><dd>${plural(p.qty, "contract")} · hedge ${p.hedge_shares > 0 ? "+" : "−"}${Math.abs(p.hedge_shares)} SPY</dd>
-      <dt>P&amp;L</dt><dd>option ${signed(p.option_pnl)} · hedge ${signed(p.hedge_pnl)} · <b>total ${signed(p.pnl)}</b></dd><dt>Marked</dt><dd>${marked}</dd></dl>
+      <dt>P&amp;L</dt><dd>option ${signed(p.option_pnl)} · hedge ${signed(p.hedge_pnl)} · <b>total\u00a0${signed(p.pnl)}</b></dd><dt>Marked</dt><dd>${marked}</dd></dl>
     ${gauge(p)}`
     : `<h3 class="colh">Open position</h3><div class="pos-name">Flat: no open position</div>`;
   return `${head}<h3 class="colh sub">Trades</h3>${table}<p class="gs-meta realized">Realized P&amp;L ${signed(k.realized)}</p>`;
@@ -626,6 +633,8 @@ function scale(vals, n = 4) {
   for (let v = lo; v <= hi + step / 2; v += step) ticks.push(Math.round(v * 1e6) / 1e6);
   return { lo, hi, ticks };
 }
+
+const fitTicks = w => Math.max(2, Math.min(5, Math.floor(w / 84)));
 
 function dateIdx(n, k = 5) {
   if (n <= 1) return [0];
@@ -651,7 +660,7 @@ function bookChart(B, W) {
   return `<svg class="dchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Book P&L over ${B.length} days, now ${signed(lastV)}">
     <defs><linearGradient id="bfill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" class="gstop"/><stop offset="1" class="gstop end"/></linearGradient></defs>
     ${grid(sc.ticks, y, L, W, R, signed)}
-    ${dateIdx(B.length).map(i => `<text x="${x(i)}" y="${H - 10}" class="tick" text-anchor="${anchor(i, B.length)}">${short_day(B[i].date)}</text>`).join("")}
+    ${dateIdx(B.length, fitTicks(W - L - R)).map(i => `<text x="${x(i)}" y="${H - 10}" class="tick" text-anchor="${anchor(i, B.length)}">${short_day(B[i].date)}</text>`).join("")}
     <path d="${area}" class="barea"/>
     <polyline points="${line}" class="vline"/>
     <circle cx="${x(B.length - 1)}" cy="${y(lastV)}" r="4.5" class="pt"/>
@@ -679,7 +688,18 @@ function hoverTip(box, tip, render) {
   box.addEventListener("focusout", () => { tip.hidden = true; });
 }
 
-const liveBook = () => D.shadow?.books?.find(b => b.traded)?.name;
+const clean = s => String(s ?? "").replace(/\s*\(paper\.toml\)/, "");
+const liveBook = () => clean(D.shadow?.books?.find(b => b.traded)?.name);
+
+// weekdays since the snapshot; 2+ means the runner missed days
+function age(ts) {
+  if (!ts) return 0;
+  const d = new Date(ts); d.setHours(0, 0, 0, 0);
+  let n = 0;
+  for (; d < today; d.setDate(d.getDate() + 1)) n += d.getDay() % 6 ? 1 : 0;
+  return n;
+}
+const staleHtml = ts => age(ts) >= 2 ? ` <span class="stale">${age(ts)} trading days old</span>` : "";
 
 function deskRule(r) {
   const tail = `Options near ${r.target_dte} DTE, closed at ${r.exit_dte} DTE; stop at ${r.short_stop_mult}× the credit, profit take at ${r.short_profit_frac * 100}% on shorts.`;
@@ -699,7 +719,7 @@ function desk() {
   const last = k.signals.at(-1), p = k.position, r = k.rules, book = k.book || [];
   const total = book.at(-1)?.total ?? k.realized;
   const when = k.asof ? new Date(k.asof).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }) + " ET" : "—";
-  $("#desk-meta").textContent = `Paper account${liveBook() ? ` · ${liveBook()}` : ""} · updated ${when}`;
+  $("#desk-meta").innerHTML = `Paper account${liveBook() ? ` · ${esc(liveBook())}` : ""} · updated ${esc(when)}${staleHtml(k.asof)}`;
   const tiles = [
     [last ? SIDE[last.signal] : "—", last ? `${long_day(last.date)} · VRP ${pts(last.vrp)}` : "no signal yet"],
     [last ? `${pct(last.iv)} vs ${pct(last.rv_forecast)}` : "—", "implied vol vs RV forecast"],
@@ -736,19 +756,20 @@ function strip() {
   $("#strip").hidden = false;
   $("#strip-book").textContent = liveBook() || "VRP band";
   $("#strip-signal").textContent = last ? `${SIDE[last.signal]} · VRP ${pts(last.vrp)}` : "No signal yet";
-  $("#strip-meta").textContent = last ? `as of ${long_day(last.date)}` : "";
+  $("#strip-meta").innerHTML = last ? `as of ${esc(long_day(last.date))}${staleHtml(k.asof)}` : "";
   $("#strip-link").hidden = !D.shadow?.books?.length;
 }
 
 /* live and shadow strategies */
-const SHADES = ["#295caa", "#2a9d8f", "#7a5195", "#d99a2b", "#c8553d", "#5b8fd6", "#8a94a6"];
+const SHADES = ["#2a9d8f", "#7a5195", "#d99a2b", "#c8553d", "#a3a9b3", "#4d5a6b"];
 const per = v => v == null ? "—" : `${Math.round(v * 100)}%`;
 const posText = p => p ? `${p.side === "short" ? "Short" : "Long"} ${+p.strike} ${p.right === "P" ? "put" : "call"}${p.qty > 1 ? ` ×${p.qty}` : ""}` : "Flat";
 
 function books() {
   const S = D.shadow, live = D.desk;
   let i = 0;
-  const shadow = S.books.map(b => ({ ...b, key: `b${i}`, color: b.placeholder || b.error ? null : SHADES[i++ % SHADES.length] }));
+  const shadow = S.books.map((b, j) => ({ ...b, name: clean(b.name), key: `b${j}`,
+    color: b.placeholder || b.error ? null : b.traded ? "#295caa" : SHADES[i++ % SHADES.length] }));
   const paper = live ? [{ name: "Paper account", key: "paper", live: true, color: "#0f2547", book: live.book || [],
     position: live.position, trades: live.trades, realized: live.realized, summary: S.paper }] : [];
   return [...paper, ...shadow];
@@ -764,10 +785,10 @@ function linesChart(series, W) {
   const y = v => T + (sc.hi - v) * (H - T - Bm) / (sc.hi - sc.lo);
   const step = dates.length > 1 ? (W - L - R) / (dates.length - 1) : W - L - R;
   const lines = [...series].reverse().map(s => `<polyline points="${s.book.map(b => `${x(at[b.date])},${y(b.total ?? 0)}`).join(" ")}"
-    class="sline${s.live ? " live" : ""}" style="--c:${s.color}"/>`).join("");
+    class="sline${s.live ? " live" : s.traded ? " main" : ""}" data-k="${s.key}" style="--c:${s.color}"/>`).join("");
   return `<svg class="dchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Book P&L of the paper account and ${series.length - 1} shadow books over ${dates.length} days">
     ${grid(sc.ticks, y, L, W, R, signed)}
-    ${dateIdx(dates.length).map(i => `<text x="${x(i)}" y="${H - 10}" class="tick" text-anchor="${anchor(i, dates.length)}">${short_day(dates[i])}</text>`).join("")}
+    ${dateIdx(dates.length, fitTicks(W - L - R)).map(i => `<text x="${x(i)}" y="${H - 10}" class="tick" text-anchor="${anchor(i, dates.length)}">${short_day(dates[i])}</text>`).join("")}
     ${lines}
     ${dates.map((d, i) => `<rect x="${x(i) - step / 2}" y="${T}" width="${step}" height="${H - T - Bm}" class="hit" data-d="${d}" tabindex="0"/>`).join("")}
   </svg>`;
@@ -811,7 +832,7 @@ function fillsHtml(b) {
 
 function bookBody(b) {
   if (b.live) return `<div class="sgrid"><div class="pane">${positionHtml(b)}</div><div class="pane"><h3 class="colh">Paper account</h3>
-    <p class="gs-meta">Real IBKR paper fills, before commissions, trading ${esc(liveBook() || "the paper.toml rules")}. The full view is on the live desk.</p>
+    <p class="gs-meta">Real IBKR paper fills, before commissions, trading ${esc(liveBook() || "the current rules")}. The full view is on the live desk.</p>
     <a class="gs-pill gs-pill-ghost" href="#desk">Open the live desk</a></div></div>`;
   if (b.error) return `<p class="gs-meta">This book failed to run: ${esc(b.error)}</p>`;
   const s = b.summary;
@@ -824,8 +845,8 @@ function bookBody(b) {
 
 function bookRow(b) {
   const s = b.summary || {}, idle = b.placeholder || b.error;
-  const sub = (b.live ? `IBKR paper fills · ${liveBook() || "paper.toml"}` : b.placeholder ? b.placeholder : b.error ? "Failed to run"
-    : b.card ? b.card.slice(11) : "paper.toml") + (b.traded ? " · traded live" : "");
+  const sub = (b.live ? `IBKR paper fills · ${liveBook() || "current rules"}` : b.placeholder ? b.placeholder : b.error ? "Failed to run"
+    : b.card ? `from experiment ${b.card.slice(11)}` : "current rules") + (b.traded ? " · traded live" : "");
   const cells = idle ? `<span class="snum" data-l="Days">—</span><span class="snum" data-l="Trades">—</span><span class="snum" data-l="P&L">—</span><span class="snum" data-l="Max DD">—</span><span class="snow">${b.placeholder ? "Not running" : "—"}</span>`
     : `<span class="snum" data-l="Days">${s.days ?? "—"}</span><span class="snum" data-l="Trades">${s.trades ?? 0}</span>
       <span class="snum spnl" data-l="P&L">${signed(s.pnl)}</span><span class="snum" data-l="Max DD">${money(s.max_dd)}</span><span class="snow">${esc(posText(b.position))}</span>`;
@@ -856,9 +877,16 @@ function strategies() {
     ].map(([n, l]) => `<div class="dstat"><div class="dnum">${esc(n)}</div><div class="gs-meta">${esc(l)}</div></div>`).join("");
     $("#sh-note").textContent = days < S.min_days ? `Too early to compare P&L · ${days} of ${S.min_days} trading days.`
       : `Realized plus open P&L since ${short_day(S.start)}.`;
-    $("#sh-key").innerHTML = drawn.map(b => `<span class="${b.live ? "live" : ""}"><i style="--c:${b.color}"></i>${esc(b.name)}</span>`).join("");
+    $("#sh-key").innerHTML = drawn.map(b => `<span class="${b.live || b.traded ? "live" : ""}" data-k="${b.key}"><i style="--c:${b.color}"></i>${esc(b.name)}</span>`).join("");
+    const focus = k => {
+      const svg = $("#sh-chart svg");
+      svg?.classList.toggle("hl", !!k);
+      $$("#sh-chart .sline").forEach(l => l.classList.toggle("on", l.dataset.k === k));
+    };
+    $("#sh-key").addEventListener("pointerover", e => focus(e.target.closest("[data-k]")?.dataset.k));
+    $("#sh-key").addEventListener("pointerleave", () => focus(null));
     $("#sh-books").innerHTML = all.map(bookRow).join("");
-    $("#sh-foot").textContent = `Shadow books replay each idea's exact rules on the live snapshot, filled at the quoted bid or ask and net of modelled commissions. The paper account is IBKR paper fills before commissions. Backtest columns are 1x-spread averages from the cards, aggregates only.`;
+    $("#sh-foot").textContent = `Shadow books replay each idea's exact rules on the live snapshot, filled at the quoted bid or ask and net of modelled commissions. The paper account is IBKR paper fills before commissions, and its Days column counts every runner day; shadow books count snapshot days. Backtest columns are 1x-spread averages from the cards, aggregates only.`;
     $("#sh-books").addEventListener("click", e => {
       const h = e.target.closest(".shead");
       if (!h || h.tagName !== "BUTTON") return;

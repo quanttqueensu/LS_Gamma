@@ -1,5 +1,5 @@
 {
- "asof": "2026-11-24T11:03:00-05:00",
+ "asof": "2026-11-25T11:02:59-05:00",
  "rules": {
   "forecaster": "garch",
   "short_band": 0.02,
@@ -320,6 +320,15 @@
    "iv": 0.2453,
    "vrp": -0.0882,
    "signal": "long"
+  },
+  {
+   "date": "2026-11-25",
+   "expiry": "2026-12-18",
+   "dte": 23,
+   "rv_forecast": 0.3134,
+   "iv": 0.285,
+   "vrp": -0.0283,
+   "signal": "flat"
   }
  ],
  "position": {
@@ -330,16 +339,16 @@
   "qty": 11,
   "entry_price": 18.88,
   "entry_date": "2026-11-24",
-  "hedge_shares": -582,
-  "dte": 24,
-  "mark_ts": "2026-11-24T11:01:26-05:00",
-  "spot": 714.3209,
+  "hedge_shares": -440,
+  "dte": 23,
+  "mark_ts": "2026-11-25T11:01:31-05:00",
+  "spot": 698.9794,
   "premium": 20768.0,
   "stop": -10384.0,
   "take": null,
-  "option_pnl": 346.5,
-  "hedge_pnl": -279.8616,
-  "pnl": 66.6384
+  "option_pnl": -7392.0,
+  "hedge_pnl": 8749.5903,
+  "pnl": 1357.5903
  },
  "trades": [
   {
@@ -608,6 +617,12 @@
    "realized": -3754.3516,
    "open": 66.6384,
    "total": -3687.7132
+  },
+  {
+   "date": "2026-11-25",
+   "realized": -3754.3516,
+   "open": 1357.5903,
+   "total": -2396.7613
   }
  ]
 }

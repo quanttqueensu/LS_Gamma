@@ -60,8 +60,10 @@ button { font: inherit; color: inherit; }
 .menu .menu-gh { font-weight: 400; font-size: 15px; color: var(--gs-grey); padding-top: 16px; }
 
 /* hero: navy band under the nav */
-.hero { position: relative; margin-top: calc(-1 * var(--nav-h)); background: var(--q-deep); color: #fff; overflow: hidden; }
-.hero::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(120% 90% at 85% 0%, rgba(41,92,170,.45) 0%, rgba(11,26,51,0) 60%); }
+.hero { position: relative; margin-top: calc(-1 * var(--nav-h)); background: var(--q-deep) url(hero.jpg) center 22% / cover no-repeat; color: #fff; overflow: hidden; }
+.hero::after { content: ""; position: absolute; inset: 0; pointer-events: none; background:
+  linear-gradient(180deg, rgba(11,26,51,.75) 0%, rgba(11,26,51,0) 28%),
+  linear-gradient(90deg, rgba(11,26,51,.9) 0%, rgba(11,26,51,.62) 50%, rgba(11,26,51,.3) 100%); }
 .hero-body { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: flex-end; min-height: min(60vh, 560px); padding-top: calc(var(--nav-h) + 40px); padding-bottom: clamp(48px, 6vw, 72px); }
 .hero-h1 { margin: 0; max-width: 13em; font-size: clamp(40px, 5.2vw, 76px); font-weight: 600; line-height: 1.02; letter-spacing: -.025em; }
 .hero-lede { margin: 24px 0 0; max-width: 34em; font-size: clamp(18px, 1.5vw, 20px); line-height: 1.45; color: rgba(255,255,255,.88); }

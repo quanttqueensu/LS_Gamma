@@ -1,5 +1,5 @@
 {
- "asof": "2026-11-26T11:01:34-05:00",
+ "asof": "2026-11-27T11:01:24-05:00",
  "start": "2026-09-26",
  "capital": 250000,
  "min_days": 60,
@@ -58,6 +58,11 @@
    "date": "2026-11-26",
    "ts": "2026-11-26T11:01:34-05:00",
    "folder": "2026-11-26/1100"
+  },
+  {
+   "date": "2026-11-27",
+   "ts": "2026-11-27T11:01:24-05:00",
+   "folder": "2026-11-27/1100"
   }
  ],
  "books": [
@@ -82,7 +87,7 @@
     "stress_budget": 0.0
    },
    "summary": {
-    "pnl": 3341.0273,
+    "pnl": 3204.9604,
     "max_dd": 180.1292,
     "trades": 2,
     "win_rate": 1.0,
@@ -91,9 +96,9 @@
     "no_delta": 0,
     "no_mark": 0,
     "opens": 3,
-    "hedges": 10,
-    "fees": 26.99,
-    "days": 11
+    "hedges": 11,
+    "fees": 27.99,
+    "days": 12
    },
    "book": [
     {
@@ -161,6 +166,12 @@
      "realized": 2730.8138,
      "open": 610.2135,
      "total": 3341.0273
+    },
+    {
+     "date": "2026-11-27",
+     "realized": 2730.8138,
+     "open": 474.1465,
+     "total": 3204.9604
     }
    ],
    "trades": [
@@ -239,16 +250,16 @@
     "qty": 5,
     "entry_price": 19.26,
     "entry_date": "2026-11-24",
-    "hedge_shares": -279,
-    "dte": 22,
-    "mark_ts": "2026-11-26T11:01:34-05:00",
-    "spot": 716.8116,
+    "hedge_shares": -319,
+    "dte": 21,
+    "mark_ts": "2026-11-27T11:01:24-05:00",
+    "spot": 725.2161,
     "premium": 9630.0,
     "stop": -4815.0,
     "take": null,
-    "option_pnl": 120.0,
-    "hedge_pnl": 498.0335,
-    "pnl": 618.0335
+    "option_pnl": 2330.0,
+    "hedge_pnl": -1847.0335,
+    "pnl": 482.9665
    },
    "signal": "long"
   },
@@ -284,7 +295,7 @@
     "opens": 1,
     "hedges": 4,
     "fees": 11.135,
-    "days": 11
+    "days": 12
    },
    "book": [
     {
@@ -349,6 +360,12 @@
     },
     {
      "date": "2026-11-26",
+     "realized": 274.9528,
+     "open": -2.47,
+     "total": 272.4828
+    },
+    {
+     "date": "2026-11-27",
      "realized": 274.9528,
      "open": -2.47,
      "total": 272.4828
@@ -407,7 +424,7 @@
     "stress_budget": 0.0
    },
    "summary": {
-    "pnl": 3341.0273,
+    "pnl": 3204.9604,
     "max_dd": 180.1292,
     "trades": 2,
     "win_rate": 1.0,
@@ -416,9 +433,9 @@
     "no_delta": 0,
     "no_mark": 0,
     "opens": 3,
-    "hedges": 10,
-    "fees": 26.99,
-    "days": 11
+    "hedges": 11,
+    "fees": 27.99,
+    "days": 12
    },
    "book": [
     {
@@ -486,6 +503,12 @@
      "realized": 2730.8138,
      "open": 610.2135,
      "total": 3341.0273
+    },
+    {
+     "date": "2026-11-27",
+     "realized": 2730.8138,
+     "open": 474.1465,
+     "total": 3204.9604
     }
    ],
    "trades": [
@@ -564,16 +587,16 @@
     "qty": 5,
     "entry_price": 19.26,
     "entry_date": "2026-11-24",
-    "hedge_shares": -279,
-    "dte": 22,
-    "mark_ts": "2026-11-26T11:01:34-05:00",
-    "spot": 716.8116,
+    "hedge_shares": -319,
+    "dte": 21,
+    "mark_ts": "2026-11-27T11:01:24-05:00",
+    "spot": 725.2161,
     "premium": 9630.0,
     "stop": -4815.0,
     "take": null,
-    "option_pnl": 120.0,
-    "hedge_pnl": 498.0335,
-    "pnl": 618.0335
+    "option_pnl": 2330.0,
+    "hedge_pnl": -1847.0335,
+    "pnl": 482.9665
    },
    "signal": "long"
   },
@@ -609,7 +632,7 @@
     "opens": 1,
     "hedges": 4,
     "fees": 11.135,
-    "days": 11
+    "days": 12
    },
    "book": [
     {
@@ -677,6 +700,12 @@
      "realized": 274.9528,
      "open": -2.47,
      "total": 272.4828
+    },
+    {
+     "date": "2026-11-27",
+     "realized": 274.9528,
+     "open": -2.47,
+     "total": 272.4828
     }
    ],
    "trades": [
@@ -732,7 +761,7 @@
     "stress_budget": 0.35
    },
    "summary": {
-    "pnl": -8152.0562,
+    "pnl": -6869.7251,
     "max_dd": 8608.3429,
     "trades": 1,
     "win_rate": 0.0,
@@ -741,9 +770,9 @@
     "no_delta": 0,
     "no_mark": 0,
     "opens": 2,
-    "hedges": 10,
-    "fees": 28.535,
-    "days": 11
+    "hedges": 11,
+    "fees": 29.535,
+    "days": 12
    },
    "book": [
     {
@@ -811,6 +840,12 @@
      "realized": -6823.5475,
      "open": -1328.5087,
      "total": -8152.0562
+    },
+    {
+     "date": "2026-11-27",
+     "realized": -6823.5475,
+     "open": -46.1776,
+     "total": -6869.7251
     }
    ],
    "trades": [
@@ -863,16 +898,16 @@
     "qty": 11,
     "entry_price": 6.85,
     "entry_date": "2026-11-23",
-    "hedge_shares": -253,
-    "dte": 22,
-    "mark_ts": "2026-11-26T11:01:34-05:00",
-    "spot": 716.8116,
+    "hedge_shares": -189,
+    "dte": 21,
+    "mark_ts": "2026-11-27T11:01:24-05:00",
+    "spot": 725.2161,
     "premium": 7535.0,
     "stop": -7535.0,
     "take": 3767.5,
-    "option_pnl": -869.0,
-    "hedge_pnl": -444.5137,
-    "pnl": -1313.5137
+    "option_pnl": 2541.0,
+    "hedge_pnl": -2571.1826,
+    "pnl": -30.1826
    },
    "signal": "short"
   },
@@ -897,7 +932,7 @@
     "stress_budget": 0.35
    },
    "summary": {
-    "pnl": -9449.628,
+    "pnl": -8473.9284,
     "max_dd": 10369.6125,
     "trades": 1,
     "win_rate": 0.0,
@@ -906,9 +941,9 @@
     "no_delta": 0,
     "no_mark": 0,
     "opens": 2,
-    "hedges": 10,
-    "fees": 30.85,
-    "days": 11
+    "hedges": 11,
+    "fees": 31.85,
+    "days": 12
    },
    "book": [
     {
@@ -976,6 +1011,12 @@
      "realized": -8426.7789,
      "open": -1022.8491,
      "total": -9449.628
+    },
+    {
+     "date": "2026-11-27",
+     "realized": -8426.7789,
+     "open": -47.1495,
+     "total": -8473.9284
     }
    ],
    "trades": [
@@ -1028,16 +1069,16 @@
     "qty": 11,
     "entry_price": 8.470000000000002,
     "entry_date": "2026-11-23",
-    "hedge_shares": -315,
-    "dte": 22,
-    "mark_ts": "2026-11-26T11:01:34-05:00",
-    "spot": 716.8116,
+    "hedge_shares": -241,
+    "dte": 21,
+    "mark_ts": "2026-11-27T11:01:24-05:00",
+    "spot": 725.2161,
     "premium": 9317.0,
     "stop": -9317.0,
     "take": 4658.5,
-    "option_pnl": -704.0,
-    "hedge_pnl": -302.3191,
-    "pnl": -1006.3191
+    "option_pnl": 2920.5,
+    "hedge_pnl": -2950.1195,
+    "pnl": -29.6195
    },
    "signal": "short"
   },
@@ -1062,7 +1103,7 @@
     "stress_budget": 0.0
    },
    "summary": {
-    "pnl": -5153.5221,
+    "pnl": -4709.0415,
     "max_dd": 5572.7721,
     "trades": 1,
     "win_rate": 0.0,
@@ -1071,9 +1112,9 @@
     "no_delta": 0,
     "no_mark": 0,
     "opens": 2,
-    "hedges": 10,
-    "fees": 20.14,
-    "days": 11
+    "hedges": 11,
+    "fees": 21.14,
+    "days": 12
    },
    "book": [
     {
@@ -1141,6 +1182,12 @@
      "realized": -4692.1282,
      "open": -461.3939,
      "total": -5153.5221
+    },
+    {
+     "date": "2026-11-27",
+     "realized": -4692.1282,
+     "open": -16.9133,
+     "total": -4709.0415
     }
    ],
    "trades": [
@@ -1193,16 +1240,16 @@
     "qty": 5,
     "entry_price": 8.470000000000002,
     "entry_date": "2026-11-23",
-    "hedge_shares": -143,
-    "dte": 22,
-    "mark_ts": "2026-11-26T11:01:34-05:00",
-    "spot": 716.8116,
+    "hedge_shares": -109,
+    "dte": 21,
+    "mark_ts": "2026-11-27T11:01:24-05:00",
+    "spot": 725.2161,
     "premium": 4235.0,
     "stop": -4235.0,
     "take": 2117.5,
-    "option_pnl": -320.0,
-    "hedge_pnl": -131.3639,
-    "pnl": -451.3639
+    "option_pnl": 1327.5,
+    "hedge_pnl": -1333.3833,
+    "pnl": -5.8833
    },
    "signal": "short"
   },
